@@ -8,31 +8,24 @@ export function requireRole(
 ): NextResponse | null {
   if (!payload) {
     return NextResponse.json(
-      { ok: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
+      { ok: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado' } },
       { status: 401 }
     );
   }
   if (!allowedRoles.includes(payload.role)) {
     return NextResponse.json(
-      { ok: false, error: { code: 'FORBIDDEN', message: 'Insufficient permissions' } },
+      { ok: false, error: { code: 'FORBIDDEN', message: 'Sin permisos' } },
       { status: 403 }
     );
   }
   return null;
 }
 
-export function canAccessPII(role: Role): boolean {
-  return role === 'ADMIN';
-}
-
+// El SELLER gestiona catálogo y despacha — el CLIENT compra
 export function canManageCatalog(role: Role): boolean {
-  return role === 'SELLER' || role === 'ADMIN';
+  return role === 'SELLER';
 }
 
-export function canViewOrders(role: Role): boolean {
-  return role === 'SELLER' || role === 'ADMIN';
-}
-
-export function canRefund(role: Role): boolean {
-  return role === 'ADMIN';
+export function canDispatchOrders(role: Role): boolean {
+  return role === 'SELLER';
 }

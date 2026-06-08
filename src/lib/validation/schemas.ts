@@ -58,6 +58,7 @@ export const ProductSchema = z.object({
 
 // ─── Orders ──────────────────────────────────────────────
 
+// Solo los datos que necesita Starken para el despacho
 export const ShippingAddressSchema = z.object({
   fullName: z.string().min(1).max(200),
   street: z.string().min(1).max(200),
@@ -66,7 +67,6 @@ export const ShippingAddressSchema = z.object({
   commune: z.string().min(1).max(100),
   region: z.string().min(1).max(100),
   phone: z.string().regex(/^\+?56\s?9\s?\d{4}\s?\d{4}$/, 'Teléfono chileno inválido'),
-  email: z.string().email(),
   notes: z.string().max(500).optional(),
 });
 

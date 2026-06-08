@@ -5,7 +5,7 @@ import { exportUserData } from '@/src/lib/services/customer.service';
 
 export async function GET() {
   const session = await getSession();
-  const roleError = requireRole(session, ['CLIENT', 'SELLER', 'ADMIN']);
+  const roleError = requireRole(session, ['CLIENT', 'SELLER']);
   if (roleError) return roleError;
 
   const data = await exportUserData(session!.sub);

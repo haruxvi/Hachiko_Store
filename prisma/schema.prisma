@@ -46,7 +46,6 @@ model User {
 enum Role {
   CLIENT
   SELLER
-  ADMIN
 }
 
 // ─── CATÁLOGO ─────────────────────────────────────────────
@@ -131,6 +130,7 @@ model Order {
   paymentRef      String?
   paidAt          DateTime?
 
+  // Solo datos necesarios para el despacho Starken — sin email (ya está en user.email)
   shippingFullName  String
   shippingStreet    String
   shippingNumber    String
@@ -138,7 +138,6 @@ model Order {
   shippingCommune   String
   shippingRegion    String
   shippingPhone     String
-  shippingEmail     String
   shippingNotes     String?
 
   trackingNumber String?

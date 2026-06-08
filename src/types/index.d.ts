@@ -17,12 +17,11 @@ export interface ApiError {
 
 export type ApiResult<T = undefined> = ApiResponse<T> | ApiError;
 
+// Solo los datos que el SELLER necesita para generar la etiqueta Starken
 export interface SellerOrderView {
   orderNumber: number;
   id: string;
   items: { name: string; quantity: number }[];
-  totalCLP: number;
-  paymentStatus: 'PAID';
   status: OrderStatus;
   recipientName: string;
   shippingStreet: string;
@@ -31,7 +30,6 @@ export interface SellerOrderView {
   shippingCommune: string;
   shippingRegion: string;
   shippingPhone: string;
-  shippingEmail: string;
   shippingNotes?: string;
   createdAt: Date;
 }

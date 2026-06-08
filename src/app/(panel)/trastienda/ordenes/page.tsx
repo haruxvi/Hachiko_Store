@@ -4,7 +4,7 @@ import ShipOrderForm from '@/src/components/panel/ShipOrderForm';
 
 export default async function OrdenesPage() {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) return null;
+  if (!session || session.role !== 'SELLER') return null;
 
   const orders = await getOrdersForSeller();
 
@@ -38,7 +38,6 @@ export default async function OrdenesPage() {
                   <p className="text-sm">{o.shippingStreet} {o.shippingNumber}{o.shippingApartment ? `, ${o.shippingApartment}` : ''}</p>
                   <p className="text-sm">{o.shippingCommune}, {o.shippingRegion}</p>
                   <p className="text-sm">{o.shippingPhone}</p>
-                  <p className="text-sm">{o.shippingEmail}</p>
                   {o.shippingNotes && <p className="text-xs text-gray-500 mt-1">{o.shippingNotes}</p>}
                 </div>
                 <div>
@@ -46,7 +45,6 @@ export default async function OrdenesPage() {
                   {o.items.map((item, i) => (
                     <p key={i} className="text-sm">{item.quantity}× {item.name}</p>
                   ))}
-                  <p className="font-bold mt-2">${o.totalCLP.toLocaleString('es-CL')}</p>
                 </div>
               </div>
 

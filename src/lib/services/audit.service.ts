@@ -6,7 +6,6 @@ export type AuditAction =
   | 'LOGIN_FAILED'
   | 'LOGOUT'
   | 'REGISTER'
-  | 'PII_ACCESS'
   | 'ROLE_CHANGE'
   | 'DATA_EXPORT'
   | 'ACCOUNT_DELETE_REQUEST'

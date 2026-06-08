@@ -19,15 +19,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Panel routes — require SELLER or ADMIN
+  // Panel routes — solo SELLER
   if (pathname.startsWith(PANEL_PREFIX)) {
-    if (!payload || !['SELLER', 'ADMIN'].includes(payload.role)) {
+    if (!payload || payload.role !== 'SELLER') {
       return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    // /clientes — only ADMIN
-    if (pathname.includes('/clientes') && payload.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/trastienda/ordenes', request.url));
     }
   }
 

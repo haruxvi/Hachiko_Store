@@ -8,7 +8,7 @@ import { db } from '@/src/lib/db';
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  const roleError = requireRole(session, ['CLIENT', 'SELLER', 'ADMIN']);
+  const roleError = requireRole(session, ['CLIENT', 'SELLER']);
   if (roleError) return roleError;
 
   const body = await request.json();

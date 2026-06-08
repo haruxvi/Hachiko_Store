@@ -1,7 +1,6 @@
 import { db } from '@/src/lib/db';
-import { decrypt, encrypt, decryptOptional } from '@/src/lib/crypto/pii';
+import { decrypt, decryptOptional } from '@/src/lib/crypto/pii';
 import { writeAudit } from './audit.service';
-import type { Role } from '@prisma/client';
 
 export async function exportUserData(userId: string) {
   const user = await db.user.findUnique({
@@ -80,42 +79,6 @@ export async function requestAccountDeletion(userId: string, reason?: string) {
     targetId: userId,
     metadata: { scheduledFor },
   });
-}
-
-export async function getFullUserForAdmin(
-  targetUserId: string,
-  actorId: string,
-  actorRole: Role,
-  reason: string
-) {
-  await writeAudit({
-    actorId,
-    actorRole,
-    action: 'PII_ACCESS',
-    targetType: 'User',
-    targetId: targetUserId,
-    metadata: { reason },
-  });
-
-  const user = await db.user.findUnique({
-    where: { id: targetUserId },
-    include: { orders: { take: 5, orderBy: { createdAt: 'desc' } }, addresses: true },
-  });
-
-  if (!user) throw new Error('Usuario no encontrado');
-
-  return {
-    ...user,
-    phone: decryptOptional(user.phone),
-    addresses: user.addresses.map((a) => ({
-      ...a,
-      fullName: decrypt(a.fullName),
-      street: decrypt(a.street),
-      number: decrypt(a.number),
-      apartment: a.apartment ? decrypt(a.apartment) : null,
-      phone: decrypt(a.phone),
-    })),
-  };
 }
 
 export async function updateUserConsent(

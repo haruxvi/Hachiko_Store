@@ -7,6 +7,7 @@ import { clearAuthCookies } from '@/src/lib/auth/session';
 
 export async function DELETE(request: NextRequest) {
   const session = await getSession();
+  // Solo los clientes pueden eliminar su propia cuenta desde la UI
   const roleError = requireRole(session, ['CLIENT']);
   if (roleError) return roleError;
 

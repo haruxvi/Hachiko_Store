@@ -96,8 +96,7 @@ export default function CheckoutForm() {
         {field('commune', 'Comuna')}
         {field('region', 'Región')}
       </div>
-      {field('phone', 'Teléfono (+56 9 XXXX XXXX)')}
-      {field('email', 'Email de contacto', 'email')}
+      {field('phone', 'Teléfono de contacto (+56 9 XXXX XXXX)')}
       {field('notes', 'Notas de despacho (opcional)')}
 
       <div>

@@ -2,7 +2,6 @@ import { db } from '@/src/lib/db';
 import { encrypt, decrypt } from '@/src/lib/crypto/pii';
 import { decrementStock, incrementStock } from './catalog.service';
 import { writeAudit } from './audit.service';
-import type { Role } from '@prisma/client';
 
 export interface CartItem {
   productId: string;
@@ -16,6 +15,7 @@ export function calculateShipping(subtotal: number): number {
   return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CLP;
 }
 
+// Solo los datos que Starken necesita para el despacho — nada más
 interface ShippingAddress {
   fullName: string;
   street: string;
@@ -24,7 +24,6 @@ interface ShippingAddress {
   commune: string;
   region: string;
   phone: string;
-  email: string;
   notes?: string;
 }
 
@@ -88,7 +87,6 @@ export async function createOrder(
       shippingCommune: shippingAddress.commune,
       shippingRegion: shippingAddress.region,
       shippingPhone: encrypt(shippingAddress.phone),
-      shippingEmail: encrypt(shippingAddress.email),
       shippingNotes: shippingAddress.notes,
       items: { create: orderItems },
     },
@@ -121,7 +119,7 @@ export async function getClientOrders(userId: string) {
   });
 }
 
-// SELLER view — minimal PII, only paid orders
+// Vista SELLER — solo lo indispensable para generar la etiqueta Starken y despachar
 export async function getOrdersForSeller() {
   const orders = await db.order.findMany({
     where: { paymentStatus: 'PAID', status: { not: 'CANCELLED' } },
@@ -132,10 +130,11 @@ export async function getOrdersForSeller() {
   return orders.map((o) => ({
     orderNumber: o.orderNumber,
     id: o.id,
+    // Qué hay que empacar
     items: o.items.map((i) => ({ name: i.productName, quantity: i.quantity })),
-    totalCLP: o.totalCLP,
+    // Estado para saber si ya fue marcado como enviado
     status: o.status,
-    paymentStatus: o.paymentStatus,
+    // Datos de etiqueta Starken — descifrados aquí en el service, no en la UI
     recipientName: decrypt(o.shippingFullName),
     shippingStreet: decrypt(o.shippingStreet),
     shippingNumber: decrypt(o.shippingNumber),
@@ -143,8 +142,7 @@ export async function getOrdersForSeller() {
     shippingCommune: o.shippingCommune,
     shippingRegion: o.shippingRegion,
     shippingPhone: decrypt(o.shippingPhone),
-    shippingEmail: decrypt(o.shippingEmail),
-    shippingNotes: o.shippingNotes,
+    shippingNotes: o.shippingNotes ?? undefined,
     createdAt: o.createdAt,
   }));
 }
@@ -170,7 +168,7 @@ export async function markOrderShipped(
   orderId: string,
   trackingNumber: string,
   actorId: string,
-  actorRole: Role
+  actorRole: 'SELLER'
 ) {
   const order = await db.order.update({
     where: { id: orderId },

@@ -10,7 +10,7 @@ export async function shipOrderAction(
   input: z.infer<typeof TrackingSchema>
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -18,7 +18,7 @@ export async function shipOrderAction(
   if (!parsed.success) return { ok: false, error: 'Datos inválidos' };
 
   try {
-    await markOrderShipped(parsed.data.orderId, parsed.data.trackingNumber, session.sub, session.role);
+    await markOrderShipped(parsed.data.orderId, parsed.data.trackingNumber, session.sub, 'SELLER');
     revalidatePath('/trastienda/ordenes');
     return { ok: true };
   } catch (e) {
