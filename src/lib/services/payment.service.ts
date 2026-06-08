@@ -1,6 +1,7 @@
 import { db } from '@/src/lib/db';
 import { writeAudit } from './audit.service';
 import { markOrderPaid } from './order.service';
+import { confirmStockDeduction, releaseReservation } from './inventory.service';
 
 export async function isWebhookProcessed(webhookId: string): Promise<boolean> {
   const existing = await db.processedWebhook.findUnique({ where: { id: webhookId } });
@@ -14,9 +15,11 @@ export async function markWebhookProcessed(webhookId: string, provider: string):
 export async function confirmPaymentAndMarkPaid(
   orderId: string,
   provider: string,
-  paymentRef: string
+  paymentRef: string,
 ): Promise<void> {
   const order = await markOrderPaid(orderId, provider, paymentRef);
+
+  await confirmStockDeduction(orderId, null);
 
   await writeAudit({
     action: 'PAYMENT_CONFIRMED',
@@ -31,6 +34,8 @@ export async function markPaymentFailed(orderId: string, provider: string): Prom
     where: { id: orderId },
     data: { paymentStatus: 'FAILED' },
   });
+
+  await releaseReservation(orderId);
 
   await writeAudit({
     action: 'PAYMENT_FAILED',

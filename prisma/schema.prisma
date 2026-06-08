@@ -46,6 +46,7 @@ model User {
 enum Role {
   CLIENT
   SELLER
+  ADMIN
 }
 
 // ─── CATÁLOGO ─────────────────────────────────────────────
@@ -57,36 +58,44 @@ model Category {
   description String?
   active      Boolean   @default(true)
   order       Int       @default(0)
+  archivedAt  DateTime?
   products    Product[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
 model Product {
-  id           String  @id @default(cuid())
-  sku          String  @unique
-  slug         String  @unique
-  name         String
-  nameKorean   String?
-  description  String
-  priceCLP     Int
-  stock        Int     @default(0)
-  weightGrams  Int
-  images       String[]
-  active       Boolean @default(true)
-  featured     Boolean @default(false)
+  id                 String    @id @default(cuid())
+  sku                String    @unique
+  slug               String    @unique
+  name               String
+  nameKorean         String?
+  description        String
+  priceCLP           Int
+  stock              Int       @default(0)
+  lowStockThreshold  Int       @default(5)
+  costCLP            Int?
+  weightGrams        Int
+  images             String[]
+  active             Boolean   @default(true)
+  archivedAt         DateTime?
+  featured           Boolean   @default(false)
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
+  reservations StockReservation[]
+  movements    StockMovement[]
+  adjustments  StockAdjustment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([categoryId])
-  @@index([active])
+  @@index([active, archivedAt])
   @@index([slug])
+  @@index([stock])
 }
 
 // ─── DIRECCIONES Y ÓRDENES ────────────────────────────────
@@ -111,6 +120,76 @@ model Address {
   @@index([userId])
 }
 
+model StockReservation {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  quantity  Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, productId])
+  @@index([productId, expiresAt])
+  @@index([expiresAt])
+}
+
+model StockMovement {
+  id             String              @id @default(cuid())
+  productId      String
+  product        Product             @relation(fields: [productId], references: [id])
+  type           StockMovementType
+  reason         StockMovementReason
+  quantity       Int
+  previousStock  Int
+  resultingStock Int
+  orderId        String?
+  order          Order?              @relation(fields: [orderId], references: [id])
+  adjustmentId   String?
+  adjustment     StockAdjustment?    @relation(fields: [adjustmentId], references: [id])
+  actorId        String?
+  notes          String?
+  createdAt      DateTime            @default(now())
+
+  @@index([productId, createdAt])
+  @@index([orderId])
+  @@index([type, createdAt])
+}
+
+enum StockMovementType {
+  IN
+  OUT
+}
+
+enum StockMovementReason {
+  SALE
+  RESTOCK
+  CORRECTION_UP
+  CORRECTION_DOWN
+  DAMAGED
+  EXPIRED
+  RETURNED
+  INITIAL_LOAD
+}
+
+model StockAdjustment {
+  id            String              @id @default(cuid())
+  productId     String
+  product       Product             @relation(fields: [productId], references: [id])
+  previousStock Int
+  newStock      Int
+  delta         Int
+  reason        StockMovementReason
+  notes         String?
+  actorId       String
+  createdAt     DateTime            @default(now())
+  movements     StockMovement[]
+
+  @@index([productId, createdAt])
+  @@index([actorId])
+}
+
 model Order {
   id          String @id @default(cuid())
   orderNumber Int    @unique @default(autoincrement())
@@ -118,7 +197,9 @@ model Order {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  items OrderItem[]
+  items          OrderItem[]
+  stockMovements StockMovement[]
+  reservations   StockReservation[]
 
   subtotalCLP Int
   shippingCLP Int

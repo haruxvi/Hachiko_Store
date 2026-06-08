@@ -47,6 +47,7 @@ export async function getProducts(filters: ProductFilters = {}) {
 
   const where = {
     active: activeOnly ? true : undefined,
+    archivedAt: activeOnly ? null : undefined,
     featured: featured ?? undefined,
     category: categorySlug ? { slug: categorySlug } : undefined,
     OR: search

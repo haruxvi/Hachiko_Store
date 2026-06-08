@@ -1,7 +1,10 @@
 import { db } from '@/src/lib/db';
 import { encrypt, decrypt } from '@/src/lib/crypto/pii';
-import { decrementStock, incrementStock } from './catalog.service';
 import { writeAudit } from './audit.service';
+import { releaseReservation } from './inventory.service';
+import { addMinutes } from 'date-fns';
+
+const RESERVATION_TTL_MIN = Number(process.env['RESERVATION_TTL_MINUTES'] ?? 15);
 
 export interface CartItem {
   productId: string;
@@ -68,30 +71,62 @@ export async function createOrder(
   const shippingCLP = calculateShipping(subtotalCLP);
   const totalCLP = subtotalCLP + shippingCLP;
 
-  // Decrement stock with optimistic locking
-  for (const item of items) {
-    const ok = await decrementStock(item.productId, item.quantity);
-    if (!ok) throw new Error('Stock insuficiente (concurrencia)');
-  }
+  // Create order + reserve stock atomically
+  const order = await db.$transaction(
+    async (tx) => {
+      // Check availability with active reservations before creating order
+      for (const item of orderItems) {
+        const product = products.find((p) => p.id === item.productId)!;
+        const reserved = await tx.stockReservation.aggregate({
+          where: {
+            productId: item.productId,
+            expiresAt: { gt: new Date() },
+          },
+          _sum: { quantity: true },
+        });
+        const available = product.stock - (reserved._sum.quantity ?? 0);
+        if (available < item.quantity) {
+          throw new Error(`Stock insuficiente para: ${product.name}`);
+        }
+      }
 
-  const order = await db.order.create({
-    data: {
-      userId,
-      subtotalCLP,
-      shippingCLP,
-      totalCLP,
-      shippingFullName: encrypt(shippingAddress.fullName),
-      shippingStreet: encrypt(shippingAddress.street),
-      shippingNumber: encrypt(shippingAddress.number),
-      shippingApartment: shippingAddress.apartment ? encrypt(shippingAddress.apartment) : null,
-      shippingCommune: shippingAddress.commune,
-      shippingRegion: shippingAddress.region,
-      shippingPhone: encrypt(shippingAddress.phone),
-      shippingNotes: shippingAddress.notes,
-      items: { create: orderItems },
+      const newOrder = await tx.order.create({
+        data: {
+          userId,
+          subtotalCLP,
+          shippingCLP,
+          totalCLP,
+          shippingFullName: encrypt(shippingAddress.fullName),
+          shippingStreet: encrypt(shippingAddress.street),
+          shippingNumber: encrypt(shippingAddress.number),
+          shippingApartment: shippingAddress.apartment
+            ? encrypt(shippingAddress.apartment)
+            : null,
+          shippingCommune: shippingAddress.commune,
+          shippingRegion: shippingAddress.region,
+          shippingPhone: encrypt(shippingAddress.phone),
+          shippingNotes: shippingAddress.notes,
+          items: { create: orderItems },
+        },
+        include: { items: true },
+      });
+
+      // Create reservations
+      for (const item of orderItems) {
+        await tx.stockReservation.create({
+          data: {
+            productId: item.productId,
+            orderId: newOrder.id,
+            quantity: item.quantity,
+            expiresAt: addMinutes(new Date(), RESERVATION_TTL_MIN),
+          },
+        });
+      }
+
+      return newOrder;
     },
-    include: { items: true },
-  });
+    { isolationLevel: 'Serializable', maxWait: 5000, timeout: 10000 },
+  );
 
   await writeAudit({
     actorId: userId,
@@ -199,9 +234,9 @@ export async function cancelOrder(orderId: string, userId: string) {
     data: { status: 'CANCELLED' },
   });
 
-  // Restore stock
-  const items = await db.orderItem.findMany({ where: { orderId } });
-  for (const item of items) {
-    await incrementStock(item.productId, item.quantity);
+  // For PENDING orders: release the reservation so stock becomes available again.
+  // For PAID orders: stock was already deducted; a manual RETURNED adjustment is needed if goods come back.
+  if (order.status === 'PENDING') {
+    await releaseReservation(orderId);
   }
 }
