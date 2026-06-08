@@ -24,6 +24,7 @@ type ProductFormProps = {
     active: boolean;
     featured: boolean;
     categoryId: string;
+    category?: { name: string; slug?: string };
   };
 };
 

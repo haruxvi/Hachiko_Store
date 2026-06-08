@@ -1,9 +1,14 @@
 import Link from 'next/link';
+import type { Prisma } from '@prisma/client';
 import { getSession } from '@/src/lib/auth/session';
 import { db } from '@/src/lib/db';
 import { archiveProductAction, restoreProductAction } from '@/src/actions/inventory';
 
 export const revalidate = 0;
+
+type ProductWithCategory = Prisma.ProductGetPayload<{
+  include: { category: { select: { name: true } } };
+}>;
 
 export default async function ProductosPage() {
   const session = await getSession();
@@ -43,23 +48,11 @@ export default async function ProductosPage() {
   );
 }
 
-type Product = {
-  id: string;
-  sku: string;
-  name: string;
-  priceCLP: number;
-  stock: number;
-  lowStockThreshold: number;
-  active: boolean;
-  archivedAt: Date | null;
-  category: { name: string };
-};
-
 function ProductTable({
   products,
   showRestore,
 }: {
-  products: Product[];
+  products: ProductWithCategory[];
   showRestore: boolean;
 }) {
   if (products.length === 0) {

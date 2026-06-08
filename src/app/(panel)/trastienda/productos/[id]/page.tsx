@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getSession } from '@/src/lib/auth/session';
-import { getProductById } from '@/src/lib/services/catalog.service';
-import { getCategories } from '@/src/lib/services/catalog.service';
+import { getProductById, getCategories } from '@/src/lib/services/catalog.service';
 import ProductForm from '@/src/components/panel/ProductForm';
 
 export default async function EditarProductoPage({ params }: { params: Promise<{ id: string }> }) {

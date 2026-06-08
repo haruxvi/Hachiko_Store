@@ -7,9 +7,6 @@ import { adjustStock } from '@/src/lib/services/inventory.service';
 import {
   createProduct,
   updateProduct,
-  getProductById,
-} from '@/src/lib/services/catalog.service';
-import {
   createCategory,
   updateCategory,
 } from '@/src/lib/services/catalog.service';
