@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── USUARIOS Y AUTENTICACIÓN ─────────────────────────────
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  role         Role    @default(CLIENT)
+  firstName    String?
+  lastName     String?
+  phone        String? // cifrado AES-256-GCM
+
+  // Consentimiento Ley 21.719
+  consentEssential Boolean
+  consentMarketing Boolean  @default(false)
+  consentVersion   String
+  consentAt        DateTime
+  consentIp        String?
+  consentUpdatedAt DateTime?
+
+  emailVerified DateTime?
+  lastLoginAt   DateTime?
+  failedLogins  Int       @default(0)
+  lockedUntil   DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  orders    Order[]
+  addresses Address[]
+
+  @@index([email])
+  @@index([role])
+}
+
+enum Role {
+  CLIENT
+  SELLER
+  ADMIN
+}
+
+// ─── CATÁLOGO ─────────────────────────────────────────────
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  active      Boolean   @default(true)
+  order       Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id           String  @id @default(cuid())
+  sku          String  @unique
+  slug         String  @unique
+  name         String
+  nameKorean   String?
+  description  String
+  priceCLP     Int
+  stock        Int     @default(0)
+  weightGrams  Int
+  images       String[]
+  active       Boolean @default(true)
+  featured     Boolean @default(false)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([active])
+  @@index([slug])
+}
+
+// ─── DIRECCIONES Y ÓRDENES ────────────────────────────────
+
+model Address {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id])
+
+  fullName  String
+  street    String
+  number    String
+  apartment String?
+  commune   String
+  region    String
+  phone     String
+  notes     String?
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Order {
+  id          String @id @default(cuid())
+  orderNumber Int    @unique @default(autoincrement())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  items OrderItem[]
+
+  subtotalCLP Int
+  shippingCLP Int
+  totalCLP    Int
+
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  paymentProvider String?
+  paymentRef      String?
+  paidAt          DateTime?
+
+  shippingFullName  String
+  shippingStreet    String
+  shippingNumber    String
+  shippingApartment String?
+  shippingCommune   String
+  shippingRegion    String
+  shippingPhone     String
+  shippingEmail     String
+  shippingNotes     String?
+
+  trackingNumber String?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  FAILED
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity     Int
+  unitPriceCLP Int
+  productName  String
+
+  @@index([orderId])
+}
+
+// ─── COMPLIANCE Y SEGURIDAD ───────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorRole  String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model ProcessedWebhook {
+  id         String   @id
+  provider   String
+  receivedAt DateTime @default(now())
+
+  @@index([provider, receivedAt])
+}
+
+model DataExportRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  requestedAt DateTime  @default(now())
+  completedAt DateTime?
+  downloadUrl String?
+  expiresAt   DateTime?
+}
+
+model DeletionRequest {
+  id           String    @id @default(cuid())
+  userId       String
+  requestedAt  DateTime  @default(now())
+  scheduledFor DateTime
+  executedAt   DateTime?
+  reason       String?
+}
