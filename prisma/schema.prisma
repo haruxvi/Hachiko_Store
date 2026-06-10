@@ -31,6 +31,8 @@ model User {
   lastLoginAt   DateTime?
   failedLogins  Int       @default(0)
   lockedUntil   DateTime?
+  // Se incrementa al cerrar sesión: invalida todos los refresh tokens emitidos antes
+  tokenVersion  Int       @default(0)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

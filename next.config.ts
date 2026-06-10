@@ -15,6 +15,12 @@ const securityHeaders = [
       "font-src 'self' fonts.gstatic.com",
       "img-src 'self' data: blob:",
       "connect-src 'self' webpay3g.transbank.cl api.mercadopago.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+      // El checkout hace POST del token_ws directo a Transbank (prod e integración)
+      "form-action 'self' webpay3g.transbank.cl webpay3gint.transbank.cl",
+      'upgrade-insecure-requests',
     ].join('; '),
   },
 ];

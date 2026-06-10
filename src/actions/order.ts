@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/src/lib/auth/session';
 import { markOrderShipped, cancelOrder } from '@/src/lib/services/order.service';
 import { TrackingSchema } from '@/src/lib/validation/schemas';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 export async function shipOrderAction(
   input: z.infer<typeof TrackingSchema>

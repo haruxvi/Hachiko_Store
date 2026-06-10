@@ -3,7 +3,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/src/lib/stores/cart';
 import { checkoutAction } from '@/src/actions/cart';
 import { ShippingAddressSchema } from '@/src/lib/validation/schemas';
@@ -15,7 +14,6 @@ const FormSchema = ShippingAddressSchema.extend({
 type FormValues = z.infer<typeof FormSchema>;
 
 export default function CheckoutForm() {
-  const router = useRouter();
   const { items, clear } = useCartStore();
   const {
     register,

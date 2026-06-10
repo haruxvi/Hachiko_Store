@@ -30,8 +30,11 @@ export async function signAccessToken(payload: JWTPayload): Promise<string> {
     .sign(getSecret());
 }
 
-export async function signRefreshToken(payload: JWTPayload): Promise<string> {
-  return new SignJWT({ ...payload, type: 'refresh' })
+export async function signRefreshToken(
+  payload: JWTPayload,
+  tokenVersion: number
+): Promise<string> {
+  return new SignJWT({ ...payload, type: 'refresh', ver: tokenVersion })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(REFRESH_EXPIRY)
@@ -51,12 +54,16 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload> {
   };
 }
 
-export async function verifyRefreshToken(token: string): Promise<JWTPayload> {
+export async function verifyRefreshToken(
+  token: string
+): Promise<JWTPayload & { ver: number }> {
   const { payload } = await jwtVerify(token, getSecret());
   if (payload['type'] !== 'refresh') throw new Error('Not a refresh token');
   return {
     sub: payload['sub'] as string,
     role: payload['role'] as Role,
     email: payload['email'] as string,
+    // Tokens emitidos antes de introducir `ver` cuentan como versión 0
+    ver: typeof payload['ver'] === 'number' ? payload['ver'] : 0,
   };
 }

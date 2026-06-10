@@ -16,6 +16,9 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default('Hachiko <hola@hachiko.cl>'),
   NEXT_PUBLIC_APP_URL: z.string().url(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  CRON_SECRET: z.string().min(16, 'CRON_SECRET debe tener al menos 16 caracteres'),
+  LOW_STOCK_DEFAULT: z.coerce.number().int().min(0).default(5),
+  RESERVATION_TTL_MINUTES: z.coerce.number().int().min(1).default(15),
 });
 
 const parsed = envSchema.safeParse(process.env);

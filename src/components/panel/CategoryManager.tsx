@@ -24,7 +24,7 @@ export default function CategoryManager({
   initialCategories: Category[];
 }) {
   const router = useRouter();
-  const [categories, setCategories] = useState(initialCategories);
+  const [categories] = useState(initialCategories);
   const [editing, setEditing] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [error, setError] = useState('');

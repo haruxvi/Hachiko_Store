@@ -1,5 +1,5 @@
 import { db } from '@/src/lib/db';
-import { encrypt, decrypt } from '@/src/lib/crypto/pii';
+import { decrypt } from '@/src/lib/crypto/pii';
 import { signAccessToken, signRefreshToken } from '@/src/lib/auth/jwt';
 import { writeAudit } from './audit.service';
 import type { RegisterSchema, LoginSchema } from '@/src/lib/validation/schemas';
@@ -64,7 +64,7 @@ export async function registerUser(
   const payload = { sub: user.id, role: user.role, email: user.email };
   const [accessToken, refreshToken] = await Promise.all([
     signAccessToken(payload),
-    signRefreshToken(payload),
+    signRefreshToken(payload, user.tokenVersion),
   ]);
 
   return { ok: true, accessToken, refreshToken };
@@ -128,7 +128,7 @@ export async function loginUser(
   const payload = { sub: user.id, role: user.role, email: user.email };
   const [accessToken, refreshToken] = await Promise.all([
     signAccessToken(payload),
-    signRefreshToken(payload),
+    signRefreshToken(payload, user.tokenVersion),
   ]);
 
   return { ok: true, accessToken, refreshToken };
