@@ -1,5 +1,5 @@
 import { db } from '@/src/lib/db';
-import { decrypt, decryptOptional } from '@/src/lib/crypto/pii';
+import { encrypt, decrypt, decryptOptional } from '@/src/lib/crypto/pii';
 import { writeAudit } from './audit.service';
 
 export async function exportUserData(userId: string) {
@@ -79,6 +79,19 @@ export async function requestAccountDeletion(userId: string, reason?: string) {
     targetId: userId,
     metadata: { scheduledFor },
   });
+}
+
+export async function updateUserProfile(
+  userId: string,
+  input: { firstName?: string; lastName?: string; phone?: string }
+) {
+  const data: Record<string, unknown> = {};
+  if (input.firstName !== undefined) data['firstName'] = input.firstName;
+  if (input.lastName !== undefined) data['lastName'] = input.lastName;
+  if (input.phone !== undefined) data['phone'] = encrypt(input.phone);
+
+  if (Object.keys(data).length === 0) return;
+  await db.user.update({ where: { id: userId }, data });
 }
 
 export async function updateUserConsent(

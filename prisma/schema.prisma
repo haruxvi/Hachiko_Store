@@ -285,6 +285,98 @@ model AuditLog {
   @@index([createdAt])
 }
 
+// Registro de incidencias de ciberseguridad — Ley 21.663 (Marco de Ciberseguridad),
+// Ley 21.459 (Delitos Informáticos) y Ley 21.719 (Protección de Datos Personales).
+// Las incidencias y su bitácora son append-only: nunca se editan ni se borran,
+// para que el registro sea oponible ante una auditoría o denuncia.
+model SecurityIncident {
+  id             String           @id @default(cuid())
+  incidentNumber Int              @unique @default(autoincrement())
+  title          String
+  description    String
+  category       IncidentCategory
+  severity       IncidentSeverity
+  status         IncidentStatus   @default(OPEN)
+  detectedAt     DateTime
+
+  // Ley 21.719: si afecta datos personales corre el deber de notificar a la Agencia
+  affectsPersonalData   Boolean @default(false)
+  affectedUsersEstimate Int?
+
+  // Notificación a la autoridad (Agencia de Protección de Datos, CSIRT, PDI, Fiscalía)
+  authorityName       String?
+  authorityReportRef  String?
+  authorityNotifiedAt DateTime?
+
+  reportedBy String // actorId del usuario que registró la incidencia
+  resolvedAt DateTime?
+
+  events SecurityIncidentEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, severity])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// Tipificación alineada con la Ley 21.459 sobre delitos informáticos
+enum IncidentCategory {
+  SYSTEM_INTEGRITY_ATTACK // Art. 1 — ataque a la integridad de un sistema informático
+  UNAUTHORIZED_ACCESS     // Art. 2 — acceso ilícito
+  ILLEGAL_INTERCEPTION    // Art. 3 — interceptación ilícita
+  DATA_INTEGRITY_ATTACK   // Art. 4 — ataque a la integridad de los datos
+  COMPUTER_FRAUD          // Art. 7 — fraude informático
+  PERSONAL_DATA_BREACH    // Ley 21.719 — vulneración de datos personales
+  PHISHING_IMPERSONATION  // suplantación / phishing a clientes o a la tienda
+  CREDENTIAL_ABUSE        // uso abusivo de credenciales (fuerza bruta, stuffing)
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  CONTAINED
+  RESOLVED
+  REPORTED // denunciado / notificado a la autoridad
+  CLOSED
+}
+
+// Bitácora encadenada por hash: cada evento sella el hash del anterior (SHA-256),
+// de modo que cualquier alteración posterior rompe la cadena y es detectable.
+model SecurityIncidentEvent {
+  id         String            @id @default(cuid())
+  incidentId String
+  incident   SecurityIncident  @relation(fields: [incidentId], references: [id])
+  seq        Int
+  type       IncidentEventType
+  detail     String
+  actorId    String
+  prevHash   String?
+  hash       String
+
+  createdAt DateTime @default(now())
+
+  @@unique([incidentId, seq])
+  @@index([incidentId, createdAt])
+}
+
+enum IncidentEventType {
+  CREATED
+  NOTE
+  STATUS_CHANGE
+  AUTHORITY_REPORT
+  EVIDENCE
+}
+
 model ProcessedWebhook {
   id         String   @id
   provider   String

@@ -7,10 +7,12 @@ import { adjustStock } from '@/src/lib/services/inventory.service';
 import {
   createProduct,
   updateProduct,
+  archiveProduct,
+  restoreProduct,
   createCategory,
   updateCategory,
+  archiveCategory,
 } from '@/src/lib/services/catalog.service';
-import { db } from '@/src/lib/db';
 
 // ─── Stock adjustment ────────────────────────────────────────
 
@@ -134,10 +136,7 @@ export async function archiveProductAction(
   }
 
   try {
-    await db.product.update({
-      where: { id: productId },
-      data: { archivedAt: new Date(), active: false },
-    });
+    await archiveProduct(productId);
     revalidatePath('/trastienda/productos');
     return { ok: true };
   } catch (e) {
@@ -154,10 +153,7 @@ export async function restoreProductAction(
   }
 
   try {
-    await db.product.update({
-      where: { id: productId },
-      data: { archivedAt: null, active: true },
-    });
+    await restoreProduct(productId);
     revalidatePath('/trastienda/productos');
     return { ok: true };
   } catch (e) {
@@ -234,10 +230,7 @@ export async function archiveCategoryAction(
   }
 
   try {
-    await db.category.update({
-      where: { id: categoryId },
-      data: { archivedAt: new Date(), active: false },
-    });
+    await archiveCategory(categoryId);
     revalidatePath('/trastienda/categorias');
     return { ok: true };
   } catch (e) {

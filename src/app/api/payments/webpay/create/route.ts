@@ -4,7 +4,7 @@ import { requireRole } from '@/src/lib/auth/rbac';
 import { WebpayCreateSchema } from '@/src/lib/validation/schemas';
 import { createWebpayTransaction } from '@/src/lib/payments/webpay';
 import { writeAudit } from '@/src/lib/services/audit.service';
-import { db } from '@/src/lib/db';
+import { getUnpaidOrderForUser } from '@/src/lib/services/order.service';
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -18,9 +18,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { orderId } = parsed.data;
-  const order = await db.order.findFirst({
-    where: { id: orderId, userId: session!.sub, paymentStatus: 'UNPAID' },
-  });
+  const order = await getUnpaidOrderForUser(orderId, session!.sub);
 
   if (!order) {
     return NextResponse.json({ ok: false, error: { code: 'ORDER_NOT_FOUND' } }, { status: 404 });

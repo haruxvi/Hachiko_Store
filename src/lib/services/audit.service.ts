@@ -1,3 +1,4 @@
+import { subDays } from 'date-fns';
 import { db } from '@/src/lib/db';
 import type { Role } from '@prisma/client';
 
@@ -17,7 +18,12 @@ export type AuditAction =
   | 'REFUND_PROCESSED'
   | 'ORDER_SHIPPED'
   | 'ACCOUNT_LOCKED'
-  | 'CONSENT_UPDATED';
+  | 'CONSENT_UPDATED'
+  | 'SECURITY_INCIDENT_CREATED'
+  | 'SECURITY_INCIDENT_EVENT'
+  | 'SECURITY_INCIDENT_STATUS_CHANGE'
+  | 'SECURITY_INCIDENT_AUTHORITY_REPORT'
+  | 'SECURITY_REPORT_EXPORTED';
 
 interface AuditParams {
   actorId?: string;
@@ -28,6 +34,24 @@ interface AuditParams {
   metadata?: Record<string, unknown>;
   ip?: string;
   userAgent?: string;
+}
+
+// Ley 21.719 — limitación del plazo de conservación: la IP y el user-agent son
+// datos personales, así que se conservan 12 meses (suficiente para investigar
+// un incidente o respaldar una denuncia) y luego se anonimizan. El resto del
+// registro (acción, fecha, tipo de objetivo) se mantiene como traza de auditoría.
+export const AUDIT_PII_RETENTION_DAYS = 365;
+
+export async function anonymizeExpiredAuditData(): Promise<{ anonymized: number }> {
+  const cutoff = subDays(new Date(), AUDIT_PII_RETENTION_DAYS);
+  const result = await db.auditLog.updateMany({
+    where: {
+      createdAt: { lt: cutoff },
+      OR: [{ ip: { not: null } }, { userAgent: { not: null } }],
+    },
+    data: { ip: null, userAgent: null },
+  });
+  return { anonymized: result.count };
 }
 
 export async function writeAudit(params: AuditParams): Promise<void> {

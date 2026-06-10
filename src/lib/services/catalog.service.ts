@@ -23,6 +23,13 @@ export async function updateCategory(id: string, input: Partial<z.infer<typeof C
   return db.category.update({ where: { id }, data: input });
 }
 
+export async function archiveCategory(id: string) {
+  return db.category.update({
+    where: { id },
+    data: { archivedAt: new Date(), active: false },
+  });
+}
+
 export async function deleteCategory(id: string) {
   const hasProducts = await db.product.count({ where: { categoryId: id, active: true } });
   if (hasProducts > 0) {
@@ -83,6 +90,35 @@ export async function getProductById(id: string) {
   return db.product.findUnique({
     where: { id },
     include: { category: { select: { name: true, slug: true } } },
+  });
+}
+
+// Listado completo para la trastienda — incluye archivados e inactivos
+export async function listProductsForPanel() {
+  return db.product.findMany({
+    include: { category: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function getProductSummary(id: string) {
+  return db.product.findUnique({
+    where: { id },
+    select: { name: true, sku: true, stock: true },
+  });
+}
+
+export async function archiveProduct(id: string) {
+  return db.product.update({
+    where: { id },
+    data: { archivedAt: new Date(), active: false },
+  });
+}
+
+export async function restoreProduct(id: string) {
+  return db.product.update({
+    where: { id },
+    data: { archivedAt: null, active: true },
   });
 }
 

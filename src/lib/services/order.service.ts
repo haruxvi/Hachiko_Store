@@ -147,6 +147,14 @@ export async function getOrderForClient(orderId: string, userId: string) {
   });
 }
 
+// Para iniciar un pago: la orden debe pertenecer al usuario y estar impaga
+export async function getUnpaidOrderForUser(orderId: string, userId: string) {
+  return db.order.findFirst({
+    where: { id: orderId, userId, paymentStatus: 'UNPAID' },
+    include: { items: true },
+  });
+}
+
 export async function getClientOrders(userId: string) {
   return db.order.findMany({
     where: { userId },

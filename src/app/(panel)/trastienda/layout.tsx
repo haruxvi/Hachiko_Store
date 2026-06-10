@@ -27,6 +27,9 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <Link href="/trastienda/inventario" className="text-sm px-3 py-2 rounded-lg hover:bg-rose-50">
           Inventario
         </Link>
+        <Link href="/trastienda/seguridad" className="text-sm px-3 py-2 rounded-lg hover:bg-rose-50">
+          Seguridad
+        </Link>
         <div className="mt-auto">
           <p className="text-xs text-gray-400">{session.email}</p>
         </div>

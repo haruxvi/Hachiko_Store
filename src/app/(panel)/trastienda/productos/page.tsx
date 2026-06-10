@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { getSession } from '@/src/lib/auth/session';
-import { db } from '@/src/lib/db';
+import { listProductsForPanel } from '@/src/lib/services/catalog.service';
 import { archiveProductAction, restoreProductAction } from '@/src/actions/inventory';
 
 export const revalidate = 0;
@@ -14,10 +14,7 @@ export default async function ProductosPage() {
   const session = await getSession();
   if (!session || session.role !== 'SELLER') return null;
 
-  const products = await db.product.findMany({
-    include: { category: { select: { name: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  const products = await listProductsForPanel();
 
   const active = products.filter((p) => !p.archivedAt);
   const archived = products.filter((p) => p.archivedAt);

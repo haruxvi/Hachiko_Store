@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/src/lib/auth/session';
-import { db } from '@/src/lib/db';
+import { getProductSummary } from '@/src/lib/services/catalog.service';
 import { getProductStockHistory } from '@/src/lib/services/inventory.service';
 
 export const revalidate = 0;
@@ -16,10 +16,7 @@ export default async function HistoricoPage({
 
   const { productId } = await params;
 
-  const product = await db.product.findUnique({
-    where: { id: productId },
-    select: { name: true, sku: true, stock: true },
-  });
+  const product = await getProductSummary(productId);
 
   if (!product) notFound();
 
