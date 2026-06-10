@@ -1,18 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { loginUser } from '@/src/lib/services/auth.service';
-import { LoginSchema } from '@/src/lib/validation/schemas';
+import { registerUser } from '@/src/lib/services/auth.service';
+import { RegisterSchema } from '@/src/lib/validation/schemas';
 import { accessCookieOptions, refreshCookieOptions } from '@/src/lib/auth/session';
 import { rateLimit, clientIpFrom } from '@/src/lib/rate-limit';
 
-const LOGIN_LIMIT = 10; // intentos por IP por minuto
-const LOGIN_WINDOW_MS = 60 * 1000;
+const REGISTER_LIMIT = 5; // registros por IP por minuto
+const REGISTER_WINDOW_MS = 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
     const limited = rateLimit(
-      `login:${clientIpFrom(request.headers)}`,
-      LOGIN_LIMIT,
-      LOGIN_WINDOW_MS
+      `register:${clientIpFrom(request.headers)}`,
+      REGISTER_LIMIT,
+      REGISTER_WINDOW_MS
     );
     if (!limited.allowed) {
       return NextResponse.json(
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const parsed = LoginSchema.safeParse(body);
+    const parsed = RegisterSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -31,14 +31,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // x-forwarded-for puede traer una cadena de proxies; la IP del cliente es la primera
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined;
-    const userAgent = request.headers.get('user-agent') ?? undefined;
-
-    const result = await loginUser(parsed.data, ip, userAgent);
+    const result = await registerUser(parsed.data, ip);
 
     if (!result.ok) {
-      return NextResponse.json({ ok: false, error: result.error }, { status: 401 });
+      return NextResponse.json({ ok: false, error: result.error }, { status: 409 });
     }
 
     const response = NextResponse.json({ ok: true, data: { role: result.role } });

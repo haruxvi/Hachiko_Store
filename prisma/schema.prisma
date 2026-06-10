@@ -27,6 +27,11 @@ model User {
   consentIp        String?
   consentUpdatedAt DateTime?
 
+  // Doble factor TOTP (RFC 6238) — el secreto se guarda cifrado AES-256-GCM.
+  // totpEnabledAt null + secreto presente = enrolamiento pendiente de confirmar
+  totpSecret    String?
+  totpEnabledAt DateTime?
+
   emailVerified DateTime?
   lastLoginAt   DateTime?
   failedLogins  Int       @default(0)
@@ -45,10 +50,11 @@ model User {
   @@index([role])
 }
 
+// Dos roles, principio de mínimo privilegio: el CLIENT compra y gestiona SUS
+// datos; el SELLER opera la tienda. No existe superusuario con acceso total.
 enum Role {
   CLIENT
   SELLER
-  ADMIN
 }
 
 // ─── CATÁLOGO ─────────────────────────────────────────────

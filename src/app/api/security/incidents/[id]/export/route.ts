@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSession();
-  const roleError = requireRole(session, ['SELLER', 'ADMIN']);
+  const roleError = requireRole(session, ['SELLER']);
   if (roleError) return roleError;
 
   const { id } = await params;

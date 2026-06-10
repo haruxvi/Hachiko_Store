@@ -1,7 +1,9 @@
 import { db } from '@/src/lib/db';
 import { decrypt } from '@/src/lib/crypto/pii';
 import { signAccessToken, signRefreshToken } from '@/src/lib/auth/jwt';
+import { verifyTotpCode } from '@/src/lib/auth/totp';
 import { writeAudit } from './audit.service';
+import type { Role } from '@prisma/client';
 import type { RegisterSchema, LoginSchema } from '@/src/lib/validation/schemas';
 import type { z } from 'zod';
 
@@ -27,7 +29,7 @@ async function getDummyHash(): Promise<string> {
 }
 
 export type AuthResult =
-  | { ok: true; accessToken: string; refreshToken: string }
+  | { ok: true; accessToken: string; refreshToken: string; role: Role }
   | { ok: false; error: { code: string; message: string } };
 
 export async function registerUser(
@@ -67,7 +69,7 @@ export async function registerUser(
     signRefreshToken(payload, user.tokenVersion),
   ]);
 
-  return { ok: true, accessToken, refreshToken };
+  return { ok: true, accessToken, refreshToken, role: user.role };
 }
 
 export async function loginUser(
@@ -112,6 +114,43 @@ export async function loginUser(
     return { ok: false, error: { code: 'INVALID_CREDENTIALS', message: 'Credenciales inválidas' } };
   }
 
+  // Segundo factor: solo se solicita DESPUÉS de validar la contraseña,
+  // para no revelar qué cuentas tienen 2FA activo
+  if (user.totpEnabledAt && user.totpSecret) {
+    if (!input.totpCode) {
+      return {
+        ok: false,
+        error: { code: 'TOTP_REQUIRED', message: 'Ingresa el código de tu app de autenticación' },
+      };
+    }
+
+    const totpValid = verifyTotpCode(decrypt(user.totpSecret), user.email, input.totpCode);
+    if (!totpValid) {
+      // Un código TOTP errado cuenta como intento fallido: protege contra fuerza bruta del segundo factor
+      const failedLogins = user.failedLogins + 1;
+      const lockedUntil =
+        failedLogins >= MAX_FAILED_LOGINS ? new Date(Date.now() + LOCK_DURATION_MS) : null;
+
+      await db.user.update({
+        where: { id: user.id },
+        data: { failedLogins, lockedUntil },
+      });
+
+      if (lockedUntil) {
+        await writeAudit({ actorId: user.id, action: 'ACCOUNT_LOCKED', ip, userAgent });
+      }
+
+      await writeAudit({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        ip,
+        userAgent,
+        metadata: { factor: 'TOTP' },
+      });
+      return { ok: false, error: { code: 'INVALID_TOTP', message: 'Código de autenticación inválido' } };
+    }
+  }
+
   await db.user.update({
     where: { id: user.id },
     data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() },
@@ -131,7 +170,7 @@ export async function loginUser(
     signRefreshToken(payload, user.tokenVersion),
   ]);
 
-  return { ok: true, accessToken, refreshToken };
+  return { ok: true, accessToken, refreshToken, role: user.role };
 }
 
 export async function getUserProfile(userId: string) {
@@ -145,6 +184,7 @@ export async function getUserProfile(userId: string) {
       phone: true,
       role: true,
       consentMarketing: true,
+      totpEnabledAt: true,
       createdAt: true,
     },
   });
@@ -155,4 +195,75 @@ export async function getUserProfile(userId: string) {
     ...user,
     phone: user.phone ? decrypt(user.phone) : null,
   };
+}
+
+// ─── Doble factor (TOTP) ─────────────────────────────────────
+
+export async function startTotpEnrollment(userId: string): Promise<{ uri: string }> {
+  const user = await db.user.findUniqueOrThrow({
+    where: { id: userId, deletedAt: null },
+    select: { email: true, totpEnabledAt: true },
+  });
+  if (user.totpEnabledAt) {
+    throw new Error('El doble factor ya está activo');
+  }
+
+  const { generateTotpSecret, totpUri } = await import('@/src/lib/auth/totp');
+  const { encrypt } = await import('@/src/lib/crypto/pii');
+
+  const secret = generateTotpSecret();
+  // Se guarda cifrado pero NO habilitado: queda pendiente hasta confirmar un código válido
+  await db.user.update({
+    where: { id: userId },
+    data: { totpSecret: encrypt(secret), totpEnabledAt: null },
+  });
+
+  return { uri: totpUri(secret, user.email) };
+}
+
+export async function confirmTotpEnrollment(
+  userId: string,
+  code: string,
+  ip?: string
+): Promise<{ ok: boolean }> {
+  const user = await db.user.findUniqueOrThrow({
+    where: { id: userId, deletedAt: null },
+    select: { email: true, totpSecret: true, totpEnabledAt: true },
+  });
+  if (!user.totpSecret || user.totpEnabledAt) return { ok: false };
+
+  if (!verifyTotpCode(decrypt(user.totpSecret), user.email, code)) {
+    return { ok: false };
+  }
+
+  await db.user.update({
+    where: { id: userId },
+    data: { totpEnabledAt: new Date() },
+  });
+  await writeAudit({ actorId: userId, action: 'TOTP_ENABLED', targetType: 'User', targetId: userId, ip });
+  return { ok: true };
+}
+
+export async function disableTotp(
+  userId: string,
+  code: string,
+  ip?: string
+): Promise<{ ok: boolean }> {
+  const user = await db.user.findUniqueOrThrow({
+    where: { id: userId, deletedAt: null },
+    select: { email: true, totpSecret: true, totpEnabledAt: true },
+  });
+  if (!user.totpSecret || !user.totpEnabledAt) return { ok: false };
+
+  // Desactivar exige un código vigente: una sesión robada no puede bajar el 2FA sin el teléfono
+  if (!verifyTotpCode(decrypt(user.totpSecret), user.email, code)) {
+    return { ok: false };
+  }
+
+  await db.user.update({
+    where: { id: userId },
+    data: { totpSecret: null, totpEnabledAt: null },
+  });
+  await writeAudit({ actorId: userId, action: 'TOTP_DISABLED', targetType: 'User', targetId: userId, ip });
+  return { ok: true };
 }

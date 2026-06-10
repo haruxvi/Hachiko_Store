@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getSession } from '@/src/lib/auth/session';
 import { redirect } from 'next/navigation';
+import LogoutButton from '@/src/components/storefront/LogoutButton';
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -30,8 +31,11 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <Link href="/trastienda/seguridad" className="text-sm px-3 py-2 rounded-lg hover:bg-rose-50">
           Seguridad
         </Link>
-        <div className="mt-auto">
-          <p className="text-xs text-gray-400">{session.email}</p>
+        <div className="mt-auto flex flex-col gap-1">
+          <Link href="/perfil" className="text-xs text-gray-400 hover:underline">
+            {session.email}
+          </Link>
+          <LogoutButton className="text-xs text-left text-gray-400 hover:text-red-600 hover:underline" />
         </div>
       </aside>
       <main className="flex-1 p-8">{children}</main>

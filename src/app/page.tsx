@@ -1,15 +1,53 @@
 import Link from 'next/link';
 import { getProducts } from '@/src/lib/services/catalog.service';
 import { getCategories } from '@/src/lib/services/catalog.service';
+import { getSession } from '@/src/lib/auth/session';
 
 export default async function HomePage() {
-  const [{ products: featured }, categories] = await Promise.all([
+  const [{ products: featured }, categories, session] = await Promise.all([
     getProducts({ featured: true, limit: 8 }),
     getCategories(),
+    getSession(),
   ]);
 
   return (
     <main>
+      {/* Header */}
+      <header className="border-b px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link href="/" className="text-rose-600 font-bold text-xl">
+            Hachiko
+          </Link>
+          <nav className="flex items-center gap-5 text-sm">
+            <Link href="/catalogo" className="hover:text-rose-600">
+              Catálogo
+            </Link>
+            <Link href="/carrito" className="hover:text-rose-600">
+              Carrito
+            </Link>
+            {session ? (
+              <>
+                {session.role === 'SELLER' && (
+                  <Link href="/trastienda" className="hover:text-rose-600">
+                    Trastienda
+                  </Link>
+                )}
+                <Link href="/perfil" className="hover:text-rose-600">
+                  Mi cuenta
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="bg-rose-600 text-white px-4 py-1.5 rounded-full hover:bg-rose-700"
+              >
+                Iniciar sesión
+              </Link>
+            )}
+          </nav>
+        </div>
+      </header>
+
       {/* Hero */}
       <section className="bg-rose-50 py-20 px-6 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">

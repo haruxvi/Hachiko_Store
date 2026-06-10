@@ -37,7 +37,7 @@ export async function adjustStockAction(
   input: AdjustStockInput,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -83,7 +83,7 @@ export async function createProductAction(
   input: ProductActionInput,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -108,7 +108,7 @@ export async function updateProductAction(
   input: z.infer<typeof UpdateProductSchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -131,7 +131,7 @@ export async function archiveProductAction(
   productId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -148,7 +148,7 @@ export async function restoreProductAction(
   productId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -179,7 +179,7 @@ export async function createCategoryAction(
   input: z.infer<typeof CategoryActionSchema>,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -203,7 +203,7 @@ export async function updateCategoryAction(
   input: z.infer<typeof UpdateCategorySchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -225,7 +225,7 @@ export async function archiveCategoryAction(
   categoryId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 

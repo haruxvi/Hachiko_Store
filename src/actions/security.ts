@@ -39,7 +39,7 @@ export async function createIncidentAction(
   input: z.infer<typeof CreateIncidentSchema>,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -75,7 +75,7 @@ export async function addIncidentNoteAction(
   input: z.infer<typeof AddNoteSchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -111,7 +111,7 @@ export async function changeIncidentStatusAction(
   input: z.infer<typeof ChangeStatusSchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
@@ -148,7 +148,7 @@ export async function registerAuthorityReportAction(
   input: z.infer<typeof AuthorityReportSchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
-  if (!session || !['SELLER', 'ADMIN'].includes(session.role)) {
+  if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
