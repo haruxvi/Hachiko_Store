@@ -19,11 +19,17 @@ export async function createWebpayTransaction(
 
 export async function commitWebpayTransaction(
   token: string
-): Promise<{ authorized: boolean; authorizationCode?: string; amount?: number }> {
+): Promise<{
+  authorized: boolean;
+  buyOrder?: string;
+  authorizationCode?: string;
+  amount?: number;
+}> {
   const response = await getTx().commit(token);
   const authorized = response.response_code === 0;
   return {
     authorized,
+    buyOrder: response.buy_order as string | undefined,
     authorizationCode: authorized ? (response.authorization_code as string | undefined) : undefined,
     amount: response.amount as number | undefined,
   };

@@ -5,9 +5,8 @@ import { getSession } from '@/src/lib/auth/session';
 import { createOrder } from '@/src/lib/services/order.service';
 import { CheckoutSchema } from '@/src/lib/validation/schemas';
 import type { z } from 'zod';
-import type { CartItem } from '@/src/lib/services/order.service';
 
-type CheckoutInput = z.infer<typeof CheckoutSchema> & { items: CartItem[] };
+type CheckoutInput = z.infer<typeof CheckoutSchema>;
 
 export async function checkoutAction(
   input: CheckoutInput
@@ -20,12 +19,8 @@ export async function checkoutAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
   }
 
-  if (!input.items || input.items.length === 0) {
-    return { ok: false, error: 'El carrito está vacío' };
-  }
-
   try {
-    const order = await createOrder(session.sub, input.items, parsed.data.shippingAddress);
+    const order = await createOrder(session.sub, parsed.data.items, parsed.data.shippingAddress);
     revalidatePath('/pedidos');
     return { ok: true, orderId: order.id };
   } catch (e) {

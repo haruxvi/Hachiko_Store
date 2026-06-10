@@ -72,9 +72,24 @@ export const ShippingAddressSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+export const CartItemsSchema = z
+  .array(
+    z.object({
+      productId: z.string().cuid(),
+      quantity: z.number().int().min(1).max(99),
+    })
+  )
+  .min(1, 'El carrito está vacío')
+  .max(50)
+  .refine(
+    (items) => new Set(items.map((i) => i.productId)).size === items.length,
+    'Productos duplicados en el carrito'
+  );
+
 export const CheckoutSchema = z.object({
   shippingAddress: ShippingAddressSchema,
   paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO']),
+  items: CartItemsSchema,
 });
 
 export const TrackingSchema = z.object({

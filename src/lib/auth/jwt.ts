@@ -7,16 +7,27 @@ export interface JWTPayload {
   email: string;
 }
 
-const SECRET = new TextEncoder().encode(process.env['JWT_SECRET'] ?? '');
 const ACCESS_EXPIRY = '15m';
 const REFRESH_EXPIRY = '7d';
 
+let cachedSecret: Uint8Array | null = null;
+
+function getSecret(): Uint8Array {
+  if (cachedSecret) return cachedSecret;
+  const raw = process.env['JWT_SECRET'];
+  if (!raw || raw.length < 32) {
+    throw new Error('JWT_SECRET must be set and at least 32 characters long');
+  }
+  cachedSecret = new TextEncoder().encode(raw);
+  return cachedSecret;
+}
+
 export async function signAccessToken(payload: JWTPayload): Promise<string> {
-  return new SignJWT({ ...payload })
+  return new SignJWT({ ...payload, type: 'access' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_EXPIRY)
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 export async function signRefreshToken(payload: JWTPayload): Promise<string> {
@@ -24,11 +35,15 @@ export async function signRefreshToken(payload: JWTPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(REFRESH_EXPIRY)
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 export async function verifyAccessToken(token: string): Promise<JWTPayload> {
-  const { payload } = await jwtVerify(token, SECRET);
+  const { payload } = await jwtVerify(token, getSecret());
+  // Un refresh token firmado con el mismo secreto no debe servir como access token
+  if (payload['type'] !== undefined && payload['type'] !== 'access') {
+    throw new Error('Not an access token');
+  }
   return {
     sub: payload['sub'] as string,
     role: payload['role'] as Role,
@@ -37,7 +52,7 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload> {
 }
 
 export async function verifyRefreshToken(token: string): Promise<JWTPayload> {
-  const { payload } = await jwtVerify(token, SECRET);
+  const { payload } = await jwtVerify(token, getSecret());
   if (payload['type'] !== 'refresh') throw new Error('Not a refresh token');
   return {
     sub: payload['sub'] as string,

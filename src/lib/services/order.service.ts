@@ -75,16 +75,19 @@ export async function createOrder(
   const order = await db.$transaction(
     async (tx) => {
       // Check availability with active reservations before creating order
+      const reservations = await tx.stockReservation.groupBy({
+        by: ['productId'],
+        where: {
+          productId: { in: orderItems.map((i) => i.productId) },
+          expiresAt: { gt: new Date() },
+        },
+        _sum: { quantity: true },
+      });
+      const reservedMap = new Map(reservations.map((r) => [r.productId, r._sum.quantity ?? 0]));
+
       for (const item of orderItems) {
         const product = products.find((p) => p.id === item.productId)!;
-        const reserved = await tx.stockReservation.aggregate({
-          where: {
-            productId: item.productId,
-            expiresAt: { gt: new Date() },
-          },
-          _sum: { quantity: true },
-        });
-        const available = product.stock - (reserved._sum.quantity ?? 0);
+        const available = product.stock - (reservedMap.get(item.productId) ?? 0);
         if (available < item.quantity) {
           throw new Error(`Stock insuficiente para: ${product.name}`);
         }
@@ -112,16 +115,14 @@ export async function createOrder(
       });
 
       // Create reservations
-      for (const item of orderItems) {
-        await tx.stockReservation.create({
-          data: {
-            productId: item.productId,
-            orderId: newOrder.id,
-            quantity: item.quantity,
-            expiresAt: addMinutes(new Date(), RESERVATION_TTL_MIN),
-          },
-        });
-      }
+      await tx.stockReservation.createMany({
+        data: orderItems.map((item) => ({
+          productId: item.productId,
+          orderId: newOrder.id,
+          quantity: item.quantity,
+          expiresAt: addMinutes(new Date(), RESERVATION_TTL_MIN),
+        })),
+      });
 
       return newOrder;
     },
@@ -180,23 +181,6 @@ export async function getOrdersForSeller() {
     shippingNotes: o.shippingNotes ?? undefined,
     createdAt: o.createdAt,
   }));
-}
-
-export async function markOrderPaid(
-  orderId: string,
-  provider: string,
-  paymentRef: string
-) {
-  return db.order.update({
-    where: { id: orderId },
-    data: {
-      status: 'PAID',
-      paymentStatus: 'PAID',
-      paymentProvider: provider,
-      paymentRef,
-      paidAt: new Date(),
-    },
-  });
 }
 
 export async function markOrderShipped(

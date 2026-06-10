@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ip = request.headers.get('x-forwarded-for') ?? undefined;
+    // x-forwarded-for puede traer una cadena de proxies; la IP del cliente es la primera
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined;
     const userAgent = request.headers.get('user-agent') ?? undefined;
 
     const result = await loginUser(parsed.data, ip, userAgent);

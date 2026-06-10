@@ -43,18 +43,26 @@ export async function getMpPayment(paymentId: string) {
 }
 
 export function verifyMpWebhookSignature(
-  rawBody: string,
+  dataId: string,
   xRequestId: string,
   xSignature: string,
   webhookSecret: string
 ): boolean {
-  const parts = xSignature.split(',');
+  if (!webhookSecret) return false;
+
+  const parts = xSignature.split(',').map((p) => p.trim());
   const ts = parts.find((p) => p.startsWith('ts='))?.split('=')[1];
   const v1 = parts.find((p) => p.startsWith('v1='))?.split('=')[1];
   if (!ts || !v1) return false;
 
-  const manifest = `id:${xRequestId};request-id:${xRequestId};ts:${ts};`;
+  // Manifest según la doc de MP: id = data.id del query string (en minúsculas
+  // si es alfanumérico), request-id = header x-request-id
+  const manifest = `id:${dataId.toLowerCase()};request-id:${xRequestId};ts:${ts};`;
   const expected = createHmac('sha256', webhookSecret).update(manifest).digest('hex');
 
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
+  const expectedBuf = Buffer.from(expected);
+  const receivedBuf = Buffer.from(v1);
+  if (expectedBuf.length !== receivedBuf.length) return false;
+
+  return timingSafeEqual(expectedBuf, receivedBuf);
 }
