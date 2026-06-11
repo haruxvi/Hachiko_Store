@@ -40,22 +40,42 @@ export async function deleteCategory(id: string) {
 
 // ─── Products ─────────────────────────────────────────────
 
+export type ProductSort = 'recent' | 'price-asc' | 'price-desc';
+
 export interface ProductFilters {
   categorySlug?: string;
   featured?: boolean;
   search?: string;
   activeOnly?: boolean;
+  inStockOnly?: boolean;
+  sort?: ProductSort;
   page?: number;
   limit?: number;
 }
 
+const SORT_ORDER: Record<ProductSort, { createdAt: 'desc' } | { priceCLP: 'asc' | 'desc' }> = {
+  recent: { createdAt: 'desc' },
+  'price-asc': { priceCLP: 'asc' },
+  'price-desc': { priceCLP: 'desc' },
+};
+
 export async function getProducts(filters: ProductFilters = {}) {
-  const { categorySlug, featured, search, activeOnly = true, page = 1, limit = 24 } = filters;
+  const {
+    categorySlug,
+    featured,
+    search,
+    activeOnly = true,
+    inStockOnly = false,
+    sort = 'recent',
+    page = 1,
+    limit = 24,
+  } = filters;
 
   const where = {
     active: activeOnly ? true : undefined,
     archivedAt: activeOnly ? null : undefined,
     featured: featured ?? undefined,
+    stock: inStockOnly ? { gt: 0 } : undefined,
     category: categorySlug ? { slug: categorySlug } : undefined,
     OR: search
       ? [
@@ -69,7 +89,7 @@ export async function getProducts(filters: ProductFilters = {}) {
     db.product.findMany({
       where,
       include: { category: { select: { name: true, slug: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: SORT_ORDER[sort],
       skip: (page - 1) * limit,
       take: limit,
     }),

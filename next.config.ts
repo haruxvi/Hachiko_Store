@@ -29,6 +29,9 @@ const nextConfig: NextConfig = {
   // No anunciar el framework en cada respuesta (reduce fingerprinting)
   poweredByHeader: false,
   reactStrictMode: true,
+  // Hay un pnpm-lock.yaml en el directorio padre del repo; fijar la raíz
+  // evita que Next infiera mal el workspace al hacer build
+  outputFileTracingRoot: __dirname,
   async headers() {
     return [
       {

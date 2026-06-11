@@ -1,6 +1,7 @@
 import { db } from '@/src/lib/db';
 import { writeAudit } from './audit.service';
 import { confirmStockDeduction, releaseReservation } from './inventory.service';
+import { sendEmail, orderPaidEmail } from '@/src/lib/email';
 
 export async function isWebhookProcessed(webhookId: string): Promise<boolean> {
   const existing = await db.processedWebhook.findUnique({ where: { id: webhookId } });
@@ -17,7 +18,10 @@ export async function confirmPaymentAndMarkPaid(
   paymentRef: string,
   paidAmount?: number,
 ): Promise<void> {
-  const order = await db.order.findUnique({ where: { id: orderId } });
+  const order = await db.order.findUnique({
+    where: { id: orderId },
+    include: { items: true, user: { select: { email: true, isGuest: true } } },
+  });
   if (!order) throw new Error(`Orden no encontrada: ${orderId}`);
 
   // Idempotencia: un webhook o commit repetido no debe procesar dos veces
@@ -57,6 +61,23 @@ export async function confirmPaymentAndMarkPaid(
     targetId: orderId,
     metadata: { provider, paymentRef, totalCLP: order.totalCLP },
   });
+
+  // Confirmación al cliente. sendEmail nunca lanza: un problema con Resend
+  // no puede hacer fallar el webhook (el pago YA está confirmado).
+  const email = orderPaidEmail({
+    orderNumber: order.orderNumber,
+    items: order.items.map((i) => ({
+      productName: i.productName,
+      quantity: i.quantity,
+      unitPriceCLP: i.unitPriceCLP,
+    })),
+    subtotalCLP: order.subtotalCLP,
+    shippingCLP: order.shippingCLP,
+    totalCLP: order.totalCLP,
+    shippingMethod: order.shippingMethod,
+    isGuest: order.user.isGuest,
+  });
+  await sendEmail({ to: order.user.email, ...email });
 }
 
 export async function markPaymentFailed(orderId: string, provider: string): Promise<void> {

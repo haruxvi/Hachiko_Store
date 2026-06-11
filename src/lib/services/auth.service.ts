@@ -63,6 +63,66 @@ export async function registerUser(
 
   await writeAudit({ actorId: user.id, actorRole: 'CLIENT', action: 'REGISTER', ip });
 
+  // Correo de verificación: si falla no bloquea el registro (se puede reenviar
+  // desde el perfil)
+  const { sendVerificationEmail } = await import('./account-token.service');
+  await sendVerificationEmail(user.id).catch(() => undefined);
+
+  const payload = { sub: user.id, role: user.role, email: user.email };
+  const [accessToken, refreshToken] = await Promise.all([
+    signAccessToken(payload),
+    signRefreshToken(payload, user.tokenVersion),
+  ]);
+
+  return { ok: true, accessToken, refreshToken, role: user.role };
+}
+
+// "Continuar como invitado": crea una cuenta CLIENT real con contraseña
+// aleatoria imposible de adivinar. Así el resto del sistema no cambia (RBAC,
+// auditoría, derechos ARCO y verificación de dueño en pagos siguen intactos)
+// y el comprador puede reclamar la cuenta después vía "recuperar contraseña".
+export async function registerGuest(email: string, ip?: string): Promise<AuthResult> {
+  const existing = await db.user.findUnique({ where: { email } });
+  if (existing) {
+    // No se reutiliza la cuenta existente: entregar sesión solo con el email
+    // permitiría tomar el historial de otra persona
+    return {
+      ok: false,
+      error: {
+        code: 'EMAIL_EXISTS',
+        message: 'Este correo ya está registrado. Inicia sesión o usa "recuperar contraseña".',
+      },
+    };
+  }
+
+  const { randomBytes } = await import('node:crypto');
+  const argon2 = await import('argon2');
+  const passwordHash = await argon2.hash(randomBytes(32).toString('hex'), {
+    type: argon2.argon2id,
+    ...ARGON2_OPTIONS,
+  });
+
+  const user = await db.user.create({
+    data: {
+      email,
+      passwordHash,
+      isGuest: true,
+      consentEssential: true,
+      consentMarketing: false,
+      consentVersion: 'v1.0-2026',
+      consentAt: new Date(),
+      consentIp: ip,
+    },
+  });
+
+  await writeAudit({
+    actorId: user.id,
+    actorRole: 'CLIENT',
+    action: 'REGISTER',
+    ip,
+    metadata: { guest: true },
+  });
+
   const payload = { sub: user.id, role: user.role, email: user.email };
   const [accessToken, refreshToken] = await Promise.all([
     signAccessToken(payload),
@@ -179,6 +239,7 @@ export async function getUserProfile(userId: string) {
     select: {
       id: true,
       email: true,
+      emailVerified: true,
       firstName: true,
       lastName: true,
       phone: true,

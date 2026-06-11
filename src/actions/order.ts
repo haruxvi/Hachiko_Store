@@ -18,7 +18,12 @@ export async function shipOrderAction(
   if (!parsed.success) return { ok: false, error: 'Datos inválidos' };
 
   try {
-    await markOrderShipped(parsed.data.orderId, parsed.data.trackingNumber, session.sub, 'SELLER');
+    await markOrderShipped(
+      parsed.data.orderId,
+      parsed.data.trackingNumber?.trim() || null,
+      session.sub,
+      'SELLER'
+    );
     revalidatePath('/trastienda/ordenes');
     return { ok: true };
   } catch (e) {

@@ -32,6 +32,10 @@ model User {
   totpSecret    String?
   totpEnabledAt DateTime?
 
+  // Cuenta creada por "continuar como invitado": tiene contraseña aleatoria
+  // imposible de adivinar; el dueño puede reclamarla vía "recuperar contraseña"
+  isGuest Boolean @default(false)
+
   emailVerified DateTime?
   lastLoginAt   DateTime?
   failedLogins  Int       @default(0)
@@ -55,6 +59,26 @@ model User {
 enum Role {
   CLIENT
   SELLER
+}
+
+// Tokens de un solo uso para flujos por correo (recuperar contraseña,
+// verificar email). Se guarda el hash SHA-256, nunca el token en claro:
+// un dump de la BD no permite usarlos.
+model ActionToken {
+  id        String          @id @default(cuid())
+  userId    String
+  type      ActionTokenType
+  tokenHash String          @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime        @default(now())
+
+  @@index([userId, type])
+}
+
+enum ActionTokenType {
+  PASSWORD_RESET
+  EMAIL_VERIFY
 }
 
 // ─── CATÁLOGO ─────────────────────────────────────────────
@@ -219,13 +243,19 @@ model Order {
   paymentRef      String?
   paidAt          DateTime?
 
-  // Solo datos necesarios para el despacho Starken — sin email (ya está en user.email)
+  // Método de entrega elegido por el cliente en el checkout. Todo lo que se
+  // muestra después (correos, "mis pedidos", trastienda) usa SOLO este método.
+  shippingMethod ShippingMethod @default(STARKEN)
+
+  // Solo datos necesarios para el despacho — sin email (ya está en user.email).
+  // Calle/número/comuna/región son null cuando el método es PICKUP (retiro en
+  // tienda): nombre y teléfono bastan para identificar a quien retira.
   shippingFullName  String
-  shippingStreet    String
-  shippingNumber    String
+  shippingStreet    String?
+  shippingNumber    String?
   shippingApartment String?
-  shippingCommune   String
-  shippingRegion    String
+  shippingCommune   String?
+  shippingRegion    String?
   shippingPhone     String
   shippingNotes     String?
 
@@ -249,6 +279,14 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+// Métodos de entrega ofrecidos. Agregar un courier nuevo = agregar el valor
+// aquí y su entrada en SHIPPING_METHODS (src/lib/shipping.ts).
+enum ShippingMethod {
+  PICKUP        // retiro en tienda (Recoleta) — sin costo
+  STARKEN
+  CORREOS_CHILE
 }
 
 enum PaymentStatus {

@@ -2,13 +2,16 @@ import { z } from 'zod';
 
 // ─── Auth ────────────────────────────────────────────────
 
+// Política de contraseñas única para registro y restablecimiento
+export const PasswordSchema = z
+  .string()
+  .min(8, 'Mínimo 8 caracteres')
+  .regex(/[A-Z]/, 'Debe tener al menos una mayúscula')
+  .regex(/[0-9]/, 'Debe tener al menos un número');
+
 export const RegisterSchema = z.object({
   email: z.string().email(),
-  password: z
-    .string()
-    .min(8, 'Mínimo 8 caracteres')
-    .regex(/[A-Z]/, 'Debe tener al menos una mayúscula')
-    .regex(/[0-9]/, 'Debe tener al menos un número'),
+  password: PasswordSchema,
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   consentEssential: z.literal(true, {
@@ -25,6 +28,28 @@ export const LoginSchema = z.object({
     .string()
     .regex(/^\d{6}$/, 'El código debe tener 6 dígitos')
     .optional(),
+});
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+// "Continuar como invitado": solo email + consentimiento esencial. La cuenta
+// se crea con contraseña aleatoria; se reclama después vía recuperación.
+export const GuestCheckoutSchema = z.object({
+  email: z.string().email(),
+  consentEssential: z.literal(true, {
+    errorMap: () => ({ message: 'Debes aceptar el tratamiento esencial de datos' }),
+  }),
+});
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(32).max(128),
+  password: PasswordSchema,
+});
+
+export const VerifyEmailSchema = z.object({
+  token: z.string().min(32).max(128),
 });
 
 // ─── Catalog ─────────────────────────────────────────────
@@ -64,14 +89,18 @@ export const ProductSchema = z.object({
 
 // ─── Orders ──────────────────────────────────────────────
 
-// Solo los datos que necesita Starken para el despacho
+export const ShippingMethodSchema = z.enum(['PICKUP', 'STARKEN', 'CORREOS_CHILE']);
+
+// Datos de entrega. Calle/número/comuna/región solo son obligatorios cuando
+// hay despacho a domicilio (lo exige el superRefine de CheckoutSchema);
+// para retiro en tienda bastan nombre y teléfono de quien retira.
 export const ShippingAddressSchema = z.object({
-  fullName: z.string().min(1).max(200),
-  street: z.string().min(1).max(200),
-  number: z.string().min(1).max(20),
+  fullName: z.string().min(1, 'Requerido').max(200),
+  street: z.string().max(200).optional(),
+  number: z.string().max(20).optional(),
   apartment: z.string().max(50).optional(),
-  commune: z.string().min(1).max(100),
-  region: z.string().min(1).max(100),
+  commune: z.string().max(100).optional(),
+  region: z.string().max(100).optional(),
   phone: z.string().regex(/^\+?56\s?9\s?\d{4}\s?\d{4}$/, 'Teléfono chileno inválido'),
   notes: z.string().max(500).optional(),
 });
@@ -90,15 +119,32 @@ export const CartItemsSchema = z
     'Productos duplicados en el carrito'
   );
 
-export const CheckoutSchema = z.object({
-  shippingAddress: ShippingAddressSchema,
-  paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO']),
-  items: CartItemsSchema,
-});
+const DELIVERY_REQUIRED_FIELDS = ['street', 'number', 'commune', 'region'] as const;
+
+export const CheckoutSchema = z
+  .object({
+    shippingMethod: ShippingMethodSchema,
+    shippingAddress: ShippingAddressSchema,
+    paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO']),
+    items: CartItemsSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (data.shippingMethod === 'PICKUP') return;
+    for (const field of DELIVERY_REQUIRED_FIELDS) {
+      if (!data.shippingAddress[field]?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['shippingAddress', field],
+          message: 'Requerido para despacho a domicilio',
+        });
+      }
+    }
+  });
 
 export const TrackingSchema = z.object({
   orderId: z.string().cuid(),
-  trackingNumber: z.string().min(1).max(100),
+  // Opcional: el retiro en tienda no tiene número de seguimiento
+  trackingNumber: z.string().max(100).optional(),
 });
 
 // ─── Account ─────────────────────────────────────────────

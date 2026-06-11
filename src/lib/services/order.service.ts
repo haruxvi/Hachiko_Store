@@ -1,8 +1,11 @@
 import { db } from '@/src/lib/db';
-import { encrypt, decrypt } from '@/src/lib/crypto/pii';
+import { encrypt, decrypt, encryptOptional } from '@/src/lib/crypto/pii';
+import { calculateShipping } from '@/src/lib/shipping';
+import { sendEmail, orderShippedEmail } from '@/src/lib/email';
 import { writeAudit } from './audit.service';
 import { releaseReservation } from './inventory.service';
 import { addMinutes } from 'date-fns';
+import type { ShippingMethod } from '@prisma/client';
 
 const RESERVATION_TTL_MIN = Number(process.env['RESERVATION_TTL_MINUTES'] ?? 15);
 
@@ -11,21 +14,14 @@ export interface CartItem {
   quantity: number;
 }
 
-const SHIPPING_CLP = 3990;
-const FREE_SHIPPING_THRESHOLD = 50000;
-
-export function calculateShipping(subtotal: number): number {
-  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CLP;
-}
-
-// Solo los datos que Starken necesita para el despacho — nada más
+// Datos de entrega. Calle/comuna/región van vacíos cuando el método es PICKUP
 interface ShippingAddress {
   fullName: string;
-  street: string;
-  number: string;
+  street?: string;
+  number?: string;
   apartment?: string;
-  commune: string;
-  region: string;
+  commune?: string;
+  region?: string;
   phone: string;
   notes?: string;
 }
@@ -33,6 +29,7 @@ interface ShippingAddress {
 export async function createOrder(
   userId: string,
   items: CartItem[],
+  shippingMethod: ShippingMethod,
   shippingAddress: ShippingAddress
 ) {
   if (items.length === 0) throw new Error('El carrito está vacío');
@@ -68,7 +65,7 @@ export async function createOrder(
     });
   }
 
-  const shippingCLP = calculateShipping(subtotalCLP);
+  const shippingCLP = calculateShipping(subtotalCLP, shippingMethod);
   const totalCLP = subtotalCLP + shippingCLP;
 
   // Create order + reserve stock atomically
@@ -99,14 +96,13 @@ export async function createOrder(
           subtotalCLP,
           shippingCLP,
           totalCLP,
+          shippingMethod,
           shippingFullName: encrypt(shippingAddress.fullName),
-          shippingStreet: encrypt(shippingAddress.street),
-          shippingNumber: encrypt(shippingAddress.number),
-          shippingApartment: shippingAddress.apartment
-            ? encrypt(shippingAddress.apartment)
-            : null,
-          shippingCommune: shippingAddress.commune,
-          shippingRegion: shippingAddress.region,
+          shippingStreet: encryptOptional(shippingAddress.street),
+          shippingNumber: encryptOptional(shippingAddress.number),
+          shippingApartment: encryptOptional(shippingAddress.apartment),
+          shippingCommune: shippingAddress.commune ?? null,
+          shippingRegion: shippingAddress.region ?? null,
           shippingPhone: encrypt(shippingAddress.phone),
           shippingNotes: shippingAddress.notes,
           items: { create: orderItems },
@@ -178,13 +174,15 @@ export async function getOrdersForSeller() {
     items: o.items.map((i) => ({ name: i.productName, quantity: i.quantity })),
     // Estado para saber si ya fue marcado como enviado
     status: o.status,
-    // Datos de etiqueta Starken — descifrados aquí en el service, no en la UI
+    // Método elegido por el cliente: define qué se muestra (dirección o retiro)
+    shippingMethod: o.shippingMethod,
+    // Datos de etiqueta — descifrados aquí en el service, no en la UI
     recipientName: decrypt(o.shippingFullName),
-    shippingStreet: decrypt(o.shippingStreet),
-    shippingNumber: decrypt(o.shippingNumber),
+    shippingStreet: o.shippingStreet ? decrypt(o.shippingStreet) : undefined,
+    shippingNumber: o.shippingNumber ? decrypt(o.shippingNumber) : undefined,
     shippingApartment: o.shippingApartment ? decrypt(o.shippingApartment) : undefined,
-    shippingCommune: o.shippingCommune,
-    shippingRegion: o.shippingRegion,
+    shippingCommune: o.shippingCommune ?? undefined,
+    shippingRegion: o.shippingRegion ?? undefined,
     shippingPhone: decrypt(o.shippingPhone),
     shippingNotes: o.shippingNotes ?? undefined,
     createdAt: o.createdAt,
@@ -193,13 +191,14 @@ export async function getOrdersForSeller() {
 
 export async function markOrderShipped(
   orderId: string,
-  trackingNumber: string,
+  trackingNumber: string | null,
   actorId: string,
   actorRole: 'SELLER'
 ) {
   const order = await db.order.update({
     where: { id: orderId },
     data: { status: 'SHIPPED', trackingNumber, shippedAt: new Date() },
+    include: { user: { select: { email: true } } },
   });
 
   await writeAudit({
@@ -208,8 +207,17 @@ export async function markOrderShipped(
     action: 'ORDER_SHIPPED',
     targetType: 'Order',
     targetId: orderId,
-    metadata: { trackingNumber },
+    metadata: { trackingNumber, shippingMethod: order.shippingMethod },
   });
+
+  // "Va en camino" (courier) o "listo para retiro" (pickup), según lo que
+  // eligió el cliente. Un fallo del correo no revierte el despacho.
+  const email = orderShippedEmail({
+    orderNumber: order.orderNumber,
+    shippingMethod: order.shippingMethod,
+    trackingNumber,
+  });
+  await sendEmail({ to: order.user.email, ...email });
 
   return order;
 }

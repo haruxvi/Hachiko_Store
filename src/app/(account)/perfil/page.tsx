@@ -4,6 +4,7 @@ import { getSession } from '@/src/lib/auth/session';
 import { getUserProfile } from '@/src/lib/services/auth.service';
 import TwoFactorSetup from '@/src/components/storefront/TwoFactorSetup';
 import LogoutButton from '@/src/components/storefront/LogoutButton';
+import ResendVerificationButton from '@/src/components/storefront/ResendVerificationButton';
 
 export default async function PerfilPage() {
   const session = await getSession();
@@ -18,9 +19,18 @@ export default async function PerfilPage() {
         <h1 className="text-2xl font-bold">Mi perfil</h1>
         <LogoutButton />
       </div>
-      <p className="text-gray-500 mb-8 text-sm">
+      <p className="text-gray-500 mb-2 text-sm">
         {profile.email} · cuenta {profile.role === 'SELLER' ? 'de vendedor' : 'de cliente'}
       </p>
+
+      {profile.emailVerified ? (
+        <p className="text-xs text-green-600 mb-8">✓ Correo verificado</p>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-8 text-sm text-amber-800">
+          Tu correo aún no está verificado: sin verificarlo podrías no recibir la confirmación
+          de tus compras. <ResendVerificationButton />
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         <div className="border rounded-xl p-5">

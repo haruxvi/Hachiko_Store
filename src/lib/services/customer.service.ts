@@ -94,6 +94,59 @@ export async function updateUserProfile(
   await db.user.update({ where: { id: userId }, data });
 }
 
+// ─── Dirección de despacho guardada ──────────────────────
+
+interface SavedAddressInput {
+  fullName: string;
+  street: string;
+  number: string;
+  apartment?: string;
+  commune: string;
+  region: string;
+  phone: string;
+}
+
+// Devuelve la dirección por defecto descifrada para precargar el checkout
+export async function getDefaultShippingAddress(userId: string) {
+  const address = await db.address.findFirst({
+    where: { userId, isDefault: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!address) return null;
+
+  return {
+    fullName: decrypt(address.fullName),
+    street: decrypt(address.street),
+    number: decrypt(address.number),
+    apartment: address.apartment ? decrypt(address.apartment) : undefined,
+    commune: address.commune,
+    region: address.region,
+    phone: decrypt(address.phone),
+  };
+}
+
+// Guarda/actualiza la dirección por defecto tras un checkout con despacho,
+// para precargar el siguiente. Cifrada igual que en la orden.
+export async function saveDefaultShippingAddress(userId: string, input: SavedAddressInput) {
+  const data = {
+    fullName: encrypt(input.fullName),
+    street: encrypt(input.street),
+    number: encrypt(input.number),
+    apartment: input.apartment ? encrypt(input.apartment) : null,
+    commune: input.commune,
+    region: input.region,
+    phone: encrypt(input.phone),
+    isDefault: true,
+  };
+
+  const existing = await db.address.findFirst({ where: { userId, isDefault: true } });
+  if (existing) {
+    await db.address.update({ where: { id: existing.id }, data });
+  } else {
+    await db.address.create({ data: { userId, ...data } });
+  }
+}
+
 export async function updateUserConsent(
   userId: string,
   consentMarketing: boolean

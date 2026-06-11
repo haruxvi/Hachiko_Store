@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCartStore } from '@/src/lib/stores/cart';
-import { calculateShipping } from '@/src/lib/services/order.service';
+import { calculateShipping } from '@/src/lib/shipping';
 
 export default function CartClient() {
   const { items, removeItem, updateQuantity, total, itemCount } = useCartStore();
@@ -76,12 +76,12 @@ export default function CartClient() {
             <span>${subtotal.toLocaleString('es-CL')}</span>
           </div>
           <div className="flex justify-between text-sm mb-4">
-            <span>Despacho</span>
+            <span>Despacho a domicilio</span>
             <span>{shipping === 0 ? 'Gratis' : `$${shipping.toLocaleString('es-CL')}`}</span>
           </div>
           {shipping > 0 && (
             <p className="text-xs text-gray-400 mb-4">
-              Despacho gratis en compras sobre $50.000
+              Gratis sobre $50.000 — o retira gratis en tienda (lo eliges en el pago)
             </p>
           )}
           <div className="border-t pt-4 flex justify-between font-bold mb-6">

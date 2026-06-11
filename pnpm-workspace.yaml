@@ -1,0 +1,14 @@
+# pnpm 10 lee overrides/auditConfig desde aquí (pnpm 9 los lee de package.json;
+# se mantienen en ambos lugares hasta unificar la versión de pnpm).
+packages:
+  - '.'
+
+overrides:
+  'rollup@>=3.0.0 <3.30.0': ^3.30.0
+  'postcss@8.4.31': ^8.5.10
+
+auditConfig:
+  ignoreGhsas:
+    # uuid v3/v5/v6 con argumento `buf` — mercadopago y sentry usan solo v4()
+    # sin buf: el vector no es alcanzable. Revisar si cambia el uso.
+    - GHSA-w5hq-g745-h8pq

@@ -113,6 +113,77 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/auth/forgot-password': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Solicitar recuperación de contraseña',
+        description:
+          'Envía por correo un enlace de un solo uso (válido 60 min) para crear una contraseña ' +
+          'nueva. La respuesta es idéntica exista o no la cuenta (anti-enumeración). ' +
+          'Rate limit: 5 por IP cada 15 minutos.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email'],
+                properties: { email: { type: 'string', format: 'email' } },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Solicitud aceptada (misma respuesta exista o no el email)',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/OkOnly' } } },
+          },
+          '400': errorContent('Email inválido (code: VALIDATION)'),
+          '429': errorContent('Demasiados intentos (code: RATE_LIMITED)'),
+          '500': errorContent('Error interno (code: INTERNAL)'),
+        },
+      },
+    },
+    '/api/auth/reset-password': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Restablecer la contraseña con un token',
+        description:
+          'Consume el token recibido por correo (un solo uso, atómico) y fija la contraseña ' +
+          'nueva. Revoca todas las sesiones (tokenVersion) y desbloquea la cuenta. ' +
+          'Rate limit: 10 por IP por minuto.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['token', 'password'],
+                properties: {
+                  token: { type: 'string', minLength: 32, maxLength: 128 },
+                  password: {
+                    type: 'string',
+                    minLength: 8,
+                    description: 'Misma política del registro: mayúscula y número',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Contraseña actualizada',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/OkOnly' } } },
+          },
+          '400': errorContent(
+            'Datos inválidos o token expirado/usado (codes: VALIDATION, INVALID_TOKEN)'
+          ),
+          '429': errorContent('Demasiados intentos (code: RATE_LIMITED)'),
+          '500': errorContent('Error interno (code: INTERNAL)'),
+        },
+      },
+    },
     '/api/auth/refresh': {
       post: {
         tags: ['Auth'],

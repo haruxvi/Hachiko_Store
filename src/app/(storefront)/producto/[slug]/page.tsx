@@ -1,9 +1,29 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { getProductBySlug } from '@/src/lib/services/catalog.service';
 import AddToCartButton from '@/src/components/storefront/AddToCartButton';
+import ProductGallery from '@/src/components/storefront/ProductGallery';
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product || !product.active) return { title: 'Producto no encontrado — Hachiko' };
+
+  const description = product.description.slice(0, 160);
+  return {
+    title: `${product.name} — Hachiko`,
+    description,
+    openGraph: {
+      title: product.name,
+      description,
+      type: 'website',
+      ...(product.images[0] ? { images: [{ url: product.images[0] }] } : {}),
+    },
+  };
 }
 
 export default async function ProductoPage({ params }: Props) {
@@ -12,20 +32,35 @@ export default async function ProductoPage({ params }: Props) {
 
   if (!product || !product.active) notFound();
 
+  // Datos estructurados para rich results de Google (precio y disponibilidad)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description.slice(0, 500),
+    sku: product.sku,
+    image: product.images,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'CLP',
+      price: product.priceCLP,
+      availability:
+        product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+  };
+
+  const lowStock = product.stock > 0 && product.stock <= product.lowStockThreshold;
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
+      {/* Se escapa "<" para que un "</script>" dentro de la descripción del
+          producto no pueda salir del bloque JSON-LD (defensa en profundidad) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       <div className="grid md:grid-cols-2 gap-12">
-        {/* Images */}
-        <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden">
-          {product.images[0] ? (
-            /* eslint-disable-next-line @next/next/no-img-element -- URLs externas sin host fijo; next/image exige remotePatterns. Es la imagen LCP: se prioriza, no se difiere */
-            <img src={product.images[0]} alt={product.name} fetchPriority="high" decoding="async" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-6xl text-gray-300">
-              🛍️
-            </div>
-          )}
-        </div>
+        <ProductGallery images={product.images} alt={product.name} />
 
         {/* Info */}
         <div className="flex flex-col">
@@ -41,7 +76,14 @@ export default async function ProductoPage({ params }: Props) {
           <p className="text-gray-600 mb-8 leading-relaxed">{product.description}</p>
 
           {product.stock > 0 ? (
-            <AddToCartButton product={{ id: product.id, name: product.name, priceCLP: product.priceCLP, image: product.images[0] ?? null }} />
+            <>
+              {lowStock && (
+                <p className="text-sm text-amber-600 font-medium mb-3">
+                  ¡Quedan pocas unidades!
+                </p>
+              )}
+              <AddToCartButton product={{ id: product.id, name: product.name, priceCLP: product.priceCLP, image: product.images[0] ?? null }} />
+            </>
           ) : (
             <button disabled className="bg-gray-100 text-gray-400 font-semibold py-3 px-8 rounded-full cursor-not-allowed">
               Sin stock
@@ -50,7 +92,8 @@ export default async function ProductoPage({ params }: Props) {
 
           <p className="text-xs text-gray-400 mt-4">SKU: {product.sku}</p>
           <p className="text-xs text-gray-400">
-            Despacho estimado: 2–5 días hábiles vía Starken
+            Despacho a domicilio (2–6 días hábiles) o retiro gratis en tienda — Recoleta, Santiago.
+            Eliges al pagar.
           </p>
         </div>
       </div>

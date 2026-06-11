@@ -20,6 +20,8 @@ El contrato de la API está definido en **OpenAPI 3.1** con una única fuente de
 |---|---|---|---|
 | POST | `/api/auth/register` | — | Registro + consentimiento (Ley 21.719); deja sesión iniciada |
 | POST | `/api/auth/login` | — | Login con Argon2id; 2FA TOTP si está activo; bloqueo tras 5 fallos |
+| POST | `/api/auth/forgot-password` | — | Envía enlace de recuperación (un solo uso, 60 min; anti-enumeración) |
+| POST | `/api/auth/reset-password` | — | Fija contraseña nueva con el token; revoca todas las sesiones |
 | POST | `/api/auth/refresh` | cookie refresh | Renueva tokens; revalida estado del usuario y `tokenVersion` |
 | POST | `/api/auth/logout` | cookie access | Revoca todos los refresh tokens (todos los dispositivos) |
 | GET | `/api/me/data-export` | CLIENT/SELLER | Exportación de datos personales (derecho de acceso) |
@@ -42,8 +44,18 @@ El contrato de la API está definido en **OpenAPI 3.1** con una única fuente de
 - **Rate limiting**: 429 con header `Retry-After` en auth (login 10/min, registro 5/min,
   refresh 30/min por IP).
 - **Mutaciones del panel y la cuenta** (productos, categorías, inventario, despacho,
-  perfil, 2FA): van por **Server Actions** (`src/actions/*`), no por REST — Next.js las
-  protege con verificación de origen, y cada una revalida sesión, rol y esquema Zod.
+  perfil, 2FA, verificación de email): van por **Server Actions** (`src/actions/*`), no por
+  REST — Next.js las protege con verificación de origen, y cada una revalida sesión, rol y
+  esquema Zod.
+- **Checkout como invitado**: `startGuestCheckoutAction` (server action) crea una cuenta
+  CLIENT con contraseña aleatoria y deja sesión iniciada; el resto del flujo no cambia.
+  Si el email ya existe NO se entrega sesión (evita tomar el historial de otra persona):
+  se redirige a login / recuperar contraseña. El invitado reclama su cuenta fijando
+  contraseña vía `/recuperar`.
+- **Método de entrega**: el cliente lo elige en el checkout (`PICKUP`, `STARKEN`,
+  `CORREOS_CHILE`) y queda fijo en la orden (`Order.shippingMethod`). Toda visualización
+  posterior (correos, mis pedidos, trastienda) usa solo ese método, vía
+  `src/lib/shipping.ts` (única fuente de verdad de etiquetas, costos y URLs de tracking).
 
 ## Regla de mantenimiento
 

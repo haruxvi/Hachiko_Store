@@ -5,25 +5,75 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCartStore } from '@/src/lib/stores/cart';
 import { checkoutAction } from '@/src/actions/cart';
-import { ShippingAddressSchema } from '@/src/lib/validation/schemas';
+import { ShippingAddressSchema, ShippingMethodSchema } from '@/src/lib/validation/schemas';
+import { SHIPPING_METHODS, calculateShipping } from '@/src/lib/shipping';
+import type { ShippingMethod } from '@prisma/client';
 
+// La validación condicional (dirección obligatoria solo con despacho) la
+// resuelve el servidor vía CheckoutSchema; aquí se replica para feedback
+// inmediato en el formulario.
 const FormSchema = ShippingAddressSchema.extend({
-  paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO']),
+  shippingMethod: ShippingMethodSchema,
+  paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO'], {
+    errorMap: () => ({ message: 'Elige un método de pago' }),
+  }),
+}).superRefine((data, ctx) => {
+  if (data.shippingMethod === 'PICKUP') return;
+  for (const field of ['street', 'number', 'commune', 'region'] as const) {
+    if (!data[field]?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [field],
+        message: 'Requerido para despacho a domicilio',
+      });
+    }
+  }
 });
 
 type FormValues = z.infer<typeof FormSchema>;
 
-export default function CheckoutForm() {
-  const { items, clear } = useCartStore();
+export interface SavedAddress {
+  fullName: string;
+  street: string;
+  number: string;
+  apartment?: string;
+  commune: string;
+  region: string;
+  phone: string;
+}
+
+export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddress | null }) {
+  const { items, clear, total } = useCartStore();
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(FormSchema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      shippingMethod: 'STARKEN',
+      ...(savedAddress ?? {}),
+    },
+  });
+
+  const method = watch('shippingMethod') as ShippingMethod;
+  const needsAddress = SHIPPING_METHODS[method]?.requiresAddress ?? true;
+  const shippingCost = calculateShipping(total(), method);
 
   const onSubmit = async (data: FormValues) => {
     const result = await checkoutAction({
-      shippingAddress: data,
+      shippingMethod: data.shippingMethod,
+      shippingAddress: {
+        fullName: data.fullName,
+        street: data.street,
+        number: data.number,
+        apartment: data.apartment,
+        commune: data.commune,
+        region: data.region,
+        phone: data.phone,
+        notes: data.notes,
+      },
       paymentProvider: data.paymentProvider,
       items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
     });
@@ -69,7 +119,7 @@ export default function CheckoutForm() {
     }
   };
 
-  const field = (id: keyof FormValues, label: string, type = 'text') => (
+  const field = (id: keyof Omit<FormValues, 'shippingMethod' | 'paymentProvider'>, label: string, type = 'text') => (
     <div>
       <label htmlFor={id} className="block text-sm font-medium mb-1">{label}</label>
       <input
@@ -84,18 +134,48 @@ export default function CheckoutForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      {field('fullName', 'Nombre completo')}
-      <div className="grid grid-cols-2 gap-4">
-        {field('street', 'Calle')}
-        {field('number', 'Número')}
+      {/* Método de entrega: lo que se elija aquí es lo ÚNICO que el cliente
+          verá después en sus pedidos y correos */}
+      <div>
+        <p className="text-sm font-medium mb-2">Método de entrega</p>
+        <div className="flex flex-col gap-2">
+          {(Object.keys(SHIPPING_METHODS) as ShippingMethod[]).map((m) => (
+            <label
+              key={m}
+              className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer transition-colors ${method === m ? 'border-rose-400 bg-rose-50' : 'hover:bg-gray-50'}`}
+            >
+              <input {...register('shippingMethod')} type="radio" value={m} className="mt-1" />
+              <span>
+                <span className="text-sm font-medium block">{SHIPPING_METHODS[m].label}</span>
+                <span className="text-xs text-gray-500">{SHIPPING_METHODS[m].description}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Costo de entrega:{' '}
+          <strong>{shippingCost === 0 ? 'Gratis' : `$${shippingCost.toLocaleString('es-CL')}`}</strong>
+        </p>
       </div>
-      {field('apartment', 'Departamento / Casa (opcional)')}
-      <div className="grid grid-cols-2 gap-4">
-        {field('commune', 'Comuna')}
-        {field('region', 'Región')}
-      </div>
+
+      {field('fullName', needsAddress ? 'Nombre completo del destinatario' : 'Nombre de quien retira')}
+
+      {needsAddress && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            {field('street', 'Calle')}
+            {field('number', 'Número')}
+          </div>
+          {field('apartment', 'Departamento / Casa (opcional)')}
+          <div className="grid grid-cols-2 gap-4">
+            {field('commune', 'Comuna')}
+            {field('region', 'Región')}
+          </div>
+        </>
+      )}
+
       {field('phone', 'Teléfono de contacto (+56 9 XXXX XXXX)')}
-      {field('notes', 'Notas de despacho (opcional)')}
+      {needsAddress && field('notes', 'Notas de despacho (opcional)')}
 
       <div>
         <p className="text-sm font-medium mb-2">Método de pago</p>
