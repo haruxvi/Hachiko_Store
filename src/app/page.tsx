@@ -3,6 +3,11 @@ import { getProducts } from '@/src/lib/services/catalog.service';
 import { getCategories } from '@/src/lib/services/catalog.service';
 import { getSession } from '@/src/lib/auth/session';
 
+// La home lee sesión y catálogo: siempre se renderiza en runtime. Declararlo
+// evita que el build intente prerenderizarla consultando la BD (el build no
+// debe depender de una base de datos viva).
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const [{ products: featured }, categories, session] = await Promise.all([
     getProducts({ featured: true, limit: 8 }),
@@ -91,9 +96,12 @@ export default async function HomePage() {
               <Link key={p.id} href={`/producto/${p.slug}`} className="group block">
                 <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
                   {p.images[0] ? (
+                    /* eslint-disable-next-line @next/next/no-img-element -- URLs externas sin host fijo; next/image exige remotePatterns */
                     <img
                       src={p.images[0]}
                       alt={p.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
                   ) : (

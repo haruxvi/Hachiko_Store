@@ -26,10 +26,17 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // No anunciar el framework en cada respuesta (reduce fingerprinting)
+  poweredByHeader: false,
+  reactStrictMode: true,
   async headers() {
     return [
       {
-        source: '/(.*)',
+        // En desarrollo /api/docs sirve Swagger UI desde unpkg y define su
+        // propio CSP; el global lo rompería. En producción la ruta es 404
+        // y recibe los headers globales como todo lo demás.
+        source:
+          process.env.NODE_ENV === 'production' ? '/(.*)' : '/((?!api/docs).*)',
         headers: securityHeaders,
       },
     ];

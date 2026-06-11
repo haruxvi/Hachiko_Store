@@ -58,9 +58,12 @@ export default async function CatalogoPage({ searchParams }: Props) {
                 <Link key={p.id} href={`/producto/${p.slug}`} className="group block">
                   <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
                     {p.images[0] ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- URLs externas sin host fijo; next/image exige remotePatterns */
                       <img
                         src={p.images[0]}
                         alt={p.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     ) : (

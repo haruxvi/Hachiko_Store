@@ -44,7 +44,7 @@ export async function signRefreshToken(
 export async function verifyAccessToken(token: string): Promise<JWTPayload> {
   const { payload } = await jwtVerify(token, getSecret());
   // Un refresh token firmado con el mismo secreto no debe servir como access token
-  if (payload['type'] !== undefined && payload['type'] !== 'access') {
+  if (payload['type'] !== 'access') {
     throw new Error('Not an access token');
   }
   return {

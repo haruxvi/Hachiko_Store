@@ -18,7 +18,8 @@ export default async function ProductoPage({ params }: Props) {
         {/* Images */}
         <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden">
           {product.images[0] ? (
-            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+            /* eslint-disable-next-line @next/next/no-img-element -- URLs externas sin host fijo; next/image exige remotePatterns. Es la imagen LCP: se prioriza, no se difiere */
+            <img src={product.images[0]} alt={product.name} fetchPriority="high" decoding="async" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl text-gray-300">
               🛍️

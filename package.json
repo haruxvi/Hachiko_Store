@@ -17,6 +17,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "docs:api": "tsx scripts/export-openapi.ts",
     "audit": "pnpm audit --audit-level=moderate",
     "audit:full": "pnpm audit --audit-level=low",
     "deps:check": "pnpm outdated"

@@ -30,7 +30,8 @@ export default function CartClient() {
             <div key={item.id} className="flex gap-4 border rounded-xl p-4">
               <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                 {item.image ? (
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  /* eslint-disable-next-line @next/next/no-img-element -- URLs externas sin host fijo; next/image exige remotePatterns */
+                  <img src={item.image} alt={item.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl text-gray-300">🛍️</div>
                 )}

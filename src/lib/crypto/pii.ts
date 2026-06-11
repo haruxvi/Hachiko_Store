@@ -1,13 +1,17 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-const KEY_HEX = process.env['DATA_ENCRYPTION_KEY'] ?? '';
+
+let cachedKey: Buffer | null = null;
 
 function getKey(): Buffer {
-  if (!KEY_HEX || KEY_HEX.length !== 64) {
+  if (cachedKey) return cachedKey;
+  const hex = process.env['DATA_ENCRYPTION_KEY'] ?? '';
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
     throw new Error('DATA_ENCRYPTION_KEY must be 32 bytes (64 hex chars)');
   }
-  return Buffer.from(KEY_HEX, 'hex');
+  cachedKey = Buffer.from(hex, 'hex');
+  return cachedKey;
 }
 
 export function encrypt(plaintext: string): string {
