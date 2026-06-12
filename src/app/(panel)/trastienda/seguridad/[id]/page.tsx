@@ -27,25 +27,33 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
   const chain = verifyIncidentChain(incident.events);
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      <div>
-        <Link href="/trastienda/seguridad" className="text-sm text-rose-600 hover:underline">
+    <div className="max-w-4xl space-y-8">
+      <header>
+        <Link
+          href="/trastienda/seguridad"
+          className="text-[13px] font-medium text-taupe transition hover:text-soot hover:underline"
+        >
           ← Volver a seguridad
         </Link>
-        <div className="flex items-start justify-between mt-2">
+        <div className="mt-2 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-bold">
-              Incidencia #{incident.incidentNumber}: {incident.title}
+            <div className="price-mono text-sm text-rust"># {incident.incidentNumber}</div>
+            <h1 className="mt-1 font-display text-[28px] font-bold leading-[1.15] tracking-[-0.015em] text-soot">
+              {incident.title}
             </h1>
-            <div className="flex gap-2 mt-2">
-              <span className={`text-xs px-2 py-0.5 rounded-full ${SEVERITY_BADGE[incident.severity]}`}>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${SEVERITY_BADGE[incident.severity]}`}
+              >
                 Severidad: {SEVERITY_LABELS[incident.severity]}
               </span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[incident.status]}`}>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE[incident.status]}`}
+              >
                 {STATUS_LABELS[incident.status]}
               </span>
               {incident.affectsPersonalData && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                <span className="rounded-full bg-alert/15 px-2.5 py-0.5 text-xs font-medium text-alert">
                   Afecta datos personales
                 </span>
               )}
@@ -53,16 +61,16 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
           </div>
           <a
             href={`/api/security/incidents/${incident.id}/export`}
-            className="border text-sm px-4 py-2 rounded-lg hover:bg-gray-50 shrink-0"
+            className="btn-outline btn-sm shrink-0"
             download
           >
             Exportar informe para autoridad
           </a>
         </div>
-      </div>
+      </header>
 
       {/* Ficha */}
-      <section className="rounded-xl border bg-white p-5 grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+      <section className="grid grid-cols-2 gap-x-8 gap-y-3 rounded-2xl border border-sand bg-snow p-5 text-sm">
         <Field label="Categoría" value={CATEGORY_LABELS[incident.category]} />
         <Field label="Detectada el" value={formatDateTime(incident.detectedAt)} />
         <Field label="Registrada el" value={formatDateTime(incident.createdAt)} />
@@ -84,8 +92,8 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
           </>
         )}
         <div className="col-span-2">
-          <p className="text-xs text-gray-400 mb-1">Descripción</p>
-          <p className="whitespace-pre-wrap">{incident.description}</p>
+          <p className="mb-[3px] text-xs font-medium text-taupe">Descripción</p>
+          <p className="whitespace-pre-wrap leading-[1.45] text-soot">{incident.description}</p>
         </div>
       </section>
 
@@ -93,13 +101,13 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
 
       {/* Bitácora */}
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="editorial text-sm text-taupe">
             Bitácora ({incident.events.length} eventos)
           </h2>
           <span
-            className={`text-xs px-2 py-0.5 rounded-full ${
-              chain.valid ? 'bg-emerald-50 text-emerald-700' : 'bg-red-100 text-red-700'
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              chain.valid ? 'bg-mint text-mint-deep' : 'bg-alert/15 text-alert'
             }`}
           >
             {chain.valid
@@ -109,15 +117,17 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
         </div>
         <ol className="space-y-3">
           {incident.events.map((ev) => (
-            <li key={ev.id} className="rounded-lg border bg-white p-4 text-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium">
+            <li key={ev.id} className="rounded-[14px] border border-sand bg-snow p-4 text-sm">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="font-medium text-soot">
                   {ev.seq}. {EVENT_TYPE_LABELS[ev.type]}
                 </span>
-                <span className="text-xs text-gray-400">{formatDateTime(ev.createdAt)}</span>
+                <span className="text-xs font-normal text-taupe">
+                  {formatDateTime(ev.createdAt)}
+                </span>
               </div>
-              <p className="whitespace-pre-wrap">{ev.detail}</p>
-              <p className="text-[10px] text-gray-300 font-mono mt-2 truncate" title={ev.hash}>
+              <p className="whitespace-pre-wrap leading-[1.45] text-soot">{ev.detail}</p>
+              <p className="price-mono mt-2 truncate text-[10px] text-taupe/60" title={ev.hash}>
                 sha256: {ev.hash}
               </p>
             </li>
@@ -131,8 +141,8 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-      <p>{value}</p>
+      <p className="mb-[3px] text-xs font-medium text-taupe">{label}</p>
+      <p className="leading-[1.45] text-soot">{value}</p>
     </div>
   );
 }

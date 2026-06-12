@@ -57,28 +57,34 @@ export default function StockAdjustPanel({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-xs text-rose-600 hover:underline">
+      <button
+        onClick={() => setOpen(true)}
+        className="text-[13px] font-medium text-rust transition hover:text-rust-dark hover:underline"
+      >
         Ajustar
       </button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="font-bold text-lg mb-1">Ajustar stock</h2>
-            <p className="text-sm text-gray-500 mb-4">{productName}</p>
-            <p className="text-sm mb-4">
-              Stock actual: <span className="font-semibold">{currentStock}</span> unidades
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-soot/40 p-4">
+          <div className="w-full max-w-md rounded-card border border-sand bg-snow p-6 shadow-lift">
+            <h2 className="font-display text-xl font-bold tracking-[-0.015em] text-soot">
+              Ajustar stock
+            </h2>
+            <p className="editorial mt-0.5 text-[15px] text-taupe">{productName}</p>
+            <p className="mb-4 mt-3 text-sm text-soot">
+              Stock actual: <span className="price-mono font-semibold">{currentStock}</span>{' '}
+              unidades
             </p>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4">
+              <div className="mb-4 rounded-btn border border-alert/30 bg-alert/10 px-4 py-3 text-sm text-alert">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.04em] text-taupe">
                   Nuevo stock total
                 </label>
                 <input
@@ -87,18 +93,20 @@ export default function StockAdjustPanel({
                   min={0}
                   defaultValue={currentStock}
                   required
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  className="input-hs"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.04em] text-taupe">
+                  Motivo
+                </label>
                 <select
                   name="reason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value as Reason)}
                   required
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  className="input-hs"
                 >
                   {REASONS.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -109,30 +117,29 @@ export default function StockAdjustPanel({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas {needsNotes && <span className="text-red-500">*</span>}
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.04em] text-taupe">
+                  Notas {needsNotes && <span className="text-alert">*</span>}
                 </label>
                 <textarea
                   name="notes"
                   rows={2}
                   required={needsNotes}
                   placeholder={needsNotes ? 'Obligatorio para correcciones' : 'Opcional'}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  className="input-hs"
                 />
               </div>
 
               <div className="flex gap-3 pt-1">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-rose-600 text-white text-sm py-2 rounded-lg hover:bg-rose-700 disabled:opacity-50"
-                >
+                <button type="submit" disabled={loading} className="btn-primary btn-sm flex-1 disabled:opacity-50">
                   {loading ? 'Guardando...' : 'Guardar ajuste'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setOpen(false); setError(''); }}
-                  className="flex-1 border text-sm py-2 rounded-lg hover:bg-gray-50"
+                  onClick={() => {
+                    setOpen(false);
+                    setError('');
+                  }}
+                  className="btn-outline btn-sm flex-1"
                 >
                   Cancelar
                 </button>

@@ -35,73 +35,91 @@ export default async function HistoricoPage({
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-1">
-        <Link href="/trastienda/inventario" className="text-sm text-gray-400 hover:underline">
+      <header className="mb-6">
+        <Link
+          href="/trastienda/inventario"
+          className="text-[13px] font-medium text-taupe transition hover:text-soot hover:underline"
+        >
           ← Inventario
         </Link>
-      </div>
-      <h1 className="text-xl font-bold mb-1">{product.name}</h1>
-      <p className="text-sm text-gray-400 mb-6">
-        SKU: {product.sku} · Stock actual: {product.stock} uds.
-      </p>
+        <h1 className="mt-2 font-display text-[34px] font-bold leading-[1.1] tracking-[-0.015em] text-soot">
+          {product.name}
+        </h1>
+        <div className="editorial mt-1.5 text-[15px] leading-snug text-taupe">
+          SKU {product.sku} — stock actual {product.stock} uds.
+        </div>
+      </header>
 
       {movements.length === 0 ? (
-        <p className="text-sm text-gray-400">Sin movimientos en los últimos 90 días.</p>
+        <p className="text-sm text-taupe">Sin movimientos en los últimos 90 días.</p>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left">
-              <th className="py-2 pr-4 font-medium text-gray-500">Fecha</th>
-              <th className="py-2 pr-4 font-medium text-gray-500">Tipo</th>
-              <th className="py-2 pr-4 font-medium text-gray-500">Motivo</th>
-              <th className="py-2 pr-4 font-medium text-gray-500 text-right">Cantidad</th>
-              <th className="py-2 pr-4 font-medium text-gray-500 text-right">Anterior</th>
-              <th className="py-2 pr-4 font-medium text-gray-500 text-right">Resultante</th>
-              <th className="py-2 font-medium text-gray-500">Referencia</th>
-            </tr>
-          </thead>
-          <tbody>
-            {movements.map((m) => (
-              <tr key={m.id} className="border-b last:border-0 hover:bg-gray-50">
-                <td className="py-2 pr-4 text-gray-500 text-xs whitespace-nowrap">
-                  {new Date(m.createdAt).toLocaleString('es-CL', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </td>
-                <td className="py-2 pr-4">
-                  <span
-                    className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      m.type === 'IN'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {m.type === 'IN' ? 'Entrada' : 'Salida'}
-                  </span>
-                </td>
-                <td className="py-2 pr-4">{reasonLabel[m.reason] ?? m.reason}</td>
-                <td className="py-2 pr-4 text-right font-mono">
-                  <span className={m.quantity > 0 ? 'text-green-600' : 'text-red-600'}>
-                    {m.quantity > 0 ? '+' : ''}{m.quantity}
-                  </span>
-                </td>
-                <td className="py-2 pr-4 text-right font-mono text-gray-400">{m.previousStock}</td>
-                <td className="py-2 pr-4 text-right font-mono font-medium">{m.resultingStock}</td>
-                <td className="py-2 text-xs text-gray-400">
-                  {m.order
-                    ? `Orden #${m.order.orderNumber}`
-                    : m.adjustment?.notes
-                      ? m.adjustment.notes
-                      : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-hidden rounded-2xl border border-sand bg-snow">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse font-body text-sm">
+              <thead>
+                <tr className="bg-cream">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-taupe">Fecha</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-taupe">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-taupe">Motivo</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-taupe">Cantidad</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-taupe">Anterior</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-taupe">
+                    Resultante
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-taupe">
+                    Referencia
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {movements.map((m) => (
+                  <tr key={m.id} className="border-t border-sand transition hover:bg-cream/60">
+                    <td className="whitespace-nowrap px-4 py-3 align-middle text-[13px] font-normal text-taupe">
+                      {new Date(m.createdAt).toLocaleString('es-CL', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="px-4 py-3 align-middle">
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          m.type === 'IN' ? 'bg-mint text-mint-deep' : 'bg-alert/10 text-alert'
+                        }`}
+                      >
+                        {m.type === 'IN' ? 'Entrada' : 'Salida'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 align-middle text-soot">
+                      {reasonLabel[m.reason] ?? m.reason}
+                    </td>
+                    <td className="price-mono px-4 py-3 text-right align-middle text-[15px]">
+                      <span className={m.quantity > 0 ? 'text-mint-deep' : 'text-alert'}>
+                        {m.quantity > 0 ? '+' : ''}
+                        {m.quantity}
+                      </span>
+                    </td>
+                    <td className="price-mono px-4 py-3 text-right align-middle text-[15px] text-taupe">
+                      {m.previousStock}
+                    </td>
+                    <td className="price-mono px-4 py-3 text-right align-middle text-[15px] font-medium text-soot">
+                      {m.resultingStock}
+                    </td>
+                    <td className="px-4 py-3 align-middle text-[13px] font-normal text-taupe">
+                      {m.order
+                        ? `Orden #${m.order.orderNumber}`
+                        : m.adjustment?.notes
+                          ? m.adjustment.notes
+                          : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );

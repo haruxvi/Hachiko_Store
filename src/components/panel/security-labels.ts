@@ -41,20 +41,22 @@ export const EVENT_TYPE_LABELS: Record<IncidentEventType, string> = {
   EVIDENCE: 'Evidencia',
 };
 
+// Badges en paleta Shiba pastel: alert para lo urgente, tan/rust para lo
+// en curso, mint para lo resuelto, sand para lo neutro.
 export const SEVERITY_BADGE: Record<IncidentSeverity, string> = {
-  LOW: 'bg-gray-100 text-gray-700',
-  MEDIUM: 'bg-amber-50 text-amber-700',
-  HIGH: 'bg-orange-100 text-orange-700',
-  CRITICAL: 'bg-red-100 text-red-700',
+  LOW: 'bg-sand text-taupe',
+  MEDIUM: 'bg-tan/40 text-soot',
+  HIGH: 'bg-rust/20 text-rust-dark',
+  CRITICAL: 'bg-alert/15 text-alert',
 };
 
 export const STATUS_BADGE: Record<IncidentStatus, string> = {
-  OPEN: 'bg-red-50 text-red-700',
-  INVESTIGATING: 'bg-amber-50 text-amber-700',
-  CONTAINED: 'bg-blue-50 text-blue-700',
-  RESOLVED: 'bg-emerald-50 text-emerald-700',
-  REPORTED: 'bg-purple-50 text-purple-700',
-  CLOSED: 'bg-gray-100 text-gray-500',
+  OPEN: 'bg-alert/15 text-alert',
+  INVESTIGATING: 'bg-tan/40 text-soot',
+  CONTAINED: 'bg-sky text-sky-deep',
+  RESOLVED: 'bg-mint text-mint-deep',
+  REPORTED: 'bg-rust/20 text-rust-dark',
+  CLOSED: 'bg-sand text-taupe',
 };
 
 export const AUDIT_ACTION_LABELS: Record<string, string> = {

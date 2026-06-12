@@ -6,6 +6,14 @@ import type { IncidentCategory, IncidentSeverity } from '@prisma/client';
 import { createIncidentAction } from '@/src/actions/security';
 import { CATEGORY_LABELS, SEVERITY_LABELS } from '@/src/components/panel/security-labels';
 
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.04em] text-taupe">
+      {children}
+    </label>
+  );
+}
+
 export default function IncidentForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -41,27 +49,27 @@ export default function IncidentForm() {
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        <div className="rounded-btn border border-alert/30 bg-alert/10 px-4 py-3 text-sm text-alert">
           {error}
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+        <FieldLabel>Título</FieldLabel>
         <input
           name="title"
           required
           minLength={5}
           maxLength={200}
           placeholder="Ej.: Intentos masivos de acceso a cuentas de clientes"
-          className="w-full border rounded-lg px-3 py-2 text-sm"
+          className="input-hs"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select name="category" required className="w-full border rounded-lg px-3 py-2 text-sm">
+          <FieldLabel>Categoría</FieldLabel>
+          <select name="category" required className="input-hs">
             {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -70,8 +78,8 @@ export default function IncidentForm() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Severidad</label>
-          <select name="severity" required className="w-full border rounded-lg px-3 py-2 text-sm">
+          <FieldLabel>Severidad</FieldLabel>
+          <select name="severity" required className="input-hs">
             {Object.entries(SEVERITY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -82,80 +90,57 @@ export default function IncidentForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Fecha y hora de detección
-        </label>
-        <input
-          name="detectedAt"
-          type="datetime-local"
-          required
-          className="w-full border rounded-lg px-3 py-2 text-sm"
-        />
+        <FieldLabel>Fecha y hora de detección</FieldLabel>
+        <input name="detectedAt" type="datetime-local" required className="input-hs" />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Descripción de los hechos
-        </label>
+        <FieldLabel>Descripción de los hechos</FieldLabel>
         <textarea
           name="description"
           required
           minLength={10}
           rows={5}
           placeholder="Qué se detectó, cómo, sistemas involucrados, acciones inmediatas tomadas…"
-          className="w-full border rounded-lg px-3 py-2 text-sm"
+          className="input-hs"
         />
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+      <div className="space-y-3 rounded-btn border border-rust/40 bg-tan/20 p-4">
+        <label className="flex items-center gap-2 text-sm font-medium text-soot">
           <input
             type="checkbox"
             checked={affectsPersonalData}
             onChange={(e) => setAffectsPersonalData(e.target.checked)}
+            className="accent-rust"
           />
           La incidencia afecta datos personales de clientes
         </label>
         {affectsPersonalData && (
           <>
-            <p className="text-xs text-amber-700">
+            <p className="text-xs font-normal text-rust-dark">
               Ley 21.719: la vulneración de datos personales debe notificarse a la Agencia de
               Protección de Datos Personales y, si hay riesgo para los titulares, también a los
               afectados.
             </p>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estimación de usuarios afectados
-              </label>
-              <input
-                name="affectedUsersEstimate"
-                type="number"
-                min={0}
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-              />
+              <FieldLabel>Estimación de usuarios afectados</FieldLabel>
+              <input name="affectedUsersEstimate" type="number" min={0} className="input-hs" />
             </div>
           </>
         )}
       </div>
 
       <div className="flex gap-3 pt-1">
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-rose-600 text-white text-sm px-6 py-2 rounded-lg hover:bg-rose-700 disabled:opacity-50"
-        >
+        <button type="submit" disabled={loading} className="btn-primary btn-sm disabled:opacity-50">
           {loading ? 'Registrando...' : 'Registrar incidencia'}
         </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="border text-sm px-6 py-2 rounded-lg hover:bg-gray-50"
-        >
+        <button type="button" onClick={() => router.back()} className="btn-outline btn-sm">
           Cancelar
         </button>
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs font-normal text-taupe">
         El registro queda sellado en una bitácora inalterable. No incluyas datos personales de
         clientes en el título ni en la descripción; usa identificadores internos.
       </p>

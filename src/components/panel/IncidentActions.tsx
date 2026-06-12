@@ -51,15 +51,15 @@ export default function IncidentActions({
 
   if (currentStatus === 'CLOSED') {
     return (
-      <p className="text-sm text-gray-400 border rounded-xl p-4 bg-gray-50">
+      <p className="rounded-[14px] border border-sand bg-cream p-4 text-sm text-taupe">
         Incidencia cerrada: la bitácora queda sellada y no admite más eventos de gestión.
       </p>
     );
   }
 
   return (
-    <section className="rounded-xl border bg-white p-5">
-      <div className="flex gap-2 mb-4">
+    <section className="rounded-2xl border border-sand bg-snow p-5">
+      <div className="mb-4 flex gap-2">
         <TabButton active={tab === 'note'} onClick={() => setTab('note')}>
           Agregar a bitácora
         </TabButton>
@@ -72,7 +72,7 @@ export default function IncidentActions({
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4">
+        <div className="mb-4 rounded-btn border border-alert/30 bg-alert/10 px-4 py-3 text-sm text-alert">
           {error}
         </div>
       )}
@@ -93,7 +93,7 @@ export default function IncidentActions({
           }}
           className="space-y-3"
         >
-          <select name="type" className="border rounded-lg px-3 py-2 text-sm">
+          <select name="type" className="input-hs max-w-xs">
             <option value="NOTE">Nota de seguimiento</option>
             <option value="EVIDENCE">Evidencia (logs, capturas, referencias)</option>
           </select>
@@ -103,7 +103,7 @@ export default function IncidentActions({
             minLength={3}
             rows={3}
             placeholder="Detalle de la nota o referencia a la evidencia…"
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="input-hs"
           />
           <SubmitButton loading={loading}>Agregar a la bitácora</SubmitButton>
         </form>
@@ -124,7 +124,7 @@ export default function IncidentActions({
           }}
           className="space-y-3"
         >
-          <select name="newStatus" required className="border rounded-lg px-3 py-2 text-sm">
+          <select name="newStatus" required className="input-hs max-w-xs">
             {nextStatuses.map((s) => (
               <option key={s} value={s}>
                 {STATUS_LABELS[s]}
@@ -137,7 +137,7 @@ export default function IncidentActions({
             minLength={3}
             rows={2}
             placeholder="Justificación del cambio de estado…"
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="input-hs"
           />
           <SubmitButton loading={loading}>Cambiar estado</SubmitButton>
         </form>
@@ -158,7 +158,7 @@ export default function IncidentActions({
           }}
           className="space-y-3"
         >
-          <p className="text-xs text-gray-500">
+          <p className="text-xs font-normal text-taupe">
             Registra aquí la denuncia o notificación ya presentada ante la autoridad (Agencia de
             Protección de Datos Personales, CSIRT Nacional, PDI Cibercrimen o Fiscalía). El
             informe exportable sirve como respaldo técnico de la denuncia.
@@ -168,13 +168,13 @@ export default function IncidentActions({
             required
             minLength={3}
             placeholder="Autoridad (ej.: PDI — Brigada de Cibercrimen)"
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="input-hs"
           />
           <input
             name="reportRef"
             required
             placeholder="N° de denuncia / referencia del trámite"
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="input-hs"
           />
           <SubmitButton loading={loading}>Registrar denuncia</SubmitButton>
         </form>
@@ -196,8 +196,10 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`text-sm px-3 py-1.5 rounded-lg ${
-        active ? 'bg-rose-600 text-white' : 'border hover:bg-gray-50'
+      className={`rounded-chip px-3.5 py-2 text-[13px] font-medium transition ${
+        active
+          ? 'bg-rust text-snow'
+          : 'border border-sand text-taupe hover:border-soot hover:text-soot'
       }`}
     >
       {children}
@@ -207,11 +209,7 @@ function TabButton({
 
 function SubmitButton({ loading, children }: { loading: boolean; children: React.ReactNode }) {
   return (
-    <button
-      type="submit"
-      disabled={loading}
-      className="bg-rose-600 text-white text-sm px-5 py-2 rounded-lg hover:bg-rose-700 disabled:opacity-50"
-    >
+    <button type="submit" disabled={loading} className="btn-primary btn-sm disabled:opacity-50">
       {loading ? 'Guardando...' : children}
     </button>
   );
