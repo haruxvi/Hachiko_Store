@@ -1,79 +1,125 @@
 import { getSession } from '@/src/lib/auth/session';
 import { getOrdersForSeller } from '@/src/lib/services/order.service';
 import { shippingLabel, SHIPPING_METHODS } from '@/src/lib/shipping';
-import ShipOrderForm from '@/src/components/panel/ShipOrderForm';
+import { formatCLP } from '@/src/lib/format';
+import OrdersBoard, { type SellerOrder } from '@/src/components/panel/OrdersBoard';
+
+// KPI — número en mono tabular, label en sentence case.
+function Stat({
+  label,
+  value,
+  caption,
+  accent,
+}: {
+  label: string;
+  value: string;
+  caption: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="rounded-[14px] border border-sand bg-snow px-[18px] py-4">
+      <div className="mb-2.5 text-[13px] font-medium text-taupe">{label}</div>
+      <div
+        className={`price-mono text-[28px] leading-none tracking-[-0.02em] ${
+          accent ? 'text-rust' : 'text-soot'
+        }`}
+      >
+        {value}
+      </div>
+      <div className="mt-2 text-xs font-normal text-taupe">{caption}</div>
+    </div>
+  );
+}
+
+function whenLabel(date: Date): string {
+  const now = new Date();
+  const time = date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today.getTime() - day.getTime()) / 86_400_000);
+  if (diffDays === 0) return `hoy ${time}`;
+  if (diffDays === 1) return `ayer ${time}`;
+  return date.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
+}
 
 export default async function OrdenesPage() {
   const session = await getSession();
   if (!session || session.role !== 'SELLER') return null;
 
-  const orders = await getOrdersForSeller();
+  const raw = await getOrdersForSeller();
+
+  const orders: SellerOrder[] = raw.map((o) => ({
+    id: o.id,
+    orderNumber: o.orderNumber,
+    status: o.status,
+    totalCLP: o.totalCLP,
+    shippingMethodLabel: shippingLabel(o.shippingMethod),
+    isPickup: !SHIPPING_METHODS[o.shippingMethod].requiresAddress,
+    recipientName: o.recipientName,
+    shippingStreet: o.shippingStreet,
+    shippingNumber: o.shippingNumber,
+    shippingApartment: o.shippingApartment,
+    shippingCommune: o.shippingCommune,
+    shippingRegion: o.shippingRegion,
+    shippingPhone: o.shippingPhone,
+    shippingNotes: o.shippingNotes,
+    items: o.items,
+    createdAtLabel: whenLabel(new Date(o.createdAt)),
+  }));
+
+  const porEmpacar = orders.filter((o) => o.status === 'PAID');
+  const enviadas = orders.filter((o) => o.status === 'SHIPPED');
+  const ventasPendientes = porEmpacar.reduce((acc, o) => acc + o.totalCLP, 0);
+
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString('es-CL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6">Órdenes para despachar</h1>
-      {orders.length === 0 ? (
-        <p className="text-gray-400">No hay órdenes pagadas pendientes de despacho.</p>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {orders.map((o) => {
-            const isPickup = !SHIPPING_METHODS[o.shippingMethod].requiresAddress;
-            return (
-              <div key={o.orderNumber} className="border rounded-xl p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="font-bold">Orden #{o.orderNumber}</p>
-                    <p className="text-sm text-gray-500">{new Date(o.createdAt).toLocaleDateString('es-CL')}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {/* El método que eligió el cliente manda: define qué se muestra y cómo se despacha */}
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                      {shippingLabel(o.shippingMethod)}
-                    </span>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                      o.status === 'PAID' ? 'bg-yellow-100 text-yellow-700' :
-                      o.status === 'SHIPPED' ? 'bg-blue-100 text-blue-700' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
-                      {o.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">
-                      {isPickup ? 'Retira en tienda' : 'Destinatario'}
-                    </p>
-                    <p className="text-sm">{o.recipientName}</p>
-                    {!isPickup && (
-                      <>
-                        <p className="text-sm">{o.shippingStreet} {o.shippingNumber}{o.shippingApartment ? `, ${o.shippingApartment}` : ''}</p>
-                        <p className="text-sm">{o.shippingCommune}, {o.shippingRegion}</p>
-                      </>
-                    )}
-                    <p className="text-sm">{o.shippingPhone}</p>
-                    {o.shippingNotes && <p className="text-xs text-gray-500 mt-1">{o.shippingNotes}</p>}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Productos</p>
-                    {o.items.map((item, i) => (
-                      <p key={i} className="text-sm">{item.quantity}× {item.name}</p>
-                    ))}
-                  </div>
-                </div>
-
-                {o.status === 'PAID' && (
-                  <ShipOrderForm
-                    orderId={o.id}
-                    carrierLabel={shippingLabel(o.shippingMethod)}
-                    isPickup={isPickup}
-                  />
-                )}
-              </div>
-            );
-          })}
+      <header className="mb-2">
+        <div className="mb-1.5 text-[13px] font-medium capitalize text-taupe">{dateLabel}</div>
+        <h1 className="font-display text-[34px] font-bold leading-[1.1] tracking-[-0.015em] text-soot">
+          Órdenes para despachar
+        </h1>
+        <div className="editorial mt-1.5 text-[15px] leading-snug text-taupe">
+          Trastienda — solo lo necesario para despachar, según Ley 21.719.
         </div>
+      </header>
+
+      {/* KPIs — solo datos reales, nada inventado */}
+      <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Stat
+          label="Por empacar"
+          value={String(porEmpacar.length)}
+          caption={
+            porEmpacar.length > 0
+              ? 'pedidos antes de las 14:00 salen hoy'
+              : 'nada pendiente — al día'
+          }
+          accent={porEmpacar.length > 0}
+        />
+        <Stat
+          label="Enviadas"
+          value={String(enviadas.length)}
+          caption="con tracking informado al cliente"
+        />
+        <Stat
+          label="Por despachar en plata"
+          value={formatCLP(ventasPendientes)}
+          caption="suma de las órdenes pagadas sin enviar"
+        />
+      </div>
+
+      {orders.length === 0 ? (
+        <p className="py-12 text-taupe">No hay órdenes pagadas pendientes de despacho.</p>
+      ) : (
+        <OrdersBoard orders={orders} />
       )}
     </div>
   );

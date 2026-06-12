@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { shipOrderAction } from '@/src/actions/order';
+import Icon from '@/src/components/ui/Icon';
 
 interface Props {
   orderId: string;
@@ -35,31 +36,36 @@ export default function ShipOrderForm({ orderId, carrierLabel, isPickup }: Props
 
   if (done) {
     return (
-      <p className="text-sm text-green-600 font-medium">
-        ✓ {isPickup ? 'Cliente avisado: pedido listo para retiro' : 'Despacho registrado y cliente avisado'}
+      <p className="flex items-center gap-2 text-sm font-medium text-mint-deep">
+        <Icon name="check" size={16} stroke={2} />
+        {isPickup ? 'Cliente avisado: pedido listo para retiro' : 'Despacho registrado y cliente avisado'}
       </p>
     );
   }
 
   return (
-    <form onSubmit={handle} className="flex gap-2 items-center">
+    <form onSubmit={handle}>
       {!isPickup && (
-        <input
-          type="text"
-          placeholder={`Número de seguimiento ${carrierLabel}`}
-          value={tracking}
-          onChange={(e) => setTracking(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-rose-300"
-        />
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-taupe">Tracking {carrierLabel}</span>
+          <input
+            type="text"
+            placeholder="ST·••••••"
+            value={tracking}
+            onChange={(e) => setTracking(e.target.value)}
+            className="input-hs price-mono !text-sm"
+          />
+        </label>
       )}
       <button
         type="submit"
         disabled={loading}
-        className="bg-rose-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-rose-600 disabled:opacity-50"
+        className="btn-primary mt-3 w-full justify-center disabled:opacity-50"
       >
-        {loading ? '…' : isPickup ? 'Marcar listo para retiro' : 'Marcar despachado'}
+        <Icon name="truck" size={16} />
+        {loading ? 'Guardando…' : isPickup ? 'Marcar listo para retiro' : 'Marcar como enviado'}
       </button>
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="mt-2 text-xs text-alert">{error}</p>}
     </form>
   );
 }

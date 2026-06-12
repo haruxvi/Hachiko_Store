@@ -1,142 +1,158 @@
 import Link from 'next/link';
 import { getProducts } from '@/src/lib/services/catalog.service';
-import { getCategories } from '@/src/lib/services/catalog.service';
-import { getSession } from '@/src/lib/auth/session';
+import SiteHeader from '@/src/components/storefront/SiteHeader';
+import SiteFooter from '@/src/components/storefront/SiteFooter';
+import ProductCardHs from '@/src/components/storefront/ProductCardHs';
+import Icon, { type IconName } from '@/src/components/ui/Icon';
 
 // La home lee sesión y catálogo: siempre se renderiza en runtime. Declararlo
 // evita que el build intente prerenderizarla consultando la BD (el build no
 // debe depender de una base de datos viva).
 export const dynamic = 'force-dynamic';
 
+// Home en modo lanzamiento (día 1): sin métricas fabricadas, sin temporalidad
+// falsa. Promesas de cuidado, no de escala.
+function ValueProp({ icon, title, text }: { icon: IconName; title: string; text: string }) {
+  return (
+    <div>
+      <div className="mb-4 text-soot">
+        <Icon name={icon} size={22} stroke={1.5} />
+      </div>
+      <div className="mb-2 text-sm font-semibold text-soot">{title}</div>
+      <p className="text-[13px] font-normal leading-relaxed text-taupe">{text}</p>
+    </div>
+  );
+}
+
 export default async function HomePage() {
-  const [{ products: featured }, categories, session] = await Promise.all([
-    getProducts({ featured: true, limit: 8 }),
-    getCategories(),
-    getSession(),
-  ]);
+  const { products } = await getProducts({ limit: 8 });
 
   return (
-    <main>
-      {/* Header */}
-      <header className="border-b px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-rose-600 font-bold text-xl">
-            Hachiko
-          </Link>
-          <nav className="flex items-center gap-5 text-sm">
-            <Link href="/catalogo" className="hover:text-rose-600">
-              Catálogo
-            </Link>
-            <Link href="/carrito" className="hover:text-rose-600">
-              Carrito
-            </Link>
-            {session ? (
-              <>
-                {session.role === 'SELLER' && (
-                  <Link href="/trastienda" className="hover:text-rose-600">
-                    Trastienda
-                  </Link>
-                )}
-                <Link href="/perfil" className="hover:text-rose-600">
-                  Mi cuenta
+    <>
+      <SiteHeader />
+      <main>
+        {/* ──────── HERO — asimétrico 40/60, limpio, sin badges ──────── */}
+        <section className="mx-auto max-w-[1440px] px-6 pb-8 pt-12 sm:px-12 lg:pt-20">
+          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] lg:gap-20">
+            <div className="lg:pt-12">
+              <h1 className="mb-6 font-display text-4xl font-bold leading-[1.08] tracking-[-0.02em] text-soot sm:text-5xl lg:text-6xl">
+                Snacks, skincare y papelería traídos directo de{' '}
+                <span className="editorial text-rust">Seúl</span>.
+              </h1>
+              <p className="mb-9 max-w-[440px] text-[17px] font-normal leading-[1.7] text-taupe">
+                Cosas que extrañábamos y queríamos probar. Llegan en cantidades chicas a una bodega
+                en Recoleta y de ahí salen a tu casa.
+              </p>
+              <div className="flex flex-wrap items-center gap-7">
+                <Link href="/catalogo" className="btn-primary">
+                  Explorar catálogo <Icon name="arrow" size={16} />
                 </Link>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="bg-rose-600 text-white px-4 py-1.5 rounded-full hover:bg-rose-700"
-              >
-                Iniciar sesión
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
+                <a href="#about" className="btn-link">
+                  Cómo compramos
+                </a>
+              </div>
+            </div>
 
-      {/* Hero */}
-      <section className="bg-rose-50 py-20 px-6 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Productos Coreanos Auténticos
-        </h1>
-        <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
-          Snacks, skincare, papelería y merch K-pop. Enviamos a todo Chile desde Recoleta.
-        </p>
-        <Link
-          href="/catalogo"
-          className="inline-block bg-rose-500 text-white font-semibold px-8 py-3 rounded-full hover:bg-rose-600 transition-colors"
-        >
-          Ver catálogo
-        </Link>
-      </section>
-
-      {/* Categories */}
-      {categories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-6 py-14">
-          <h2 className="text-2xl font-bold mb-6">Categorías</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/catalogo?categoria=${cat.slug}`}
-                className="border rounded-xl p-6 text-center font-medium hover:bg-rose-50 transition-colors"
-              >
-                {cat.name}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Featured products */}
-      {featured.length > 0 && (
-        <section className="max-w-7xl mx-auto px-6 pb-20">
-          <h2 className="text-2xl font-bold mb-6">Destacados</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-            {featured.map((p) => (
-              <Link key={p.id} href={`/producto/${p.slug}`} className="group block">
-                <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
-                  {p.images[0] ? (
-                    /* eslint-disable-next-line @next/next/no-img-element -- URLs externas sin host fijo; next/image exige remotePatterns */
-                    <img
-                      src={p.images[0]}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
-                      🛍️
-                    </div>
-                  )}
+            {/* Composición visual derecha — blob blush + área de marca */}
+            <div className="relative hidden h-[560px] lg:block">
+              <div className="absolute inset-0 -rotate-1 rounded-[200px_24px_24px_24px] bg-blush" />
+              <div className="absolute bottom-6 left-8 right-4 top-4 overflow-hidden rounded-[200px_12px_12px_12px] bg-cream shadow-soft">
+                <div className="ph h-full w-full !border-0">
+                  <span className="ph-label">hero · still life de productos seleccionados</span>
                 </div>
-                <h3 className="font-medium text-sm line-clamp-2">{p.name}</h3>
-                <p className="text-rose-600 font-bold mt-1">
-                  ${p.priceCLP.toLocaleString('es-CL')}
-                </p>
-              </Link>
-            ))}
+              </div>
+            </div>
           </div>
         </section>
-      )}
 
-      {/* Footer */}
-      <footer className="border-t py-10 px-6 text-sm text-gray-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between gap-6">
-          <div>
-            <p className="font-semibold text-gray-800 mb-2">Hachiko</p>
-            <p>Tienda de productos coreanos — Santiago, Chile</p>
-            <p>contacto@hachiko.cl</p>
+        {/* ──────── 3 VALUE PROPS — texto sobre cream, sin cards ──────── */}
+        <section className="mx-auto max-w-[1240px] px-6 pt-12 sm:px-12 lg:pt-20">
+          <div className="grid grid-cols-1 gap-10 border-y border-sand py-12 sm:grid-cols-3 lg:gap-16">
+            <ValueProp
+              icon="search"
+              title="Curaduría desde Seúl"
+              text="Cada producto lo elegimos nosotros. No es dropshipping ni catálogo armado por algoritmo."
+            />
+            <ValueProp
+              icon="truck"
+              title="Despacho a todo Chile"
+              text="Vía Starken desde Recoleta. RM en 24–48 horas, regiones en 3–5 días hábiles."
+            />
+            <ValueProp
+              icon="lock"
+              title="Pago seguro"
+              text="Webpay y MercadoPago. No guardamos los datos de tu tarjeta en nuestros servidores."
+            />
           </div>
-          <nav className="flex flex-col gap-1">
-            <Link href="/legal/terminos" className="hover:underline">Términos y Condiciones</Link>
-            <Link href="/legal/privacidad" className="hover:underline">Política de Privacidad</Link>
-            <Link href="/legal/cookies" className="hover:underline">Política de Cookies</Link>
-            <Link href="/legal/despacho" className="hover:underline">Política de Despacho</Link>
-            <Link href="/legal/devoluciones" className="hover:underline">Cambios y Devoluciones</Link>
-          </nav>
-        </div>
-      </footer>
-    </main>
+        </section>
+
+        {/* ──────── CATÁLOGO — título neutro, todo lo que hay ──────── */}
+        <section className="mx-auto max-w-[1240px] px-6 pt-16 sm:px-12 lg:pt-24">
+          <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="font-display text-3xl font-bold tracking-[-0.02em] text-soot lg:text-4xl">
+              Catálogo
+            </h2>
+            <div className="editorial text-[15px] text-taupe">
+              Lo que hay hoy en bodega. Llegan más cosas en las próximas semanas.
+            </div>
+          </div>
+          {products.length === 0 ? (
+            <p className="py-16 text-center text-taupe">
+              Estamos subiendo los primeros productos. Volvé en unos días.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+              {products.map((p) => (
+                <ProductCardHs
+                  key={p.id}
+                  product={{
+                    slug: p.slug,
+                    name: p.name,
+                    nameKorean: p.nameKorean,
+                    priceCLP: p.priceCLP,
+                    image: p.images[0] ?? null,
+                    stock: p.stock,
+                    lowStockThreshold: p.lowStockThreshold,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          <div className="mt-8 text-center">
+            <Link href="/catalogo" className="btn-link">
+              Ver el catálogo completo <Icon name="arrow" size={14} />
+            </Link>
+          </div>
+        </section>
+
+        {/* ──────── QUIÉNES SOMOS — editorial honesto, atemporal ──────── */}
+        <section id="about" className="mx-auto max-w-[1240px] px-6 pt-20 sm:px-12 lg:pt-32">
+          <div className="grid items-center gap-12 lg:grid-cols-[5fr_4fr] lg:gap-20">
+            <div className="ph ph-sand h-72 rounded-3xl lg:h-[520px]">
+              <span className="ph-label">foto editorial · bodega en Recoleta</span>
+            </div>
+            <div>
+              <div className="editorial mb-3.5 text-sm text-rust">Quiénes somos</div>
+              <h2 className="mb-6 font-display text-3xl font-bold leading-tight tracking-[-0.02em] text-soot lg:text-[34px]">
+                Hachiko nace en Recoleta, en 2026.
+              </h2>
+              <p className="mb-4 text-base font-normal leading-[1.75] text-soot">
+                Empezamos importando snacks que extrañábamos y crecimos hasta sumar skincare y
+                papelería. Cada pedido lo empaca alguien que conoce el producto, no una bodega
+                tercerizada.
+              </p>
+              <p className="mb-6 text-base font-normal leading-[1.75] text-taupe">
+                Si algo no nos convence en la prueba, no lo subimos. Por eso el catálogo es chico —
+                y por eso, esperamos, vale la pena.
+              </p>
+              <a href="mailto:contacto@hachiko.cl" className="btn-link">
+                Escribinos <Icon name="arrow" size={14} />
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

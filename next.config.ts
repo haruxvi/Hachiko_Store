@@ -1,5 +1,11 @@
 import type { NextConfig } from 'next';
 
+// El runtime de webpack en `next dev` ejecuta los chunks con eval() (source
+// maps) y usa un websocket para HMR: ambos violan la CSP estricta y dejan la
+// página sin hidratar (botones muertos). Estas concesiones aplican SOLO en
+// desarrollo; la política de producción no cambia.
+const isDev = process.env.NODE_ENV !== 'production';
+
 const securityHeaders = [
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -10,11 +16,11 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
       "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
       "font-src 'self' fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      "connect-src 'self' webpay3g.transbank.cl api.mercadopago.com",
+      `connect-src 'self' webpay3g.transbank.cl api.mercadopago.com${isDev ? ' ws://localhost:3000' : ''}`,
       "object-src 'none'",
       "base-uri 'self'",
       "frame-ancestors 'none'",

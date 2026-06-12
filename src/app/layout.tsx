@@ -1,6 +1,33 @@
 import type { Metadata } from 'next';
+import { Zen_Maru_Gothic, Quicksand, JetBrains_Mono, Fraunces } from 'next/font/google';
 import WhatsAppButton from '@/src/components/storefront/WhatsAppButton';
 import './globals.css';
+
+// Sistema tipográfico Hachiko:
+// Zen Maru Gothic (display), Quicksand (UI), JetBrains Mono (precios/SKUs),
+// Fraunces italic (acento editorial, racionado).
+const zenMaru = Zen_Maru_Gothic({
+  weight: ['500', '700'],
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+});
+const quicksand = Quicksand({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+});
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  style: ['italic'],
+  variable: '--font-editorial',
+  display: 'swap',
+});
 
 const APP_URL = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000';
 
@@ -25,8 +52,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className="antialiased bg-white text-gray-900">
+    <html
+      lang="es"
+      className={`${zenMaru.variable} ${quicksand.variable} ${jetbrains.variable} ${fraunces.variable}`}
+    >
+      <body>
         {children}
         <WhatsAppButton />
       </body>

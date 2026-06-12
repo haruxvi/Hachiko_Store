@@ -174,6 +174,7 @@ export async function getOrdersForSeller() {
     items: o.items.map((i) => ({ name: i.productName, quantity: i.quantity })),
     // Estado para saber si ya fue marcado como enviado
     status: o.status,
+    totalCLP: o.totalCLP,
     // Método elegido por el cliente: define qué se muestra (dirección o retiro)
     shippingMethod: o.shippingMethod,
     // Datos de etiqueta — descifrados aquí en el service, no en la UI

@@ -2,6 +2,135 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+/* Hachiko Store · design tokens
+   Korean shop with Shiba-Inu warmth. Paleta pastel estricta. */
+:root {
+  --cream: #fff5e8;
+  --snow: #ffffff;
+  --sand: #f5e6d0;
+  --tan: #f5c9a0;
+  --tan-mid: #efb489;
+  --rust: #e8a87c;
+  --rust-dark: #da9468;
+  --soot: #3d2f25;
+  --taupe: #a8907a;
+  --blush: #ffd4d4;
+  --petal-deep: #f4a8a8;
+  --mint: #d8ecdc;
+  --mint-deep: #86b596;
+  --sky: #d6eef5;
+  --sky-deep: #7da8c7;
+  --alert: #c75e5e;
+
+  --shadow-soft: 0 2px 8px rgba(61, 47, 37, 0.06);
+  --shadow-lift: 0 8px 24px rgba(61, 47, 37, 0.1);
+}
+
+@layer base {
+  body {
+    @apply bg-cream font-body text-soot antialiased;
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 500;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-soot;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+}
+
+@layer components {
+  /* Botones — radios 12px, press scale 0.98 */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-btn px-[22px] py-3.5 font-body text-[15px] font-semibold transition;
+  }
+  .btn-primary {
+    @apply btn bg-rust text-snow hover:bg-rust-dark active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply btn border border-sand bg-transparent text-soot hover:border-soot;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-soot hover:bg-soot/5;
+  }
+  .btn-link {
+    @apply inline-flex items-center gap-2 p-0 font-body text-[15px] font-medium text-soot underline decoration-taupe decoration-1 underline-offset-4 transition hover:text-rust hover:decoration-rust;
+  }
+  .btn-sm {
+    @apply rounded-chip px-3.5 py-2 text-[13px];
+  }
+
+  /* Inputs — radio 4px, focus rust */
+  .input-hs {
+    @apply w-full rounded-input border border-sand bg-snow px-3.5 py-3 text-[15px] text-soot transition placeholder:text-taupe focus:border-rust focus:outline-none focus:ring-[3px] focus:ring-rust/20;
+  }
+
+  /* Cards — radio 20px */
+  .card-hs {
+    @apply rounded-card border border-sand bg-snow;
+  }
+
+  /* Chips — radio 8px */
+  .chip-hs {
+    @apply inline-flex items-center gap-1.5 rounded-chip border border-sand bg-cream px-2.5 py-1.5 text-xs font-semibold tracking-[0.02em] text-taupe;
+  }
+  .chip-rust {
+    @apply chip-hs border-rust/30 bg-rust/[0.18] text-[#b26a3d];
+  }
+  .chip-blush {
+    @apply chip-hs border-transparent bg-blush text-[#a85959];
+  }
+  .chip-sky {
+    @apply chip-hs border-transparent bg-sky text-[#3c7188];
+  }
+  .chip-mint {
+    @apply chip-hs border-transparent bg-mint text-[#4e7a5e];
+  }
+
+  /* Placeholder de imagen — rayado sand, etiqueta mono. Honesto hasta tener foto. */
+  .ph {
+    @apply relative flex items-center justify-center overflow-hidden border border-sand font-mono text-[11px] tracking-[0.04em] text-taupe;
+    background:
+      repeating-linear-gradient(45deg, rgba(168, 144, 122, 0.1) 0 1px, transparent 1px 12px),
+      var(--cream);
+  }
+  .ph-sand {
+    background:
+      repeating-linear-gradient(45deg, rgba(168, 144, 122, 0.12) 0 1px, transparent 1px 12px),
+      #eddcbf;
+  }
+  .ph-label {
+    @apply rounded border border-sand bg-snow px-2 py-1;
+  }
+
+  /* Acentos tipográficos */
+  .editorial {
+    @apply font-editorial italic;
+    font-weight: 400;
+  }
+  .hangul {
+    @apply font-hangul;
+    font-weight: 500;
+  }
+  .price-mono {
+    @apply font-mono;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes hs-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
