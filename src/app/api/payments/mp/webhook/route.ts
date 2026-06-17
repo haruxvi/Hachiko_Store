@@ -28,7 +28,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true }); // not a payment event
     }
 
-    const paymentId = body.data.id;
+    // El id que firma MercadoPago es el del query string (dataId). El cuerpo no
+    // está cubierto por la firma, así que rechazamos si difieren y usamos el
+    // valor firmado para consultar el pago.
+    if (body.data.id !== dataId) {
+      return NextResponse.json({ error: 'Payment id mismatch' }, { status: 400 });
+    }
+
+    const paymentId = dataId;
 
     // Idempotency
     if (await isWebhookProcessed(xRequestId)) {

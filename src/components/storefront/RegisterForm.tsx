@@ -93,7 +93,8 @@ export default function RegisterForm() {
           className="w-full border rounded-lg px-3 py-2 text-sm"
         />
         <p className="text-xs text-gray-400 mt-1">
-          Mínimo 8 caracteres, con al menos una mayúscula y un número.
+          Mínimo 8 caracteres, con mayúscula, minúscula y un número. Evita números
+          consecutivos o repetidos (ej. 123 o 111).
         </p>
       </div>
 

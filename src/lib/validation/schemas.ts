@@ -2,12 +2,32 @@ import { z } from 'zod';
 
 // ─── Auth ────────────────────────────────────────────────
 
+// Detecta 3+ dígitos en secuencia ascendente/descendente (123, 987) o
+// repetidos (111). Solo mira los dígitos tal como aparecen en el texto.
+function hasConsecutiveDigits(value: string): boolean {
+  for (let i = 0; i + 2 < value.length; i++) {
+    const a = value.charCodeAt(i);
+    const b = value.charCodeAt(i + 1);
+    const c = value.charCodeAt(i + 2);
+    const allDigits = a >= 48 && a <= 57 && b >= 48 && b <= 57 && c >= 48 && c <= 57;
+    if (!allDigits) continue;
+    const step = b - a;
+    if (step === c - b && (step === 0 || step === 1 || step === -1)) return true;
+  }
+  return false;
+}
+
 // Política de contraseñas única para registro y restablecimiento
 export const PasswordSchema = z
   .string()
   .min(8, 'Mínimo 8 caracteres')
-  .regex(/[A-Z]/, 'Debe tener al menos una mayúscula')
-  .regex(/[0-9]/, 'Debe tener al menos un número');
+  .max(128, 'Máximo 128 caracteres')
+  .regex(/[A-Z]/, 'Debe incluir al menos una mayúscula')
+  .regex(/[a-z]/, 'Debe incluir al menos una minúscula')
+  .regex(/[0-9]/, 'Debe incluir al menos un número')
+  .refine((v) => !hasConsecutiveDigits(v), {
+    message: 'Evita 3 o más números consecutivos o repetidos (ej. 123, 321 o 111)',
+  });
 
 export const RegisterSchema = z.object({
   email: z.string().email(),

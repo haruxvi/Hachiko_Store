@@ -75,7 +75,10 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           autoComplete="new-password"
           className="w-full border rounded-lg px-3 py-2 text-sm"
         />
-        <p className="text-xs text-gray-400 mt-1">Mínimo 8 caracteres, una mayúscula y un número.</p>
+        <p className="text-xs text-gray-400 mt-1">
+          Mínimo 8 caracteres, con mayúscula, minúscula y un número. Evita números
+          consecutivos o repetidos (ej. 123 o 111).
+        </p>
       </div>
 
       <div>
