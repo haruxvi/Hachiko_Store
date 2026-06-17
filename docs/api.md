@@ -32,7 +32,7 @@ El contrato de la API está definido en **OpenAPI 3.1** con una única fuente de
 | POST | `/api/payments/mp/webhook` | firma HMAC | Notificaciones de pago MP (idempotente por `x-request-id`) |
 | GET | `/api/security/incidents/{id}/export` | SELLER | Informe JSON de incidencia con cadena de integridad |
 | GET | `/api/cron/clean-reservations` | Bearer CRON_SECRET | Libera reservas de stock expiradas (cada 5 min) |
-| GET | `/api/cron/clean-audit-logs` | Bearer CRON_SECRET | Anonimiza auditoría expirada (diario 04:00 UTC) |
+| GET | `/api/cron/clean-audit-logs` | Bearer CRON_SECRET | Anonimiza IP y user-agent de auditoría a los 12 meses (diario 04:00 UTC) |
 | GET | `/api/health` | — | Healthcheck con verificación de BD |
 
 ## Convenciones

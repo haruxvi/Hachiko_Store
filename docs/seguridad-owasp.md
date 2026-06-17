@@ -96,7 +96,7 @@ Ver [Gestión de vulnerabilidades](#gestión-de-vulnerabilidades-de-dependencias
 | `AuditLog` de acciones sensibles: login/fallos/bloqueos, pagos, despachos, exportaciones de datos, cambios de consentimiento, 2FA | `src/lib/services/audit.service.ts` |
 | Registro de incidencias de ciberseguridad tipificado según Ley 21.459, con notificación a autoridad (Ley 21.663 / 21.719) | `prisma/schema.prisma` (`SecurityIncident`), `src/lib/services/security.service.ts` |
 | Sentry para errores en runtime | `@sentry/nextjs`, `src/instrumentation.ts` |
-| Anonimización programada de datos de auditoría expirados (cron diario) | `src/app/api/cron/clean-audit-logs/route.ts` |
+| Anonimización programada de IP y user-agent de auditoría a los 12 meses (cron diario) — ver [`docs/retencion-anonimizacion-datos.md`](./retencion-anonimizacion-datos.md) | `src/app/api/cron/clean-audit-logs/route.ts` |
 
 ### A10 — Server-Side Request Forgery (SSRF)
 

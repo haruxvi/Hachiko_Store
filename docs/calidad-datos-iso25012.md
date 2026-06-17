@@ -66,8 +66,9 @@ código sea perfecto.
 
 ## Cumplimiento (Compliance)
 
-- **Retención limitada**: datos de auditoría se anonimizan por cron diario
-  (`clean-audit-logs`); cuentas eliminadas se purgan a los 30 días (`DeletionRequest`).
+- **Retención limitada**: la IP y el user-agent de los registros de auditoría se anonimizan
+  a los **12 meses** por cron diario (`clean-audit-logs`); cuentas eliminadas se purgan a los
+  30 días (`DeletionRequest`). Detalle en [`docs/retencion-anonimizacion-datos.md`](./retencion-anonimizacion-datos.md).
 - **Derechos ARCO**: exportación completa (`/api/me/data-export`) y supresión
   (`DELETE /api/me/account`), ambas auditadas — Ley 21.719.
 - Tipificación de incidencias alineada con la Ley 21.459 (delitos informáticos) y flujo de
