@@ -9,7 +9,7 @@ const LOGIN_WINDOW_MS = 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `login:${clientIpFrom(request.headers)}`,
       LOGIN_LIMIT,
       LOGIN_WINDOW_MS
@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // x-forwarded-for puede traer una cadena de proxies; la IP del cliente es la primera
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined;
+    // IP confiable del proxy (no la falsificable del borde izquierdo de XFF)
+    const ip = clientIpFrom(request.headers);
     const userAgent = request.headers.get('user-agent') ?? undefined;
 
     const result = await loginUser(parsed.data, ip, userAgent);

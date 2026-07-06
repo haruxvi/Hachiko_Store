@@ -22,7 +22,7 @@ export async function startGuestCheckoutAction(
   const headerStore = await headers();
   const ip = clientIpFrom(headerStore);
 
-  const limited = rateLimit(`guest:${ip}`, GUEST_LIMIT, GUEST_WINDOW_MS);
+  const limited = await rateLimit(`guest:${ip}`, GUEST_LIMIT, GUEST_WINDOW_MS);
   if (!limited.allowed) {
     return { ok: false, error: 'Demasiados intentos, espera un momento' };
   }

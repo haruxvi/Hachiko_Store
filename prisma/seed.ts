@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { assertSellerSlotAvailable, SellerLimitError } from '../src/lib/auth/seller-limit';
 
 const db = new PrismaClient();
 
@@ -78,6 +79,19 @@ async function seedTestUsers() {
 
   for (const u of candidates) {
     if (!u.email || !u.password) continue;
+
+    // Tope de vendedores: no crear/promover un SELLER si ya se alcanzó el máximo
+    if (u.role === 'SELLER') {
+      try {
+        await assertSellerSlotAvailable(db, u.email);
+      } catch (e) {
+        if (e instanceof SellerLimitError) {
+          console.warn(`Omitido ${u.email}: ${e.message}`);
+          continue;
+        }
+        throw e;
+      }
+    }
 
     const passwordHash = await argon2.hash(u.password, {
       type: argon2.argon2id,

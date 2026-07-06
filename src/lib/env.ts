@@ -19,6 +19,10 @@ const envSchema = z.object({
   CRON_SECRET: z.string().min(16, 'CRON_SECRET debe tener al menos 16 caracteres'),
   LOW_STOCK_DEFAULT: z.coerce.number().int().min(0).default(5),
   RESERVATION_TTL_MINUTES: z.coerce.number().int().min(1).default(15),
+  // Rate limiter compartido (opcional). Si faltan, se usa el límite en memoria
+  // por instancia. Recomendado en producción serverless para un límite real.
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

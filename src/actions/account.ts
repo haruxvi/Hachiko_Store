@@ -39,7 +39,7 @@ export async function resendVerificationAction(): Promise<{ ok: boolean; error?:
   const session = await getSession();
   if (!session) return { ok: false, error: 'No autenticado' };
 
-  const limited = rateLimit(`resend-verify:${session.sub}`, 3, 15 * 60 * 1000);
+  const limited = await rateLimit(`resend-verify:${session.sub}`, 3, 15 * 60 * 1000);
   if (!limited.allowed) {
     return { ok: false, error: 'Ya enviamos varios correos. Revisa tu bandeja de spam y espera unos minutos.' };
   }

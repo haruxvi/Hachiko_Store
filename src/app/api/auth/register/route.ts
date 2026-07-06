@@ -9,7 +9,7 @@ const REGISTER_WINDOW_MS = 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `register:${clientIpFrom(request.headers)}`,
       REGISTER_LIMIT,
       REGISTER_WINDOW_MS
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined;
+    const ip = clientIpFrom(request.headers);
     const result = await registerUser(parsed.data, ip);
 
     if (!result.ok) {

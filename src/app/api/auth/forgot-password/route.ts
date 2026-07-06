@@ -9,7 +9,7 @@ const FORGOT_WINDOW_MS = 15 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `forgot:${clientIpFrom(request.headers)}`,
       FORGOT_LIMIT,
       FORGOT_WINDOW_MS

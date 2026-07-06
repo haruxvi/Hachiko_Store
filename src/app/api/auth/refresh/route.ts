@@ -20,7 +20,7 @@ function unauthorized(code: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimit(
+  const limited = await rateLimit(
     `refresh:${clientIpFrom(request.headers)}`,
     REFRESH_LIMIT,
     REFRESH_WINDOW_MS

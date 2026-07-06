@@ -8,7 +8,7 @@ const RESET_WINDOW_MS = 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `reset:${clientIpFrom(request.headers)}`,
       RESET_LIMIT,
       RESET_WINDOW_MS
