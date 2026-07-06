@@ -11,8 +11,10 @@ const envSchema = z.object({
   TBK_API_KEY: z.string().min(1),
   MP_ACCESS_TOKEN: z.string().min(1),
   MP_PUBLIC_KEY: z.string().min(1),
-  MP_WEBHOOK_SECRET: z.string().min(1),
-  RESEND_API_KEY: z.string().min(1),
+  // Opcionales: el webhook usa `?? ''` y el email se omite si falta la key.
+  // Así la app arranca aunque aún no estén configurados.
+  MP_WEBHOOK_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('Hachiko <hola@hachiko.cl>'),
   NEXT_PUBLIC_APP_URL: z.string().url(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
