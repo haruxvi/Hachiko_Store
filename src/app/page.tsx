@@ -146,7 +146,7 @@ export default async function HomePage() {
                 y por eso, esperamos, vale la pena.
               </p>
               <a href="mailto:contacto@hachiko.cl" className="btn-link">
-                Escribinos <Icon name="arrow" size={14} />
+                Escríbenos <Icon name="arrow" size={14} />
               </a>
             </div>
           </div>

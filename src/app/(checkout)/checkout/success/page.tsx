@@ -86,7 +86,7 @@ export default async function CheckoutSuccessPage({
         </div>
 
         <p className="mt-6 text-[13px] text-taupe">
-          ¿Algo no calza? Escribinos a{' '}
+          ¿Algo no calza? Escríbenos a{' '}
           <a href="mailto:contacto@hachiko.cl" className="text-rust hover:underline">
             contacto@hachiko.cl
           </a>{' '}
