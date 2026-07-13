@@ -3,6 +3,7 @@ import { getProducts } from '@/src/lib/services/catalog.service';
 import SiteHeader from '@/src/components/storefront/SiteHeader';
 import SiteFooter from '@/src/components/storefront/SiteFooter';
 import ProductCardHs from '@/src/components/storefront/ProductCardHs';
+import Reveal from '@/src/components/storefront/Reveal';
 import Icon, { type IconName } from '@/src/components/ui/Icon';
 
 // La home lee sesión y catálogo: siempre se renderiza en runtime. Declararlo
@@ -68,53 +69,62 @@ export default async function HomePage() {
         {/* ──────── 3 VALUE PROPS — texto sobre cream, sin cards ──────── */}
         <section className="mx-auto max-w-[1240px] px-6 pt-12 sm:px-12 lg:pt-20">
           <div className="grid grid-cols-1 gap-10 border-y border-sand py-12 sm:grid-cols-3 lg:gap-16">
-            <ValueProp
-              icon="search"
-              title="Curaduría desde Seúl"
-              text="Cada producto lo elegimos nosotros. No es dropshipping ni catálogo armado por algoritmo."
-            />
-            <ValueProp
-              icon="truck"
-              title="Despacho a todo Chile"
-              text="Vía Starken desde Recoleta. RM en 24–48 horas, regiones en 3–5 días hábiles."
-            />
-            <ValueProp
-              icon="lock"
-              title="Pago seguro"
-              text="Webpay y MercadoPago. No guardamos los datos de tu tarjeta en nuestros servidores."
-            />
+            <Reveal delay={0}>
+              <ValueProp
+                icon="search"
+                title="Curaduría desde Seúl"
+                text="Cada producto lo elegimos nosotros. No es dropshipping ni catálogo armado por algoritmo."
+              />
+            </Reveal>
+            <Reveal delay={100}>
+              <ValueProp
+                icon="truck"
+                title="Despacho a todo Chile"
+                text="Vía Starken desde Recoleta. RM en 24–48 horas, regiones en 3–5 días hábiles."
+              />
+            </Reveal>
+            <Reveal delay={200}>
+              <ValueProp
+                icon="lock"
+                title="Pago seguro"
+                text="Webpay y MercadoPago. No guardamos los datos de tu tarjeta en nuestros servidores."
+              />
+            </Reveal>
           </div>
         </section>
 
         {/* ──────── CATÁLOGO — título neutro, todo lo que hay ──────── */}
         <section className="mx-auto max-w-[1240px] px-6 pt-16 sm:px-12 lg:pt-24">
-          <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="font-display text-3xl font-bold tracking-[-0.02em] text-soot lg:text-4xl">
-              Catálogo
-            </h2>
-            <div className="editorial text-[15px] text-taupe">
-              Lo que hay hoy en bodega. Llegan más cosas en las próximas semanas.
+          <Reveal>
+            <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="font-display text-3xl font-bold tracking-[-0.02em] text-soot lg:text-4xl">
+                Catálogo
+              </h2>
+              <div className="editorial text-[15px] text-taupe">
+                Lo que hay hoy en bodega. Llegan más cosas en las próximas semanas.
+              </div>
             </div>
-          </div>
+          </Reveal>
           {products.length === 0 ? (
             <p className="py-16 text-center text-taupe">
               Estamos subiendo los primeros productos. Volvé en unos días.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-              {products.map((p) => (
-                <ProductCardHs
-                  key={p.id}
-                  product={{
-                    slug: p.slug,
-                    name: p.name,
-                    nameKorean: p.nameKorean,
-                    priceCLP: p.priceCLP,
-                    image: p.images[0] ?? null,
-                    stock: p.stock,
-                    lowStockThreshold: p.lowStockThreshold,
-                  }}
-                />
+              {products.map((p, i) => (
+                <Reveal key={p.id} delay={Math.min(i, 3) * 80}>
+                  <ProductCardHs
+                    product={{
+                      slug: p.slug,
+                      name: p.name,
+                      nameKorean: p.nameKorean,
+                      priceCLP: p.priceCLP,
+                      image: p.images[0] ?? null,
+                      stock: p.stock,
+                      lowStockThreshold: p.lowStockThreshold,
+                    }}
+                  />
+                </Reveal>
               ))}
             </div>
           )}
@@ -128,10 +138,10 @@ export default async function HomePage() {
         {/* ──────── QUIÉNES SOMOS — editorial honesto, atemporal ──────── */}
         <section id="about" className="mx-auto max-w-[1240px] px-6 pt-20 sm:px-12 lg:pt-32">
           <div className="grid items-center gap-12 lg:grid-cols-[5fr_4fr] lg:gap-20">
-            <div className="ph ph-sand h-72 rounded-3xl lg:h-[520px]">
+            <Reveal className="ph ph-sand h-72 rounded-3xl lg:h-[520px]">
               <span className="ph-label">foto editorial · bodega en Recoleta</span>
-            </div>
-            <div>
+            </Reveal>
+            <Reveal delay={120}>
               <div className="editorial mb-3.5 text-sm text-rust">Quiénes somos</div>
               <h2 className="mb-6 font-display text-3xl font-bold leading-tight tracking-[-0.02em] text-soot lg:text-[34px]">
                 Hachiko nace en Recoleta, en 2026.
@@ -148,7 +158,7 @@ export default async function HomePage() {
               <a href="mailto:contacto@hachiko.cl" className="btn-link">
                 Escríbenos <Icon name="arrow" size={14} />
               </a>
-            </div>
+            </Reveal>
           </div>
         </section>
       </main>
