@@ -74,7 +74,7 @@ export default function SiteFooter() {
           </div>
           <div className="text-[13px] text-taupe sm:text-right">
             <div>Hecho con cariño en Recoleta · 2026</div>
-            <div className="price-mono mt-1 text-[11px]">RUT 76.123.456-7</div>
+            <div className="price-mono mt-1 text-[11px]">RUT 76.123.456-7 · Patente 2024-04201</div>
           </div>
         </div>
       </div>
