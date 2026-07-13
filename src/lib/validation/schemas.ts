@@ -35,7 +35,7 @@ export const RegisterSchema = z.object({
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   consentEssential: z.literal(true, {
-    errorMap: () => ({ message: 'Debes aceptar el tratamiento esencial de datos' }),
+    error: 'Debes aceptar el tratamiento esencial de datos',
   }),
   consentMarketing: z.boolean().default(false),
   consentVersion: z.string().default('v1.0-2026'),
@@ -59,7 +59,7 @@ export const ForgotPasswordSchema = z.object({
 export const GuestCheckoutSchema = z.object({
   email: z.string().email(),
   consentEssential: z.literal(true, {
-    errorMap: () => ({ message: 'Debes aceptar el tratamiento esencial de datos' }),
+    error: 'Debes aceptar el tratamiento esencial de datos',
   }),
 });
 
@@ -153,7 +153,7 @@ export const CheckoutSchema = z
     for (const field of DELIVERY_REQUIRED_FIELDS) {
       if (!data.shippingAddress[field]?.trim()) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['shippingAddress', field],
           message: 'Requerido para despacho a domicilio',
         });

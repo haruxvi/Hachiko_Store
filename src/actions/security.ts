@@ -44,7 +44,7 @@ export async function createIncidentAction(
   }
 
   const parsed = CreateIncidentSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? 'Datos inválidos' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
 
   try {
     const incident = await createIncident({ ...parsed.data, actorId: session.sub });

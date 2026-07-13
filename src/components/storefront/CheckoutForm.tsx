@@ -17,14 +17,14 @@ import { formatCLP } from '@/src/lib/format';
 const FormSchema = ShippingAddressSchema.extend({
   shippingMethod: ShippingMethodSchema,
   paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO'], {
-    errorMap: () => ({ message: 'Elige un método de pago' }),
+    error: 'Elige un método de pago',
   }),
 }).superRefine((data, ctx) => {
   if (data.shippingMethod === 'PICKUP') return;
   for (const field of ['street', 'number', 'commune', 'region'] as const) {
     if (!data[field]?.trim()) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: [field],
         message: 'Requerido para despacho a domicilio',
       });

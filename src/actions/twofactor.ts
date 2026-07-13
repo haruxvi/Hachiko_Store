@@ -36,7 +36,7 @@ export async function confirmTotpEnrollmentAction(
   if (!session) return { ok: false, error: 'No autenticado' };
 
   const parsed = TotpCodeSchema.safeParse(code);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? 'Código inválido' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Código inválido' };
 
   const result = await confirmTotpEnrollment(session.sub, parsed.data);
   if (!result.ok) return { ok: false, error: 'Código incorrecto. Revisa tu app e intenta de nuevo.' };
@@ -52,7 +52,7 @@ export async function disableTotpAction(
   if (!session) return { ok: false, error: 'No autenticado' };
 
   const parsed = TotpCodeSchema.safeParse(code);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? 'Código inválido' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Código inválido' };
 
   const result = await disableTotp(session.sub, parsed.data);
   if (!result.ok) return { ok: false, error: 'Código incorrecto. No se desactivó el doble factor.' };

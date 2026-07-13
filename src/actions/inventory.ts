@@ -88,7 +88,7 @@ export async function createProductAction(
   }
 
   const parsed = ProductActionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? 'Datos inválidos' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
 
   try {
     const product = await createProduct(parsed.data);
@@ -113,7 +113,7 @@ export async function updateProductAction(
   }
 
   const parsed = UpdateProductSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? 'Datos inválidos' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
 
   const { id, ...data } = parsed.data;
 
@@ -184,7 +184,7 @@ export async function createCategoryAction(
   }
 
   const parsed = CategoryActionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? 'Datos inválidos' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
 
   try {
     const cat = await createCategory(parsed.data);
@@ -208,7 +208,7 @@ export async function updateCategoryAction(
   }
 
   const parsed = UpdateCategorySchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? 'Datos inválidos' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
 
   const { id, ...data } = parsed.data;
 

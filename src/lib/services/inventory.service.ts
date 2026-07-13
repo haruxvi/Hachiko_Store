@@ -2,6 +2,12 @@ import { db } from '@/src/lib/db';
 import { addMinutes } from 'date-fns';
 import { revalidateTag } from 'next/cache';
 
+// Next 16 cambió la firma a revalidateTag(tag, profile). Usamos { expire: 0 }
+// (purgar de inmediato) en lugar de updateTag(): estas funciones también se
+// ejecutan desde el webhook de pago (route handler), donde updateTag lanzaría
+// (solo permitido en Server Actions).
+const PURGE = { expire: 0 } as const;
+
 const RESERVATION_TTL_MIN = Number(process.env['RESERVATION_TTL_MINUTES'] ?? 15);
 const MAX_RETRIES = 3;
 
@@ -124,13 +130,13 @@ export async function confirmStockDeduction(
           },
         });
 
-        revalidateTag(`product:${res.product.id}`);
+        revalidateTag(`product:${res.product.id}`, PURGE);
       }
 
       await tx.stockReservation.deleteMany({ where: { orderId } });
 
-      revalidateTag('catalog');
-      revalidateTag('inventory');
+      revalidateTag('catalog', PURGE);
+      revalidateTag('inventory', PURGE);
     },
     { isolationLevel: 'Serializable', maxWait: 5000, timeout: 10000 },
   );
@@ -236,8 +242,8 @@ export async function adjustStock(input: AdjustInput) {
     { isolationLevel: 'Serializable' },
   );
 
-  revalidateTag(`product:${input.productId}`);
-  revalidateTag('inventory');
+  revalidateTag(`product:${input.productId}`, PURGE);
+  revalidateTag('inventory', PURGE);
 
   return result;
 }
