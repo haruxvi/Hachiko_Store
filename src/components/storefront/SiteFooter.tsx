@@ -19,7 +19,7 @@ function FooterCol({ title, links }: { title: string; links: { label: string; hr
 
 export default function SiteFooter() {
   return (
-    <footer className="mt-24 border-t border-sand bg-cream px-6 pb-8 pt-16 sm:px-12">
+    <footer className="mt-24 border-t border-sand bg-butter px-6 pb-8 pt-16 sm:px-12">
       <div className="mx-auto max-w-[1240px]">
         <div className="mb-16 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>

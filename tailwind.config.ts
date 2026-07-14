@@ -11,15 +11,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cream: '#FFF5E8', // fondo principal — blanco cálido pastel
+        butter: '#FBE7A0', // header / footer / sidebar — amarillo Shiba, todas las páginas
+        cream: '#FEF7E4', // fondo principal — crema claro, contrasta con el butter
         snow: '#FFFFFF', // superficies elevadas
-        sand: '#F5E6D0', // bordes sutiles, separadores
-        tan: { DEFAULT: '#F5C9A0', mid: '#EFB489' },
-        rust: { DEFAULT: '#E8A87C', dark: '#DA9468' }, // CTAs primarios (=tanDeep)
+        sand: '#F0E2C6', // bordes sutiles, separadores
+        tan: { DEFAULT: '#F3BE8B', mid: '#ED9F5C', soft: '#FBE6BC' },
+        rust: { DEFAULT: '#EC9C4A', dark: '#DE8C3D' }, // CTAs primarios — naranja Shiba brillante
         soot: '#3D2F25', // texto principal — marrón cálido, NO negro
         taupe: '#A8907A', // texto secundario
-        blush: '#FFD4D4', // decorativo — un solo uso por vista
-        petal: '#F4A8A8', // SOLO ilustración (lengua / orejas internas)
+        blush: '#F9D7CE', // decorativo — un solo uso por vista
+        petal: '#F0A48F', // SOLO ilustración (lengua / orejas internas)
         mint: { DEFAULT: '#D8ECDC', deep: '#86B596' },
         sky: { DEFAULT: '#D6EEF5', deep: '#7DA8C7' },
         alert: '#C75E5E',

@@ -58,7 +58,7 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 
 export default function PanelSidebar({ email }: { email: string }) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col gap-1 border-r border-sand bg-snow px-3.5 py-6">
+    <aside className="flex w-60 shrink-0 flex-col gap-1 border-r border-sand bg-butter px-3.5 py-6">
       <div className="mb-3 flex items-center gap-2.5 border-b border-sand px-2.5 pb-5 pt-1">
         <Logo size={26} />
         <div>

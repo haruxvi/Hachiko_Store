@@ -3,19 +3,23 @@
 @tailwind utilities;
 
 /* Hachiko Store · design tokens
-   Korean shop with Shiba-Inu warmth. Paleta pastel estricta. */
+   Korean shop with Shiba-Inu warmth. Paleta pastel estricta.
+   Gama del Shiba real (tan + blanco + rosa lengua + outline marrón) en versión
+   pastel: mismo matiz, saturación reducida, luminosidad alta. */
 :root {
-  --cream: #fff5e8;
-  --snow: #ffffff;
-  --sand: #f5e6d0;
-  --tan: #f5c9a0;
-  --tan-mid: #efb489;
-  --rust: #e8a87c;
-  --rust-dark: #da9468;
+  --butter: #fbe7a0; /* HEADER/FOOTER/SIDEBAR — amarillo Shiba, en TODAS las páginas */
+  --cream: #fef7e4; /* cuerpo de página — crema claro, contrasta con el butter */
+  --snow: #ffffff; /* superficies elevadas: cards, paneles */
+  --sand: #f0e2c6; /* bordes sutiles, separadores */
+  --tan-soft: #fbe6bc; /* superficies grandes suaves (blobs) — dorado, no peach */
+  --tan: #f3be8b;
+  --tan-mid: #ed9f5c;
+  --rust: #ec9c4a; /* CTAs primarios — naranja Shiba, brillante */
+  --rust-dark: #de8c3d;
   --soot: #3d2f25;
   --taupe: #a8907a;
-  --blush: #ffd4d4;
-  --petal-deep: #f4a8a8;
+  --blush: #f9d7ce;
+  --petal-deep: #f0a48f;
   --mint: #d8ecdc;
   --mint-deep: #86b596;
   --sky: #d6eef5;
@@ -81,7 +85,7 @@
     @apply inline-flex items-center gap-1.5 rounded-chip border border-sand bg-cream px-2.5 py-1.5 text-xs font-semibold tracking-[0.02em] text-taupe;
   }
   .chip-rust {
-    @apply chip-hs border-rust/30 bg-rust/[0.18] text-[#b26a3d];
+    @apply chip-hs border-rust/30 bg-rust/[0.16] text-[#b06a2c];
   }
   .chip-blush {
     @apply chip-hs border-transparent bg-blush text-[#a85959];
@@ -97,8 +101,8 @@
   .ph {
     @apply relative flex items-center justify-center overflow-hidden border border-sand font-mono text-[11px] tracking-[0.04em] text-taupe;
     background:
-      repeating-linear-gradient(45deg, rgba(168, 144, 122, 0.1) 0 1px, transparent 1px 12px),
-      var(--cream);
+      repeating-linear-gradient(45deg, rgba(168, 144, 122, 0.08) 0 1px, transparent 1px 13px),
+      var(--snow);
   }
   .ph-sand {
     background:

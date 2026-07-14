@@ -20,7 +20,7 @@ function Wordmark() {
 /** Nav minimal para checkout: solo logo y candado SSL, sin distracciones. */
 export function MinimalHeader() {
   return (
-    <nav className="flex items-center gap-8 border-b border-sand bg-cream px-6 py-[18px] sm:px-12">
+    <nav className="flex items-center gap-8 border-b border-sand bg-butter px-6 py-[18px] sm:px-12">
       <Wordmark />
       <div className="ml-auto flex items-center gap-2 text-[13px] text-taupe">
         <Icon name="lock" size={14} /> Compra segura · SSL
@@ -33,7 +33,7 @@ export default async function SiteHeader() {
   const [categories, session] = await Promise.all([getCategories(), getSession()]);
 
   return (
-    <nav className="flex flex-wrap items-center gap-4 border-b border-sand bg-cream px-6 py-[18px] sm:gap-8 sm:px-12">
+    <nav className="flex flex-wrap items-center gap-4 border-b border-sand bg-butter px-6 py-[18px] sm:gap-8 sm:px-12">
       <Wordmark />
 
       <ul className="hidden items-center gap-7 text-sm font-semibold lg:flex lg:ml-6">
