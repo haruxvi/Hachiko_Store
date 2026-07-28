@@ -57,7 +57,7 @@
     "eslint-config-next": "16.2.10",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "playwright": "^1.61.1",
     "postcss": "^8.5.19",
     "prettier": "^3.9.5",
