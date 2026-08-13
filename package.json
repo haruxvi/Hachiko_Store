@@ -54,12 +54,12 @@
     "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.5.2",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.11",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "playwright": "^1.61.1",
-    "postcss": "^8.5.19",
+    "postcss": "^8.5.23",
     "prettier": "^3.9.5",
     "prisma": "6.19.3",
     "tailwindcss": "^3.4.17",
@@ -76,9 +76,16 @@
   "pnpm": {
     "overrides": {
       "rollup@>=3.0.0 <3.30.0": "^3.30.0",
-      "postcss@8.4.31": "^8.5.10",
       "uuid": "^11.1.1",
-      "form-data": "^4.0.6"
+      "form-data": "^4.0.6",
+      "postcss": "^8.5.23",
+      "nanoid@^3": "^3.3.17",
+      "js-yaml@^4": "^4.3.1",
+      "axios": "^1.18.0",
+      "sharp": "^0.35.0",
+      "brace-expansion@<1.1.18": "^1.1.18",
+      "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4",
+      "brace-expansion@>=4.0.0 <5.0.9": "^5.0.9"
     }
   }
 }

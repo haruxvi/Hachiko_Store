@@ -5,8 +5,26 @@ packages:
 
 overrides:
   'rollup@>=3.0.0 <3.30.0': ^3.30.0
-  'postcss@8.4.31': ^8.5.10
   # uuid <11.1.1: out-of-bounds write en v3/v5/v6 con `buf` (GHSA-w5hq-g745-h8pq)
   uuid: ^11.1.1
   # form-data <4.0.6: GHSA-hmw2-7cc7-3qxx (entra vía transbank-sdk > axios)
   form-data: ^4.0.6
+
+  # postcss <=8.5.22 (vía dependencia directa + tailwind). Reemplaza al override
+  # anterior 'postcss@8.4.31', que era demasiado estrecho y no cubría 8.5.x.
+  postcss: ^8.5.23
+  # nanoid <3.3.17 (vía postcss). Se ancla a la línea v3: postcss 8.x declara
+  # nanoid ^3 y saltar a v4+ (ESM-only) rompería el build de CSS.
+  'nanoid@^3': ^3.3.17
+  # js-yaml <4.3.1 (vía eslint > @eslint/eslintrc). Anclado a v4: v5 es major.
+  'js-yaml@^4': ^4.3.1
+  # axios <1.18.0 (vía transbank-sdk). Único paquete de producción afectado.
+  axios: ^1.18.0
+  # sharp <0.35.0 (vía next, optimización de imágenes).
+  sharp: ^0.35.0
+  # brace-expansion: ReDoS. Conviven tres líneas mayores en el árbol
+  # (eslint/minimatch, @typescript-eslint, resend > @react-email/render),
+  # por eso se parchea cada rango por separado en vez de forzar una sola versión.
+  'brace-expansion@<1.1.18': ^1.1.18
+  'brace-expansion@>=2.0.0 <2.1.4': ^2.1.4
+  'brace-expansion@>=4.0.0 <5.0.9': ^5.0.9
