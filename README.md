@@ -135,7 +135,10 @@ El panel del vendedor traduce todo esto en una vista accionable: órdenes por de
 ### Requisitos previos
 - Node.js 20 LTS
 - pnpm 9.x (`npm install -g pnpm`)
-- Una base de datos PostgreSQL (recomendado: [Neon](https://neon.tech/))
+- Una base de datos PostgreSQL — dos opciones:
+  - **Docker local** (recomendado para desarrollo en equipo): ver la guía paso a paso
+    [`docs/despliegue-local-docker.md`](docs/despliegue-local-docker.md).
+  - **[Neon](https://neon.tech/)** (cloud, recomendado para staging/producción).
 - Cuentas sandbox de Transbank y MercadoPago para pruebas
 
 ### Instalación
@@ -145,24 +148,32 @@ El panel del vendedor traduce todo esto en una vista accionable: órdenes por de
 git clone https://github.com/haruxvi/Hachiko_Store.git
 cd Hachiko_Store
 
-# 2. Instalar dependencias (con scripts deshabilitados por seguridad)
+# 2. Instalar dependencias (con scripts deshabilitados por seguridad, ver .npmrc)
 pnpm install
 
 # 3. Configurar variables de entorno
 cp .env.example .env.local
-# Editar .env.local con tus credenciales
+# Editar .env.local con tus credenciales (DATABASE_URL de Docker o de Neon)
 
-# 4. Aplicar el schema a la base de datos
-pnpm prisma migrate dev
+# 4. Generar el cliente Prisma (ignore-scripts bloquea el postinstall automático)
+pnpm db:generate
 
-# 5. (Opcional) Cargar datos de prueba
+# 5. Aplicar el schema a la base de datos (el repo no versiona migraciones, ver nota abajo)
+pnpm exec prisma db push
+
+# 6. (Opcional) Cargar datos de prueba
 pnpm db:seed
 
-# 6. Levantar el entorno de desarrollo
+# 7. Levantar el entorno de desarrollo
 pnpm dev
 ```
 
 La app queda disponible en `http://localhost:3000`.
+
+> ⚠️ No uses `prisma migrate dev`: este repo no versiona migraciones (no existe
+> `prisma/migrations/`), el esquema se sincroniza siempre con `prisma db push`. Si necesitas
+> el flujo completo con Docker para Postgres local, sigue
+> [`docs/despliegue-local-docker.md`](docs/despliegue-local-docker.md).
 
 ### Variables de entorno
 
@@ -195,7 +206,8 @@ pnpm typecheck      # verificación de tipos
 pnpm test           # tests unitarios (Vitest)
 pnpm test:e2e       # tests end-to-end (Playwright)
 pnpm audit          # auditoría de seguridad de dependencias
-pnpm prisma studio  # explorador visual de la base de datos
+pnpm db:studio      # explorador visual de la base de datos
+pnpm db:generate    # genera el cliente Prisma
 pnpm db:seed        # cargar datos de prueba
 ```
 
@@ -222,8 +234,8 @@ src/
 └── middleware.ts        # auth + RBAC en edge
 
 prisma/
-├── schema.prisma
-└── migrations/
+├── schema.prisma        # el esquema se sincroniza con `prisma db push` (sin migrations/)
+└── seed.ts
 
 docs/                    # documentación viva del proyecto
 ```

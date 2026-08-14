@@ -39,9 +39,17 @@ Guárdalos en un gestor de contraseñas. Los pegarás en el paso 1.5.
 4. Crea las tablas y datos base:
 
 ```powershell
+pnpm db:generate     # genera el cliente Prisma (ignore-scripts bloquea el postinstall)
 pnpm db:migrate      # crea la migración inicial y todas las tablas (incluye SecurityIncident)
 pnpm db:seed         # categorías + 1 producto de ejemplo
 ```
+
+> ⚠️ **Commitea la carpeta `prisma/migrations/` que se genera aquí** (`git add prisma/migrations
+> && git commit`). Hoy el repo no tiene ninguna migración versionada; si esta primera migración
+> no se sube a git, `pnpm db:migrate:deploy` en FASE 2.2 no tendrá nada que aplicar y la base del
+> cliente quedará sin tablas. A partir de este punto, todo cambio de esquema va por
+> `pnpm db:migrate` en local (nunca `db push`) para mantener el historial versionado — así lo
+> exige la política de cumplimiento en `docs/ciclo-de-vida-iso12207.md`.
 
 5. El seed **no crea usuarios**. Para tener un vendedor de prueba: regístrate en la app
    (cuando esté desplegada) y luego promuévete con SQL en la consola de Neon
@@ -147,7 +155,7 @@ completos. Esto además permite rotar todo sin riesgo:
 
 | Variable | Acción en la entrega |
 |---|---|
-| `DATABASE_URL` / `DIRECT_URL` | Reemplazar por el Neon del cliente; correr `pnpm db:migrate:deploy` y `pnpm db:seed` contra ella |
+| `DATABASE_URL` / `DIRECT_URL` | Reemplazar por el Neon del cliente; correr `pnpm db:generate`, `pnpm db:migrate:deploy` y `pnpm db:seed` contra ella |
 | `JWT_SECRET`, `SESSION_SECRET`, `CRON_SECRET` | **Generar valores nuevos** (mismo comando del paso 1.1). Los tuyos quedan inservibles |
 | `DATA_ENCRYPTION_KEY` | **Generar valor nuevo.** ⚠️ Solo es seguro porque la base parte vacía: esta llave cifra teléfonos/direcciones, y si se cambia con datos ya cifrados, esos datos quedan ilegibles para siempre. Una vez en producción real, NO se rota sin plan de re-cifrado |
 | `MP_*` | Credenciales **productivas** de la cuenta MP del cliente + webhook reconfigurado |
