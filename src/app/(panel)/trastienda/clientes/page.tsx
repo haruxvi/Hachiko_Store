@@ -1,6 +1,6 @@
-import { getCustomerSegments } from '@/src/lib/services/intelligence.service';
+import { getCustomerSegments, getCustomerValue } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
-import { PageHeader, Eyebrow, Stat, num, pct } from '@/src/components/panel/intelligence-ui';
+import { PageHeader, Eyebrow, Stat, clp, num, pct } from '@/src/components/panel/intelligence-ui';
 
 export const revalidate = 60;
 
@@ -15,7 +15,7 @@ const LABELS: Record<string, { name: string; hint: string }> = {
 };
 
 export default async function ClientesPage() {
-  const d = await getCustomerSegments();
+  const [d, value] = await Promise.all([getCustomerSegments(), getCustomerValue()]);
 
   if (!d.hasData) {
     return (
@@ -38,10 +38,11 @@ export default async function ClientesPage() {
 
       <section className="space-y-3">
         <Eyebrow>Resumen</Eyebrow>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat label="Clientes segmentados" value={num(d.total)} />
+          <Stat label="Valor de vida promedio" value={clp(value.avgClv)} accent hint="CLV histórico por cliente" />
           <Stat label="Segmentos" value={num(d.segments.length)} />
-          <Stat label="Cohesión (silhouette)" value={d.silhouette != null ? d.silhouette.toFixed(3) : '—'} hint="calidad del clustering KMeans" />
+          <Stat label="Cohesión (silhouette)" value={d.silhouette != null ? d.silhouette.toFixed(3) : '—'} hint="clustering KMeans" />
         </div>
       </section>
 

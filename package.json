@@ -18,6 +18,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:synthetic": "tsx prisma/seed-synthetic.ts",
+    "db:seed:security": "tsx prisma/seed-security-events.ts",
+    "db:seed:analytics": "tsx prisma/seed-analytics-events.ts",
     "db:studio": "prisma studio",
     "docs:api": "tsx scripts/export-openapi.ts",
     "audit": "pnpm audit --audit-level=moderate",

@@ -31,6 +31,9 @@ const INTELLIGENCE: Item[] = [
   { icon: 'truck', label: 'Qué reponer', href: '/trastienda/reponer' },
   { icon: 'heart', label: 'Recomendaciones', href: '/trastienda/recomendaciones' },
   { icon: 'eye', label: 'Clientes', href: '/trastienda/clientes' },
+  { icon: 'filter', label: 'Conversión', href: '/trastienda/conversion' },
+  { icon: 'bell', label: 'Riesgo', href: '/trastienda/riesgo' },
+  { icon: 'settings', label: 'Modelos', href: '/trastienda/modelos' },
 ];
 
 const THE_STORE: Item[] = [

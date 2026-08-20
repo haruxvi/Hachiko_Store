@@ -220,11 +220,43 @@ las capacidades planificadas son precalculables por batch.
 | **4** | Cliente y conversión | Churn / CLV, embudo de conversión, carritos abandonados, búsquedas sin resultado | Modeling / Evaluation |
 | **5** | Gobernanza (empresarial) | Versionado de modelos + *drift*, explicabilidad (SHAP), alertas automáticas, reporte mensual PDF | Deployment |
 
-Estado actual: **Fases 0, 1 y 2 implementadas.** Fase 0: cimientos (esquema, `/ml`, pipeline,
-dataset sintético, UI). Fase 1: KPIs descriptivos en la vista "Métricas". Fase 2: núcleo
-predictivo — forecast de demanda (Ridge estacional), reposición, recomendador market-basket
-y segmentación RFM + KMeans, cada uno con su vista en la trastienda (Demanda, Qué reponer,
-Recomendaciones, Clientes). El orquestador `jobs/train_all.py` corre todo en orden.
+Estado actual: **Fases 0 a 5 implementadas.** Fase 0: cimientos. Fase 1: KPIs descriptivos.
+Fase 2: núcleo predictivo (forecast, reposición, recomendador, RFM+KMeans). Fase 3: seguridad
+inteligente (fraude, account-takeover, incidentes). Fase 4: cliente y conversión (embudo,
+carritos, búsquedas sin resultado, CLV). Fase 5: gobernanza (historial y trazabilidad de
+modelos). Vistas en la trastienda: Métricas, Demanda, Qué reponer, Recomendaciones, Clientes,
+Conversión, Riesgo, Modelos. El orquestador `jobs/train_all.py` corre los modelos en orden.
+
+### 8.5 Fases 4 y 5
+
+- **Fase 4 (cliente y conversión):** sobre `AnalyticsEvent` (poblado por
+  `prisma/seed-analytics-events.ts`), el servicio calcula el embudo view→cart→checkout, los
+  carritos abandonados (y cuáles son recuperables respetando consentimiento) y las búsquedas
+  sin resultado (demanda insatisfecha). El CLV histórico se agrega en la vista Clientes; el
+  churn está cubierto por los segmentos RFM `en_riesgo`/`hibernando`.
+- **Fase 5 (gobernanza):** la vista Modelos lee el historial de `ModelRun` — versión, estado,
+  métricas, duración y última corrida por modelo — dando trazabilidad y monitoreo (MLOps).
+
+### 8.4 Fase 3 — Seguridad inteligente (en curso)
+
+`ml/jobs/fraud_detection.py`: **Isolation Forest** (no supervisado) sobre features de cada
+orden (monto, nº de ítems y unidades, hora, invitado, retiro, precio medio) detecta pedidos
+atípicos y escribe los marcados en `RiskScore` (subjectType=ORDER), con un score 0..1 y las
+señales que lo dispararon (explicabilidad). La vista `trastienda/riesgo` los lista para revisión.
+
+`ml/jobs/account_takeover.py`: analiza los `LOGIN_FAILED` de `AuditLog` para detectar cuentas
+bajo ataque — **fuerza bruta** (muchos fallos sobre una cuenta) y **credential stuffing** (una
+IP que golpea muchas cuentas distintas) — y escribe las cuentas en `RiskScore`
+(subjectType=USER). La vista muestra un identificador pseudónimo, sin exponer email ni datos
+del cliente (privacidad por diseño, §9). Los eventos de prueba los genera
+`prisma/seed-security-events.ts` (`pnpm db:seed:security`).
+
+La **analítica de incidentes** (`getIncidentAnalytics` en el servicio) resume el registro de
+`SecurityIncident`: total, abiertos, cuántos afectan datos personales, MTTR (tiempo medio de
+resolución) y distribución por categoría — todo en la vista `trastienda/riesgo`.
+
+Principio transversal de Fase 3: el modelo **sugiere**, la decisión es humana (no hay decisión
+automática con efecto jurídico — ver §9). Fase 3 completa.
 
 ### 8.3 Fase 2 — Núcleo predictivo
 
@@ -299,6 +331,9 @@ El subsistema de ML se diseña con **privacidad por diseño**, coherente con
 | Generador de dataset sintético | `prisma/seed-synthetic.ts` (`pnpm db:seed:synthetic`) |
 | Job de KPIs (Fase 1) | `ml/jobs/kpi_snapshots.py` |
 | Jobs de Fase 2 | `ml/jobs/{forecast_demand,restock,market_basket,customer_rfm}.py` |
+| Jobs de Fase 3 | `ml/jobs/{fraud_detection,account_takeover}.py` |
+| Seed de eventos de seguridad | `prisma/seed-security-events.ts` (`pnpm db:seed:security`) |
+| Seed de eventos de comportamiento | `prisma/seed-analytics-events.ts` (`pnpm db:seed:analytics`) |
 | Orquestador del pipeline | `ml/jobs/train_all.py` |
 | Servicio de lectura (trastienda) | `src/lib/services/intelligence.service.ts` |
 | Vistas de inteligencia | `src/app/(panel)/trastienda/{metricas,demanda,reponer,recomendaciones,clientes}/page.tsx` |

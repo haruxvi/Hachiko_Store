@@ -250,6 +250,215 @@ export async function getRecommendations() {
   };
 }
 
+export interface FraudRow {
+  orderId: string;
+  orderNumber: number | null;
+  total: number;
+  createdAt: Date | null;
+  method: string | null;
+  paymentStatus: string | null;
+  score: number;
+  reasons: string[];
+}
+
+export async function getFraudRisk() {
+  const [scores, run] = await Promise.all([
+    db.riskScore.findMany({ where: { subjectType: 'ORDER' }, orderBy: { score: 'desc' } }),
+    db.modelRun.findFirst({ where: { modelType: 'fraud' }, orderBy: { startedAt: 'desc' } }),
+  ]);
+
+  const orders = scores.length
+    ? new Map((await db.order.findMany({
+        where: { id: { in: scores.map((s) => s.subjectId) } },
+        select: { id: true, orderNumber: true, totalCLP: true, createdAt: true, shippingMethod: true, paymentStatus: true },
+      })).map((o) => [o.id, o]))
+    : new Map();
+
+  const rows: FraudRow[] = scores.map((s) => {
+    const o = orders.get(s.subjectId);
+    return {
+      orderId: s.subjectId,
+      orderNumber: o?.orderNumber ?? null,
+      total: o?.totalCLP ?? 0,
+      createdAt: o?.createdAt ?? null,
+      method: o?.shippingMethod ?? null,
+      paymentStatus: o?.paymentStatus ?? null,
+      score: s.score,
+      reasons: Array.isArray(s.reasons) ? (s.reasons as string[]) : [],
+    };
+  });
+
+  const reviewed = await db.order.count();
+  return {
+    hasData: rows.length > 0,
+    lastUpdated: run?.finishedAt ?? null,
+    flagged: rows.length,
+    totalOrders: reviewed,
+    rows,
+  };
+}
+
+// ── Fase 5: gobernanza — historial de modelos (MLOps / trazabilidad) ──────
+
+export interface ModelRunRow {
+  modelType: string;
+  version: string;
+  status: string;
+  startedAt: Date;
+  finishedAt: Date | null;
+  durationSec: number | null;
+  rowsIn: number | null;
+  metrics: Record<string, unknown> | null;
+}
+
+export async function getModelRuns() {
+  const runs = await db.modelRun.findMany({ orderBy: { startedAt: 'desc' }, take: 40 });
+  const rows: ModelRunRow[] = runs.map((r) => ({
+    modelType: r.modelType,
+    version: r.version,
+    status: r.status,
+    startedAt: r.startedAt,
+    finishedAt: r.finishedAt,
+    durationSec: r.finishedAt ? (r.finishedAt.getTime() - r.startedAt.getTime()) / 1000 : null,
+    rowsIn: r.rowsIn,
+    metrics: r.metrics && typeof r.metrics === 'object' ? (r.metrics as Record<string, unknown>) : null,
+  }));
+  // Última corrida exitosa por tipo de modelo (para monitoreo/drift)
+  const latestByType = new Map<string, ModelRunRow>();
+  for (const r of rows) {
+    if (!latestByType.has(r.modelType) && r.status === 'SUCCESS') latestByType.set(r.modelType, r);
+  }
+  return {
+    hasData: rows.length > 0,
+    rows,
+    latest: [...latestByType.values()],
+    successRate: rows.length ? rows.filter((r) => r.status === 'SUCCESS').length / rows.length : 0,
+  };
+}
+
+// ── Fase 4: conversión, carritos, búsquedas sin resultado, CLV ────────────
+
+export interface FunnelStage { stage: string; sessions: number }
+export interface ConversionAnalytics {
+  hasData: boolean;
+  funnel: FunnelStage[];
+  overallConversion: number;
+  abandoned: number;
+  recoverable: number;
+  noResultSearches: { query: string; count: number }[];
+}
+
+export async function getConversionAnalytics(): Promise<ConversionAnalytics> {
+  const [agg] = await db.$queryRaw<{ views: bigint; carts: bigint; checkouts: bigint; abandons: bigint; recoverable: bigint }[]>`
+    SELECT
+      COUNT(DISTINCT CASE WHEN type = 'PRODUCT_VIEW'    THEN "sessionId" END) AS views,
+      COUNT(DISTINCT CASE WHEN type = 'ADD_TO_CART'     THEN "sessionId" END) AS carts,
+      COUNT(DISTINCT CASE WHEN type = 'CHECKOUT_START'  THEN "sessionId" END) AS checkouts,
+      COUNT(DISTINCT CASE WHEN type = 'CHECKOUT_ABANDON' THEN "sessionId" END) AS abandons,
+      COUNT(DISTINCT CASE WHEN type = 'CHECKOUT_ABANDON' AND "userId" IS NOT NULL THEN "sessionId" END) AS recoverable
+    FROM "AnalyticsEvent"`;
+
+  const views = Number(agg?.views ?? 0);
+  const carts = Number(agg?.carts ?? 0);
+  const checkouts = Number(agg?.checkouts ?? 0);
+  const abandons = Number(agg?.abandons ?? 0);
+  const completed = Math.max(0, checkouts - abandons);
+
+  const searches = await db.analyticsEvent.groupBy({
+    by: ['query'],
+    where: { type: 'SEARCH', metadata: { path: ['results'], equals: 0 }, query: { not: null } },
+    _count: { _all: true },
+  });
+
+  return {
+    hasData: views > 0,
+    funnel: [
+      { stage: 'Vieron un producto', sessions: views },
+      { stage: 'Agregaron al carrito', sessions: carts },
+      { stage: 'Iniciaron el checkout', sessions: checkouts },
+      { stage: 'Completaron (est.)', sessions: completed },
+    ],
+    overallConversion: views > 0 ? completed / views : 0,
+    abandoned: abandons,
+    recoverable: Number(agg?.recoverable ?? 0),
+    noResultSearches: searches
+      .map((s) => ({ query: s.query ?? '', count: s._count._all }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12),
+  };
+}
+
+export async function getCustomerValue() {
+  const paid = await db.order.groupBy({
+    by: ['userId'],
+    where: { paymentStatus: 'PAID' },
+    _sum: { totalCLP: true },
+  });
+  if (paid.length === 0) return { avgClv: 0, customers: 0 };
+  const values = paid.map((p) => p._sum.totalCLP ?? 0);
+  return { avgClv: values.reduce((a, v) => a + v, 0) / values.length, customers: values.length };
+}
+
+export interface IncidentAnalytics {
+  hasData: boolean;
+  total: number;
+  open: number;
+  affectsPersonalData: number;
+  mttrHours: number | null;
+  byCategory: { category: string; count: number }[];
+  bySeverity: { severity: string; count: number }[];
+}
+
+export async function getIncidentAnalytics(): Promise<IncidentAnalytics> {
+  const [total, open, pii, byCat, bySev, resolved] = await Promise.all([
+    db.securityIncident.count(),
+    db.securityIncident.count({ where: { status: { in: ['OPEN', 'INVESTIGATING', 'CONTAINED'] } } }),
+    db.securityIncident.count({ where: { affectsPersonalData: true } }),
+    db.securityIncident.groupBy({ by: ['category'], _count: { _all: true } }),
+    db.securityIncident.groupBy({ by: ['severity'], _count: { _all: true } }),
+    db.securityIncident.findMany({ where: { resolvedAt: { not: null } }, select: { detectedAt: true, resolvedAt: true } }),
+  ]);
+
+  const mttrHours = resolved.length
+    ? resolved.reduce((a, i) => a + (i.resolvedAt!.getTime() - i.detectedAt.getTime()) / 3600000, 0) / resolved.length
+    : null;
+
+  return {
+    hasData: total > 0,
+    total,
+    open,
+    affectsPersonalData: pii,
+    mttrHours,
+    byCategory: byCat.map((c) => ({ category: c.category, count: c._count._all })).sort((a, b) => b.count - a.count),
+    bySeverity: bySev.map((s) => ({ severity: s.severity, count: s._count._all })),
+  };
+}
+
+export interface AccountRiskRow { ref: string; score: number; reasons: string[] }
+
+export async function getAccountRisk() {
+  const [scores, run] = await Promise.all([
+    db.riskScore.findMany({ where: { subjectType: 'USER' }, orderBy: { score: 'desc' } }),
+    db.modelRun.findFirst({ where: { modelType: 'account_takeover' }, orderBy: { startedAt: 'desc' } }),
+  ]);
+  // Privacidad (Ley 21.719): no se expone email ni id completo, solo un
+  // identificador pseudónimo corto para que el vendedor pueda correlacionar.
+  const rows: AccountRiskRow[] = scores.map((s) => ({
+    ref: s.subjectId.slice(-6),
+    score: s.score,
+    reasons: Array.isArray(s.reasons) ? (s.reasons as string[]) : [],
+  }));
+  const stuffingIps = run && run.metrics && typeof run.metrics === 'object' && 'ips_stuffing' in run.metrics
+    ? Number((run.metrics as Record<string, unknown>)['ips_stuffing']) : 0;
+  return {
+    hasData: rows.length > 0,
+    lastUpdated: run?.finishedAt ?? null,
+    flagged: rows.length,
+    stuffingIps,
+    rows,
+  };
+}
+
 export interface SegmentRow { segment: string; count: number; avgR: number; avgF: number; avgM: number }
 
 export async function getCustomerSegments() {

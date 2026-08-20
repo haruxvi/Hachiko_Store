@@ -8,7 +8,7 @@ Ejecutar (desde ml/):  python -m jobs.train_all
 
 from __future__ import annotations
 
-from jobs import customer_rfm, forecast_demand, kpi_snapshots, market_basket, restock
+from jobs import account_takeover, customer_rfm, forecast_demand, fraud_detection, kpi_snapshots, market_basket, restock
 
 
 def main() -> None:
@@ -22,6 +22,10 @@ def main() -> None:
     customer_rfm.main()
     print("\n== Fase 2: recomendador market-basket ==")
     market_basket.main()
+    print("\n== Fase 3: deteccion de fraude/anomalias ==")
+    fraud_detection.main()
+    print("\n== Fase 3: account-takeover / credential stuffing ==")
+    account_takeover.main()
     print("\nPipeline completo.")
 
 
