@@ -1,11 +1,11 @@
-import { getDemandForecast } from '@/src/lib/services/intelligence.service';
+import { getDemandForecast, getProductTrends } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
-import { PageHeader, Eyebrow, Stat, num, monthLabel } from '@/src/components/panel/intelligence-ui';
+import { PageHeader, Eyebrow, Stat, num, pct, monthLabel } from '@/src/components/panel/intelligence-ui';
 
 export const revalidate = 60;
 
 export default async function DemandaPage() {
-  const d = await getDemandForecast();
+  const [d, trends] = await Promise.all([getDemandForecast(), getProductTrends()]);
 
   if (!d.hasData) {
     return (
@@ -73,6 +73,37 @@ export default async function DemandaPage() {
           </table>
         </div>
       </section>
+
+      {trends.hasData && (
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="card-hs shadow-soft p-6">
+            <Eyebrow>Productos en alza</Eyebrow>
+            <p className="mt-1.5 text-[13px] text-taupe">Últimos 90 días vs. los 90 anteriores.</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {trends.rising.map((t) => (
+                <li key={t.name} className="flex justify-between border-b border-sand/60 pb-1.5 last:border-0">
+                  <span className="text-soot">{t.name}</span>
+                  <span className="price-mono text-mint-deep">▲ {pct(t.growth)}</span>
+                </li>
+              ))}
+              {trends.rising.length === 0 && <li className="text-taupe">Sin productos en alza clara.</li>}
+            </ul>
+          </div>
+          <div className="card-hs shadow-soft p-6">
+            <Eyebrow>Productos en baja</Eyebrow>
+            <p className="mt-1.5 text-[13px] text-taupe">Caída de demanda — revisar precio o promoción.</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {trends.declining.map((t) => (
+                <li key={t.name} className="flex justify-between border-b border-sand/60 pb-1.5 last:border-0">
+                  <span className="text-soot">{t.name}</span>
+                  <span className="price-mono text-alert">▼ {pct(Math.abs(t.growth))}</span>
+                </li>
+              ))}
+              {trends.declining.length === 0 && <li className="text-taupe">Sin productos en baja clara.</li>}
+            </ul>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

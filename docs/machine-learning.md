@@ -224,8 +224,19 @@ Estado actual: **Fases 0 a 5 implementadas.** Fase 0: cimientos. Fase 1: KPIs de
 Fase 2: núcleo predictivo (forecast, reposición, recomendador, RFM+KMeans). Fase 3: seguridad
 inteligente (fraude, account-takeover, incidentes). Fase 4: cliente y conversión (embudo,
 carritos, búsquedas sin resultado, CLV). Fase 5: gobernanza (historial y trazabilidad de
-modelos). Vistas en la trastienda: Métricas, Demanda, Qué reponer, Recomendaciones, Clientes,
-Conversión, Riesgo, Modelos. El orquestador `jobs/train_all.py` corre los modelos en orden.
+modelos). Diez vistas en la trastienda (grupo "Inteligencia"): Métricas, Demanda, Qué reponer,
+Logística, Recomendaciones, Clientes, Conversión, Riesgo, Modelos, Reporte. El orquestador
+`jobs/train_all.py` corre los modelos en orden.
+
+Ampliaciones adicionales (BI de solo lectura, sin jobs nuevos): productos en alza/baja,
+mermas, sobre-stock (capital inmovilizado), packs sugeridos, anomalías de ventas, logística
+(demanda y costo de envío por región, SLA por courier), recompra/churn, alertas automáticas
+(KPI fuera de rango) y reporte imprimible a PDF.
+
+**Elasticidad-precio (preparada):** el vendedor edita precios desde Trastienda → Productos.
+Cada cambio se registra en `PriceHistory` (append-only, con auditoría del actor), de modo que
+el historial real de precios se acumula con el uso y habilita el análisis de elasticidad-precio
+más adelante — sin datos inventados.
 
 ### 8.5 Fases 4 y 5
 
@@ -294,6 +305,51 @@ re-ejecutarlo limpia lo sintético anterior y regenera, sin tocar datos reales. 
 `pnpm db:seed:synthetic`.
 
 ---
+
+## 8.6 Datos de demostración (seeds) — guía para el equipo
+
+Los modelos necesitan datos para funcionar. En desarrollo se generan con **datos
+sintéticos** (falsos, marcados y borrables), nunca con datos reales de clientes. Son tres
+comandos, y el **orden importa** (cada uno depende del anterior):
+
+```bash
+pnpm db:seed:synthetic   # 1) ~24 meses de catálogo, clientes y ~9.000 pedidos con estacionalidad
+pnpm db:seed:security    # 2) eventos de login fallidos + incidentes (para la vista Riesgo)
+pnpm db:seed:analytics   # 3) eventos de navegación/carrito (para la vista Conversión)
+```
+
+O todo de una:
+
+```bash
+pnpm db:seed:synthetic && pnpm db:seed:security && pnpm db:seed:analytics
+```
+
+Qué hace cada uno:
+
+| Comando | Puebla | Alimenta las vistas |
+|---|---|---|
+| `db:seed:synthetic` | `Product`, `User`, `Order`, `OrderItem`, `StockMovement`, `OrderStatusHistory` | Métricas, Demanda, Qué reponer, Recomendaciones, Clientes, Logística, Riesgo |
+| `db:seed:security` | `AuditLog` (LOGIN_FAILED, ACCOUNT_LOCKED), `SecurityIncident` | Riesgo (cuentas bajo ataque + incidentes) |
+| `db:seed:analytics` | `AnalyticsEvent` (vistas, búsquedas, carrito) | Conversión |
+
+Puntos clave para no perderse:
+
+1. **Necesitas `DATABASE_URL`/`DIRECT_URL` en tu `.env`** (apuntando a tu base/branch de Neon).
+   Sin eso, los seeds fallan.
+2. **`db:seed:synthetic` va SIEMPRE primero.** Los otros dos referencian los usuarios y
+   productos que él crea. Si corres `security` o `analytics` sin haber corrido `synthetic`,
+   avisan que no hay datos y no hacen nada.
+3. **Son idempotentes:** cada seed borra primero *su* data sintética anterior y la regenera.
+   Re-ejecutar no duplica. Nunca tocan datos reales (se identifican por marcadores:
+   usuarios `@seed.hachiko.test`, SKU `SYN-`, `metadata.synthetic=true`, `reportedBy='synthetic-seed'`).
+4. **Después de re-sembrar, corre el pipeline de ML** para recalcular las predicciones sobre
+   los datos nuevos:
+   ```bash
+   cd ml && .venv/Scripts/python -m jobs.train_all   # Windows
+   ```
+   (Los ids cambian al re-sembrar, así que las tablas derivadas hay que regenerarlas.)
+5. En **producción no se corren los seeds** — ahí los datos son reales. Los seeds son solo
+   para desarrollo, demo y la defensa de la tesis.
 
 ## 9. Privacidad y seguridad — cumplimiento (Ley 21.719)
 

@@ -11,7 +11,7 @@
  * (Ley 21.719). Ejecutar:  pnpm db:seed:analytics
  */
 import { PrismaClient, type Prisma } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomInt } from 'node:crypto';
 
 const db = new PrismaClient({ datasourceUrl: process.env['DIRECT_URL'] ?? process.env['DATABASE_URL'] });
 
@@ -20,8 +20,11 @@ const N_SESSIONS = 3500;
 // Búsquedas sin resultado = demanda insatisfecha (productos que no tienes).
 const MISSES = ['matcha', 'labubu', 'hello kitty', 'stanley cup', 'ramune', 'mochi', 'funko', 'airpods', 'sanrio', 'jellycat'];
 
-const randInt = (a: number, b: number) => Math.floor(Math.random() * (b - a + 1)) + a;
-const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]!;
+// Randomness criptográfico (node:crypto) — evita el PRNG débil de Math.random
+// en datos que fluyen a campos de sesión/seguridad (CWE-338).
+const randInt = (a: number, b: number) => randomInt(a, b + 1);
+const rnd = () => randomInt(0, 1_000_000) / 1_000_000; // float en [0,1)
+const pick = <T>(arr: T[]): T => arr[randomInt(arr.length)]!;
 const daysAgo = (d: number) => new Date(Date.now() - d * 86400000 - randInt(0, 23) * 3600000);
 const SYN = { synthetic: true } as Prisma.InputJsonValue;
 
@@ -42,7 +45,7 @@ async function main() {
 
   for (let s = 0; s < N_SESSIONS; s++) {
     const sid = randomUUID();
-    const uid = Math.random() < 0.6 && uids.length ? pick(uids) : null;
+    const uid = rnd() < 0.6 && uids.length ? pick(uids) : null;
     const t0 = daysAgo(randInt(0, 120));
     let t = t0.getTime();
     const step = () => new Date((t += randInt(20, 240) * 1000));
@@ -51,8 +54,8 @@ async function main() {
     rows.push({ ...base, type: 'PAGE_VIEW', path: '/', createdAt: step() });
 
     // Búsquedas (35%), algunas sin resultado
-    if (Math.random() < 0.35) {
-      const noResult = Math.random() < 0.22;
+    if (rnd() < 0.35) {
+      const noResult = rnd() < 0.22;
       rows.push({
         ...base, type: 'SEARCH', createdAt: step(),
         query: noResult ? pick(MISSES) : pick(products).slug.replace('syn-', '').replace(/-/g, ' '),
@@ -70,15 +73,15 @@ async function main() {
     }
 
     // Embudo: carrito → checkout → abandono/compra
-    if (Math.random() < 0.32) {
+    if (rnd() < 0.32) {
       const p = pick([...seen]);
       rows.push({ ...base, type: 'ADD_TO_CART', productId: p, createdAt: step() });
-      if (Math.random() < 0.55) {
+      if (rnd() < 0.55) {
         rows.push({ ...base, type: 'CHECKOUT_START', createdAt: step() });
-        if (Math.random() < 0.4) {
+        if (rnd() < 0.4) {
           rows.push({ ...base, type: 'CHECKOUT_ABANDON', createdAt: step() });
         }
-      } else if (Math.random() < 0.3) {
+      } else if (rnd() < 0.3) {
         rows.push({ ...base, type: 'REMOVE_FROM_CART', productId: p, createdAt: step() });
       }
     }

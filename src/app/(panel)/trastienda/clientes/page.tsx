@@ -1,4 +1,4 @@
-import { getCustomerSegments, getCustomerValue } from '@/src/lib/services/intelligence.service';
+import { getCustomerSegments, getCustomerValue, getRepeatChurn } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
 import { PageHeader, Eyebrow, Stat, clp, num, pct } from '@/src/components/panel/intelligence-ui';
 
@@ -15,7 +15,7 @@ const LABELS: Record<string, { name: string; hint: string }> = {
 };
 
 export default async function ClientesPage() {
-  const [d, value] = await Promise.all([getCustomerSegments(), getCustomerValue()]);
+  const [d, value, rc] = await Promise.all([getCustomerSegments(), getCustomerValue(), getRepeatChurn()]);
 
   if (!d.hasData) {
     return (
@@ -72,6 +72,18 @@ export default async function ClientesPage() {
           })}
         </div>
       </section>
+
+      {rc.hasData && (
+        <section className="space-y-3">
+          <Eyebrow>Recompra y fuga</Eyebrow>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Stat label="Clientes recurrentes" value={num(rc.activeCustomers)} hint="2+ compras" />
+            <Stat label="Por comprar pronto" value={num(rc.dueSoon)} accent hint="según su ritmo de compra" />
+            <Stat label="En fuga (churn)" value={num(rc.atRisk)} hint="pasaron su intervalo habitual" />
+            <Stat label="Intervalo promedio" value={`${rc.avgIntervalDays.toFixed(0)} d`} hint="entre compras" />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

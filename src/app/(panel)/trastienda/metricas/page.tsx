@@ -1,5 +1,7 @@
 import {
   getMetricsDashboard,
+  getAlerts,
+  getSalesAnomalies,
   type MetricPoint,
   type CategoryRow,
   type ProductRow,
@@ -17,7 +19,7 @@ const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep'
 const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getMonth()]} ${new Date(d).getFullYear()}`;
 
 export default async function MetricasPage() {
-  const d = await getMetricsDashboard();
+  const [d, alerts, anomalies] = await Promise.all([getMetricsDashboard(), getAlerts(), getSalesAnomalies()]);
 
   if (!d.hasData) {
     return (
@@ -45,6 +47,25 @@ export default async function MetricasPage() {
           </p>
         )}
       </header>
+
+      {/* Alertas automáticas (KPI fuera de rango) */}
+      {alerts.length > 0 && (
+        <section className="space-y-2">
+          {alerts.map((a, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-2.5 rounded-chip border px-4 py-2.5 text-sm ${
+                a.level === 'critical' ? 'border-alert/30 bg-alert/[0.08] text-alert'
+                : a.level === 'warning' ? 'border-rust/30 bg-rust/[0.10] text-[#b06a2c]'
+                : 'border-sand bg-cream text-taupe'
+              }`}
+            >
+              <span className="text-xs font-bold uppercase tracking-wide">{a.level === 'critical' ? 'Crítico' : a.level === 'warning' ? 'Atención' : 'Info'}</span>
+              <span className="text-soot">{a.message}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* Tarjetas — últimos 12 meses */}
       <section className="space-y-3">
@@ -85,6 +106,20 @@ export default async function MetricasPage() {
         </p>
         <div className="mt-5"><AbcTable rows={d.products} /></div>
       </section>
+
+      {anomalies.hasData && (
+        <section className="card-hs shadow-soft p-6">
+          <Eyebrow>Anomalías de ventas</Eyebrow>
+          <p className="mt-1.5 text-[13px] text-taupe">Días cuyos ingresos se desvían mucho de lo normal (z-score ≥ 2,5) — picos o caídas a investigar.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {anomalies.anomalies.map((a, i) => (
+              <span key={i} className={`chip-hs ${a.deviation > 0 ? 'border-transparent bg-mint text-[#4e7a5e]' : 'border-transparent bg-alert/[0.12] text-alert'}`}>
+                {new Date(a.date).toLocaleDateString('es-CL')} · {clp(a.revenue)} {a.deviation > 0 ? '▲' : '▼'}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

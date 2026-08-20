@@ -1,11 +1,11 @@
-import { getRestockSuggestions } from '@/src/lib/services/intelligence.service';
+import { getRestockSuggestions, getShrinkage, getDeadStock } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
-import { PageHeader, Eyebrow, Stat, num } from '@/src/components/panel/intelligence-ui';
+import { PageHeader, Eyebrow, Stat, clp, num } from '@/src/components/panel/intelligence-ui';
 
 export const revalidate = 60;
 
 export default async function ReponerPage() {
-  const d = await getRestockSuggestions();
+  const [d, shrink, dead] = await Promise.all([getRestockSuggestions(), getShrinkage(), getDeadStock()]);
 
   if (!d.hasData) {
     return (
@@ -64,6 +64,42 @@ export default async function ReponerPage() {
           </table>
         </div>
       </section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {dead.hasData && (
+          <section className="card-hs shadow-soft p-6">
+            <Eyebrow>Sobre-stock (capital inmovilizado)</Eyebrow>
+            <p className="mt-1.5 text-[13px] text-taupe">
+              Productos con mucho stock y poca venta reciente — <span className="price-mono text-rust-dark">{clp(dead.totalImmobilized)}</span> inmovilizados.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {dead.items.map((it) => (
+                <li key={it.name} className="flex justify-between border-b border-sand/60 pb-1.5 last:border-0">
+                  <span className="text-soot">{it.name}</span>
+                  <span className="text-taupe"><span className="price-mono">{num(it.stock)}</span> en stock · <span className="price-mono">{num(it.sold90)}</span> vendidos 90d</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {shrink.hasData && (
+          <section className="card-hs shadow-soft p-6">
+            <Eyebrow>Mermas</Eyebrow>
+            <p className="mt-1.5 text-[13px] text-taupe">
+              Pérdidas por daño/vencimiento — <span className="price-mono text-alert">{clp(shrink.totalCost)}</span> ({num(shrink.totalUnits)} uds).
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {shrink.items.slice(0, 8).map((it, i) => (
+                <li key={i} className="flex justify-between border-b border-sand/60 pb-1.5 last:border-0">
+                  <span className="text-soot">{it.name} <span className="chip-hs ml-1">{it.reason === 'DAMAGED' ? 'dañado' : 'vencido'}</span></span>
+                  <span className="price-mono text-taupe">{num(it.qty)} · {clp(it.cost)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

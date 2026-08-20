@@ -482,3 +482,166 @@ export async function getCustomerSegments() {
     segments,
   };
 }
+
+// ── Ampliaciones: tendencias, mermas, sobre-stock, bundles, anomalías,
+//    logística, recompra/churn, alertas. Todo BI de solo lectura. ──────────
+
+const n = (v: unknown) => Number(v ?? 0);
+
+export interface TrendRow { name: string; recent: number; prior: number; growth: number }
+export async function getProductTrends() {
+  const rows = await db.$queryRaw<{ name: string; recent: bigint; prior: bigint }[]>`
+    SELECT p.name,
+      SUM(CASE WHEN o."createdAt" >= now() - interval '90 days' THEN oi.quantity ELSE 0 END) AS recent,
+      SUM(CASE WHEN o."createdAt" < now() - interval '90 days' AND o."createdAt" >= now() - interval '180 days' THEN oi.quantity ELSE 0 END) AS prior
+    FROM "OrderItem" oi JOIN "Order" o ON o.id = oi."orderId" JOIN "Product" p ON p.id = oi."productId"
+    WHERE o."paymentStatus" = 'PAID' GROUP BY p.name`;
+  const all: TrendRow[] = rows.map((r) => {
+    const recent = n(r.recent), prior = n(r.prior);
+    return { name: r.name, recent, prior, growth: prior > 0 ? (recent - prior) / prior : recent > 0 ? 1 : 0 };
+  });
+  return {
+    hasData: all.length > 0,
+    rising: [...all].filter((r) => r.growth > 0.1).sort((a, b) => b.growth - a.growth).slice(0, 6),
+    declining: [...all].filter((r) => r.growth < -0.1).sort((a, b) => a.growth - b.growth).slice(0, 6),
+  };
+}
+
+export interface ShrinkageRow { name: string; reason: string; qty: number; cost: number }
+export async function getShrinkage() {
+  const rows = await db.$queryRaw<{ name: string; reason: string; qty: bigint; cost: bigint }[]>`
+    SELECT p.name, sm.reason::text AS reason, SUM(sm.quantity) AS qty, SUM(sm.quantity * COALESCE(p."costCLP", 0)) AS cost
+    FROM "StockMovement" sm JOIN "Product" p ON p.id = sm."productId"
+    WHERE sm.reason IN ('DAMAGED', 'EXPIRED') GROUP BY p.name, sm.reason ORDER BY cost DESC`;
+  const items: ShrinkageRow[] = rows.map((r) => ({ name: r.name, reason: r.reason, qty: n(r.qty), cost: n(r.cost) }));
+  return {
+    hasData: items.length > 0,
+    items,
+    totalUnits: items.reduce((a, i) => a + i.qty, 0),
+    totalCost: items.reduce((a, i) => a + i.cost, 0),
+  };
+}
+
+export interface DeadStockRow { name: string; stock: number; sold90: number; immobilized: number }
+export async function getDeadStock() {
+  const rows = await db.$queryRaw<{ name: string; stock: number; cost: number; sold90: bigint }[]>`
+    SELECT p.name, p.stock, COALESCE(p."costCLP", 0) AS cost,
+      COALESCE(SUM(CASE WHEN o."createdAt" >= now() - interval '90 days' AND o."paymentStatus" = 'PAID' THEN oi.quantity END), 0) AS sold90
+    FROM "Product" p
+    LEFT JOIN "OrderItem" oi ON oi."productId" = p.id
+    LEFT JOIN "Order" o ON o.id = oi."orderId"
+    WHERE p.active = true GROUP BY p.id, p.name, p.stock, p."costCLP"`;
+  const items: DeadStockRow[] = rows
+    .map((r) => ({ name: r.name, stock: r.stock, sold90: n(r.sold90), immobilized: r.stock * n(r.cost) }))
+    .filter((r) => r.stock > 0 && r.sold90 <= r.stock * 0.15)
+    .sort((a, b) => b.immobilized - a.immobilized)
+    .slice(0, 10);
+  return { hasData: items.length > 0, items, totalImmobilized: items.reduce((a, i) => a + i.immobilized, 0) };
+}
+
+export interface BundleRow { a: string; b: string; score: number; price: number }
+export async function getBundles() {
+  const recs = await db.productRecommendation.findMany({
+    where: { strategy: 'BASKET' },
+    orderBy: { score: 'desc' },
+    include: { product: { select: { name: true, priceCLP: true } }, recommended: { select: { name: true, priceCLP: true } } },
+  });
+  const seen = new Set<string>();
+  const bundles: BundleRow[] = [];
+  for (const r of recs) {
+    const key = [r.productId, r.recommendedProductId].sort().join('|');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    bundles.push({ a: r.product.name, b: r.recommended.name, score: r.score, price: r.product.priceCLP + r.recommended.priceCLP });
+    if (bundles.length >= 8) break;
+  }
+  return { hasData: bundles.length > 0, bundles };
+}
+
+export interface SalesAnomaly { date: Date; revenue: number; expected: number; deviation: number }
+export async function getSalesAnomalies() {
+  const rows = await db.$queryRaw<{ d: Date; rev: bigint }[]>`
+    SELECT date_trunc('day', o."createdAt") AS d, SUM(oi."unitPriceCLP" * oi.quantity) AS rev
+    FROM "OrderItem" oi JOIN "Order" o ON o.id = oi."orderId"
+    WHERE o."paymentStatus" = 'PAID' AND o."createdAt" >= now() - interval '180 days'
+    GROUP BY 1 ORDER BY 1`;
+  const series = rows.map((r) => ({ date: r.d, rev: n(r.rev) }));
+  if (series.length < 10) return { hasData: false, anomalies: [] as SalesAnomaly[] };
+  const mean = series.reduce((a, s) => a + s.rev, 0) / series.length;
+  const std = Math.sqrt(series.reduce((a, s) => a + (s.rev - mean) ** 2, 0) / series.length) || 1;
+  const anomalies = series
+    .filter((s) => Math.abs((s.rev - mean) / std) >= 2.5)
+    .map((s) => ({ date: s.date, revenue: s.rev, expected: mean, deviation: (s.rev - mean) / std }))
+    .sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation))
+    .slice(0, 8);
+  return { hasData: anomalies.length > 0, anomalies, mean };
+}
+
+export interface RegionRow { region: string; revenue: number; orders: number; avgShipping: number; shipPct: number }
+export interface CourierRow { method: string; delivered: number; avgDays: number }
+export async function getLogistics() {
+  const regionRows = await db.$queryRaw<{ region: string; revenue: bigint; orders: bigint; ship: bigint }[]>`
+    SELECT COALESCE(o."shippingRegion", 'Retiro en tienda') AS region,
+      SUM(o."subtotalCLP") AS revenue, COUNT(*) AS orders, SUM(o."shippingCLP") AS ship
+    FROM "Order" o WHERE o."paymentStatus" = 'PAID' GROUP BY 1 ORDER BY revenue DESC`;
+  const byRegion: RegionRow[] = regionRows.map((r) => {
+    const revenue = n(r.revenue), ship = n(r.ship);
+    return { region: r.region, revenue, orders: n(r.orders), avgShipping: n(r.orders) ? ship / n(r.orders) : 0, shipPct: revenue ? ship / revenue : 0 };
+  });
+  const courierRows = await db.$queryRaw<{ method: string; delivered: bigint; avg_days: number }[]>`
+    SELECT o."shippingMethod"::text AS method, COUNT(*) AS delivered,
+      AVG(EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) / 86400) AS avg_days
+    FROM "Order" o WHERE o."deliveredAt" IS NOT NULL GROUP BY 1 ORDER BY delivered DESC`;
+  const byCourier: CourierRow[] = courierRows.map((r) => ({ method: r.method, delivered: n(r.delivered), avgDays: Number(r.avg_days ?? 0) }));
+  return { hasData: byRegion.length > 0, byRegion, byCourier };
+}
+
+export interface RepeatChurn {
+  hasData: boolean;
+  activeCustomers: number;
+  atRisk: number;
+  dueSoon: number;
+  avgIntervalDays: number;
+}
+export async function getRepeatChurn(): Promise<RepeatChurn> {
+  const rows = await db.$queryRaw<{ user_id: string; orders: bigint; first: Date; last: Date }[]>`
+    SELECT "userId" AS user_id, COUNT(*) AS orders, MIN("createdAt") AS first, MAX("createdAt") AS last
+    FROM "Order" WHERE "paymentStatus" = 'PAID' GROUP BY "userId" HAVING COUNT(*) >= 2`;
+  if (rows.length === 0) return { hasData: false, activeCustomers: 0, atRisk: 0, dueSoon: 0, avgIntervalDays: 0 };
+  const now = Date.now();
+  let atRisk = 0, dueSoon = 0, intervalSum = 0;
+  for (const r of rows) {
+    const span = (r.last.getTime() - r.first.getTime()) / 86400000;
+    const interval = span / (n(r.orders) - 1);
+    intervalSum += interval;
+    const daysSinceLast = (now - r.last.getTime()) / 86400000;
+    if (daysSinceLast > interval * 2 && daysSinceLast > 60) atRisk++;
+    else if (daysSinceLast >= interval * 0.8) dueSoon++;
+  }
+  return {
+    hasData: true,
+    activeCustomers: rows.length,
+    atRisk,
+    dueSoon,
+    avgIntervalDays: intervalSum / rows.length,
+  };
+}
+
+export interface Alert { level: 'critical' | 'warning' | 'info'; message: string }
+export async function getAlerts(): Promise<Alert[]> {
+  const [lowStock, urgentRestock, criticalIncidents, riskyOrders, attackedAccounts] = await Promise.all([
+    db.$queryRaw<{ c: bigint }[]>`SELECT COUNT(*) AS c FROM "Product" WHERE active = true AND stock <= "lowStockThreshold"`,
+    db.restockSuggestion.count({ where: { score: { gte: 0.5 } } }),
+    db.securityIncident.count({ where: { severity: 'CRITICAL', status: { notIn: ['RESOLVED', 'CLOSED'] } } }),
+    db.riskScore.count({ where: { subjectType: 'ORDER' } }),
+    db.riskScore.count({ where: { subjectType: 'USER' } }),
+  ]);
+  const alerts: Alert[] = [];
+  const low = n(lowStock[0]?.c);
+  if (criticalIncidents > 0) alerts.push({ level: 'critical', message: `${criticalIncidents} incidente(s) de seguridad crítico(s) sin resolver` });
+  if (attackedAccounts > 0) alerts.push({ level: 'critical', message: `${attackedAccounts} cuenta(s) bajo ataque detectadas` });
+  if (urgentRestock > 0) alerts.push({ level: 'warning', message: `${urgentRestock} producto(s) con reposición urgente` });
+  if (low > 0) alerts.push({ level: 'warning', message: `${low} producto(s) en o bajo el umbral de stock` });
+  if (riskyOrders > 0) alerts.push({ level: 'info', message: `${riskyOrders} orden(es) marcadas para revisión de fraude` });
+  return alerts;
+}

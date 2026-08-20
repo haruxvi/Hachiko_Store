@@ -29,11 +29,13 @@ const INTELLIGENCE: Item[] = [
   { icon: 'sliders', label: 'Métricas', href: '/trastienda/metricas' },
   { icon: 'arrow', label: 'Demanda', href: '/trastienda/demanda' },
   { icon: 'truck', label: 'Qué reponer', href: '/trastienda/reponer' },
+  { icon: 'box', label: 'Logística', href: '/trastienda/logistica' },
   { icon: 'heart', label: 'Recomendaciones', href: '/trastienda/recomendaciones' },
   { icon: 'eye', label: 'Clientes', href: '/trastienda/clientes' },
   { icon: 'filter', label: 'Conversión', href: '/trastienda/conversion' },
   { icon: 'bell', label: 'Riesgo', href: '/trastienda/riesgo' },
   { icon: 'settings', label: 'Modelos', href: '/trastienda/modelos' },
+  { icon: 'list', label: 'Reporte', href: '/trastienda/reporte' },
 ];
 
 const THE_STORE: Item[] = [

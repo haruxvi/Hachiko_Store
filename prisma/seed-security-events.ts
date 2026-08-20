@@ -14,6 +14,7 @@
  * Ejecutar:  pnpm db:seed:security
  */
 import { PrismaClient, type Prisma } from '@prisma/client';
+import { randomInt } from 'node:crypto';
 
 const db = new PrismaClient({ datasourceUrl: process.env['DIRECT_URL'] ?? process.env['DATABASE_URL'] });
 
@@ -22,8 +23,11 @@ const USER_MARK = '@seed.hachiko.test';
 const ATTACKER_IPS = ['203.0.113.7', '203.0.113.42', '198.51.100.23'];
 const UA_BOT = 'python-requests/2.31';
 
-const randInt = (a: number, b: number) => Math.floor(Math.random() * (b - a + 1)) + a;
-const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]!;
+// Randomness criptográfico (node:crypto) — evita el PRNG débil de Math.random
+// en datos que tocan campos de seguridad (CWE-338).
+const randInt = (a: number, b: number) => randomInt(a, b + 1);
+const rnd = () => randomInt(0, 1_000_000) / 1_000_000; // float en [0,1)
+const pick = <T>(arr: T[]): T => arr[randomInt(arr.length)]!;
 const normalIp = () => `${randInt(1, 223)}.${randInt(0, 255)}.${randInt(0, 255)}.${randInt(1, 254)}`;
 const daysAgo = (d: number, jitterH = 0) => new Date(Date.now() - d * 86400000 - randInt(0, jitterH) * 3600000);
 
@@ -53,7 +57,7 @@ async function main() {
   // 2) Credential stuffing: 2 IPs atacantes golpean muchas cuentas distintas
   for (const ip of ATTACKER_IPS.slice(0, 2)) {
     const when = daysAgo(randInt(2, 8), 2);
-    const targets = [...ids].sort(() => Math.random() - 0.5).slice(0, randInt(35, 60));
+    const targets = [...ids].sort(() => rnd() - 0.5).slice(0, randInt(35, 60));
     for (const uid of targets) {
       for (let k = 0; k < randInt(1, 2); k++) {
         rows.push(fail(uid, ip, UA_BOT, new Date(when.getTime() + randInt(0, 120) * 60000), 'credential_stuffing'));
@@ -62,7 +66,7 @@ async function main() {
   }
 
   // 3) Fuerza bruta / ATO: pocas cuentas, muchos intentos, a veces bloqueo
-  const victims = [...ids].sort(() => Math.random() - 0.5).slice(0, 8);
+  const victims = [...ids].sort(() => rnd() - 0.5).slice(0, 8);
   for (const uid of victims) {
     const when = daysAgo(randInt(1, 6), 1);
     const nIps = randInt(1, 2);
@@ -70,7 +74,7 @@ async function main() {
     for (let k = 0; k < attempts; k++) {
       rows.push(fail(uid, pick(ATTACKER_IPS.slice(0, nIps)), UA_BOT, new Date(when.getTime() + k * randInt(1, 4) * 60000), 'brute_force'));
     }
-    if (Math.random() < 0.5) {
+    if (rnd() < 0.5) {
       rows.push({
         actorId: uid, actorRole: 'CLIENT', action: 'ACCOUNT_LOCKED',
         targetType: 'User', targetId: uid, ip: pick(ATTACKER_IPS), userAgent: UA_BOT,
@@ -106,7 +110,7 @@ async function seedIncidents() {
   const incidents: Prisma.SecurityIncidentCreateManyInput[] = [];
   for (let i = 0; i < 16; i++) {
     const detectedAt = daysAgo(randInt(3, 180), 23);
-    const resolved = Math.random() < 0.65;
+    const resolved = rnd() < 0.65;
     const cat = pick(cats);
     const sev = pick(sevs);
     incidents.push({
@@ -116,7 +120,7 @@ async function seedIncidents() {
       status: resolved ? pick(resolvedStates) : pick(openStates),
       detectedAt,
       resolvedAt: resolved ? new Date(detectedAt.getTime() + randInt(2, 240) * 3600000) : null,
-      affectsPersonalData: cat === 'PERSONAL_DATA_BREACH' || Math.random() < 0.2,
+      affectsPersonalData: cat === 'PERSONAL_DATA_BREACH' || rnd() < 0.2,
       reportedBy: 'synthetic-seed',
     });
   }

@@ -120,6 +120,7 @@ model Product {
   reservations StockReservation[]
   movements    StockMovement[]
   adjustments  StockAdjustment[]
+  priceHistory PriceHistory[]
 
   // Plano analítico (predicciones precalculadas por el pipeline de ML).
   // Son relaciones virtuales: no agregan columnas a la tabla products.
@@ -210,6 +211,21 @@ enum StockMovementReason {
   EXPIRED
   RETURNED
   INITIAL_LOAD
+}
+
+// Bitácora append-only de cambios de precio. Da trazabilidad (auditoría) y
+// habilita el análisis de elasticidad-precio con datos reales que se acumulan
+// con el uso. Mismo patrón que StockMovement / OrderStatusHistory.
+model PriceHistory {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  previousCLP Int
+  newCLP      Int
+  actorId     String? // vendedor que hizo el cambio
+  createdAt   DateTime @default(now())
+
+  @@index([productId, createdAt])
 }
 
 model StockAdjustment {

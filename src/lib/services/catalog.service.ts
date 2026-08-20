@@ -146,8 +146,33 @@ export async function createProduct(input: z.infer<typeof ProductSchema>) {
   return db.product.create({ data: input, include: { category: true } });
 }
 
-export async function updateProduct(id: string, input: Partial<z.infer<typeof ProductSchema>>) {
-  return db.product.update({ where: { id }, data: input, include: { category: true } });
+export async function updateProduct(
+  id: string,
+  input: Partial<z.infer<typeof ProductSchema>>,
+  actorId?: string,
+) {
+  // Si cambia el precio, se registra en PriceHistory (auditoría + elasticidad).
+  const current =
+    input.priceCLP !== undefined
+      ? await db.product.findUnique({ where: { id }, select: { priceCLP: true } })
+      : null;
+
+  const updated = await db.product.update({ where: { id }, data: input, include: { category: true } });
+
+  if (current && input.priceCLP !== undefined && current.priceCLP !== input.priceCLP) {
+    await db.priceHistory.create({
+      data: { productId: id, previousCLP: current.priceCLP, newCLP: input.priceCLP, actorId },
+    });
+  }
+  return updated;
+}
+
+export async function getPriceHistory(productId: string) {
+  return db.priceHistory.findMany({
+    where: { productId },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  });
 }
 
 export async function decrementStock(productId: string, quantity: number): Promise<boolean> {

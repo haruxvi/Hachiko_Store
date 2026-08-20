@@ -1,11 +1,11 @@
-import { getRecommendations } from '@/src/lib/services/intelligence.service';
+import { getRecommendations, getBundles } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
-import { PageHeader, Eyebrow } from '@/src/components/panel/intelligence-ui';
+import { PageHeader, Eyebrow, clp } from '@/src/components/panel/intelligence-ui';
 
 export const revalidate = 60;
 
 export default async function RecomendacionesPage() {
-  const d = await getRecommendations();
+  const [d, bundles] = await Promise.all([getRecommendations(), getBundles()]);
 
   if (!d.hasData) {
     return (
@@ -47,6 +47,21 @@ export default async function RecomendacionesPage() {
           ))}
         </div>
       </section>
+
+      {bundles.hasData && (
+        <section className="card-hs shadow-soft p-6">
+          <Eyebrow>Packs sugeridos</Eyebrow>
+          <p className="mt-1.5 text-[13px] text-taupe">Los pares con más afinidad — ármalos como promo para subir el ticket.</p>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {bundles.bundles.map((b, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-chip border border-sand bg-cream px-4 py-3">
+                <span className="text-sm text-soot">{b.a} <span className="text-taupe">+</span> {b.b}</span>
+                <span className="price-mono shrink-0 text-sm text-rust-dark">{clp(b.price)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

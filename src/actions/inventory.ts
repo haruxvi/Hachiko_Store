@@ -118,7 +118,7 @@ export async function updateProductAction(
   const { id, ...data } = parsed.data;
 
   try {
-    await updateProduct(id, data);
+    await updateProduct(id, data, session.sub);
     revalidatePath('/trastienda/productos');
     revalidatePath(`/trastienda/productos/${id}`);
     return { ok: true };
