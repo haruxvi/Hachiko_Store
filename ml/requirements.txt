@@ -1,0 +1,13 @@
+# ── Núcleo (conexión a Neon + datos) — necesario desde la Fase 0 ──
+SQLAlchemy>=2.0
+psycopg[binary]>=3.2
+python-dotenv>=1.0
+pandas>=2.2
+
+# ── Librerías por fase (descomentar al llegar a cada una) ──
+# Fase 2 — predictivo:
+# scikit-learn>=1.5      # RFM/clustering, item-item
+# prophet>=1.1           # forecast estacional
+# mlxtend>=0.23          # reglas de asociación (market basket)
+# Fase 5 — gobernanza:
+# shap>=0.46             # explicabilidad de modelos

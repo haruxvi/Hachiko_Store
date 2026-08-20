@@ -17,6 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:synthetic": "tsx prisma/seed-synthetic.ts",
     "db:studio": "prisma studio",
     "docs:api": "tsx scripts/export-openapi.ts",
     "audit": "pnpm audit --audit-level=moderate",
@@ -85,7 +86,8 @@
       "sharp": "^0.35.0",
       "brace-expansion@<1.1.18": "^1.1.18",
       "brace-expansion@>=2.0.0 <2.1.4": "^2.1.4",
-      "brace-expansion@>=4.0.0 <5.0.9": "^5.0.9"
+      "brace-expansion@>=4.0.0 <5.0.9": "^5.0.9",
+      "deepmerge-ts@<8.0.0": "^8.0.1"
     }
   }
 }

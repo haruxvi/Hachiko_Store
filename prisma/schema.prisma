@@ -21,7 +21,7 @@ model User {
 
   // Consentimiento Ley 21.719
   consentEssential Boolean
-  consentMarketing Boolean  @default(false)
+  consentMarketing Boolean   @default(false)
   consentVersion   String
   consentAt        DateTime
   consentIp        String?
@@ -97,21 +97,21 @@ model Category {
 }
 
 model Product {
-  id                 String    @id @default(cuid())
-  sku                String    @unique
-  slug               String    @unique
-  name               String
-  nameKorean         String?
-  description        String
-  priceCLP           Int
-  stock              Int       @default(0)
-  lowStockThreshold  Int       @default(5)
-  costCLP            Int?
-  weightGrams        Int
-  images             String[]
-  active             Boolean   @default(true)
-  archivedAt         DateTime?
-  featured           Boolean   @default(false)
+  id                String    @id @default(cuid())
+  sku               String    @unique
+  slug              String    @unique
+  name              String
+  nameKorean        String?
+  description       String
+  priceCLP          Int
+  stock             Int       @default(0)
+  lowStockThreshold Int       @default(5)
+  costCLP           Int?
+  weightGrams       Int
+  images            String[]
+  active            Boolean   @default(true)
+  archivedAt        DateTime?
+  featured          Boolean   @default(false)
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
@@ -120,6 +120,13 @@ model Product {
   reservations StockReservation[]
   movements    StockMovement[]
   adjustments  StockAdjustment[]
+
+  // Plano analítico (predicciones precalculadas por el pipeline de ML).
+  // Son relaciones virtuales: no agregan columnas a la tabla products.
+  demandForecasts    DemandForecast[]
+  restockSuggestions RestockSuggestion[]
+  recoAnchors        ProductRecommendation[] @relation("recoAnchor")
+  recoTargets        ProductRecommendation[] @relation("recoTarget")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,9 +140,9 @@ model Product {
 // ─── DIRECCIONES Y ÓRDENES ────────────────────────────────
 
 model Address {
-  id        String @id @default(cuid())
-  userId    String
-  user      User   @relation(fields: [userId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   fullName  String
   street    String
@@ -232,6 +239,7 @@ model Order {
   items          OrderItem[]
   stockMovements StockMovement[]
   reservations   StockReservation[]
+  statusHistory  OrderStatusHistory[]
 
   subtotalCLP Int
   shippingCLP Int
@@ -284,7 +292,7 @@ enum OrderStatus {
 // Métodos de entrega ofrecidos. Agregar un courier nuevo = agregar el valor
 // aquí y su entrada en SHIPPING_METHODS (src/lib/shipping.ts).
 enum ShippingMethod {
-  PICKUP        // retiro en tienda (Recoleta) — sin costo
+  PICKUP // retiro en tienda (Recoleta) — sin costo
   STARKEN
   CORREOS_CHILE
 }
@@ -297,9 +305,9 @@ enum PaymentStatus {
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
-  order     Order  @relation(fields: [orderId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id])
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
@@ -368,13 +376,13 @@ model SecurityIncident {
 // Tipificación alineada con la Ley 21.459 sobre delitos informáticos
 enum IncidentCategory {
   SYSTEM_INTEGRITY_ATTACK // Art. 1 — ataque a la integridad de un sistema informático
-  UNAUTHORIZED_ACCESS     // Art. 2 — acceso ilícito
-  ILLEGAL_INTERCEPTION    // Art. 3 — interceptación ilícita
-  DATA_INTEGRITY_ATTACK   // Art. 4 — ataque a la integridad de los datos
-  COMPUTER_FRAUD          // Art. 7 — fraude informático
-  PERSONAL_DATA_BREACH    // Ley 21.719 — vulneración de datos personales
-  PHISHING_IMPERSONATION  // suplantación / phishing a clientes o a la tienda
-  CREDENTIAL_ABUSE        // uso abusivo de credenciales (fuerza bruta, stuffing)
+  UNAUTHORIZED_ACCESS // Art. 2 — acceso ilícito
+  ILLEGAL_INTERCEPTION // Art. 3 — interceptación ilícita
+  DATA_INTEGRITY_ATTACK // Art. 4 — ataque a la integridad de los datos
+  COMPUTER_FRAUD // Art. 7 — fraude informático
+  PERSONAL_DATA_BREACH // Ley 21.719 — vulneración de datos personales
+  PHISHING_IMPERSONATION // suplantación / phishing a clientes o a la tienda
+  CREDENTIAL_ABUSE // uso abusivo de credenciales (fuerza bruta, stuffing)
   OTHER
 }
 
@@ -445,4 +453,201 @@ model DeletionRequest {
   scheduledFor DateTime
   executedAt   DateTime?
   reason       String?
+}
+
+// ─── PLANO ANALÍTICO / ML ─────────────────────────────────
+// Estas tablas NO son operacionales: las escribe el pipeline de Python por
+// batch (carpeta /ml) leyendo el esquema de arriba, y las LEE la trastienda
+// con Prisma. El esquema operacional queda intacto. Es el mismo patrón
+// "estado actual + bitácora/derivados" que ya usas con Product.stock +
+// StockMovement: las entidades núcleo conviven con datos precalculados.
+
+// Bitácora append-only de transiciones de estado del pedido. Convive con los
+// timestamps denormalizados de Order (paidAt, shippedAt, deliveredAt), que
+// siguen dando lectura rápida; esta tabla habilita la analítica temporal:
+// tiempo en cada estado, SLA por courier, cuellos de botella y predicción de
+// tiempo de entrega. Cuando se integren Starken/Correos, sus webhooks de
+// tracking alimentarán una tabla ShipmentEvent aparte (fase posterior).
+model OrderStatusHistory {
+  id         String       @id @default(cuid())
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id])
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  actorId    String? // seller, sistema, o webhook de pago/courier
+  note       String?
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([toStatus, createdAt])
+}
+
+// Captura de comportamiento (append-only, alto volumen). Es lo ÚNICO que
+// captura dato nuevo; el resto de este bloque son derivados. userId null =
+// visitante anónimo. El perfilado solo se aplica a usuarios con
+// consentMarketing = true (Ley 21.719).
+model AnalyticsEvent {
+  id        String             @id @default(cuid())
+  sessionId String
+  userId    String? // sin relación formal: se agrega/pseudonimiza en el pipeline
+  type      AnalyticsEventType
+  productId String?
+  query     String? // término buscado, en eventos SEARCH
+  path      String? // ruta de la página
+  metadata  Json?
+  createdAt DateTime           @default(now())
+
+  @@index([type, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([userId, createdAt])
+  @@index([productId, createdAt])
+}
+
+enum AnalyticsEventType {
+  PAGE_VIEW
+  PRODUCT_VIEW
+  SEARCH
+  ADD_TO_CART
+  REMOVE_FROM_CART
+  CHECKOUT_START
+  CHECKOUT_ABANDON
+}
+
+// Cada corrida de entrenamiento. Da trazabilidad: toda predicción apunta al
+// modelo y versión que la generó — el espejo analítico de tu AuditLog.
+model ModelRun {
+  id         String         @id @default(cuid())
+  modelType  String // "demand_forecast", "rfm", "market_basket", "fraud", ...
+  version    String // versión del código/artefacto del modelo
+  status     ModelRunStatus @default(RUNNING)
+  rowsIn     Int? // filas de entrada usadas para entrenar
+  metrics    Json? // MAE, precision, silhouette, etc.
+  startedAt  DateTime       @default(now())
+  finishedAt DateTime?
+  notes      String?
+
+  @@index([modelType, startedAt])
+}
+
+enum ModelRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+// KPIs ya agregados por periodo, para que los dashboards carguen al instante
+// (Fase 1). dimension/dimensionId permiten desgloses opcionales por categoría,
+// región o courier; su default "_all" mantiene la unicidad para el upsert.
+model KpiSnapshot {
+  id          String    @id @default(cuid())
+  periodType  KpiPeriod
+  periodStart DateTime // inicio del periodo (00:00 del día/mes/año)
+  metric      String // "revenue", "orders", "aov", "margin", ...
+  value       Float
+  dimension   String    @default("_all") // "category", "region", "courier"...
+  dimensionId String    @default("_all")
+  modelRunId  String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([periodType, periodStart, metric, dimension, dimensionId])
+  @@index([metric, periodStart])
+}
+
+enum KpiPeriod {
+  DAY
+  MONTH
+  YEAR
+}
+
+// Forecast de demanda por producto y periodo (Fase 2).
+model DemandForecast {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  periodStart  DateTime // inicio del periodo pronosticado
+  horizonDays  Int // longitud del periodo en días
+  predictedQty Int
+  lowerQty     Int? // banda inferior del intervalo de predicción
+  upperQty     Int? // banda superior
+  modelRunId   String?
+  createdAt    DateTime @default(now())
+
+  @@unique([productId, periodStart, horizonDays])
+  @@index([periodStart])
+}
+
+// Sugerencia de reposición: "qué comprar y cuánto" (Fase 2).
+model RestockSuggestion {
+  id             String   @id @default(cuid())
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id])
+  suggestedQty   Int
+  reason         String // "cubre 30d de demanda + lead time del proveedor"
+  daysToStockout Int? // días estimados hasta el quiebre de stock
+  score          Float    @default(0) // prioridad de reposición (mayor = más urgente)
+  modelRunId     String?
+  createdAt      DateTime @default(now())
+
+  @@index([productId])
+  @@index([score])
+}
+
+// Recomendaciones producto→producto: "se compran juntos" (Fase 2). Dos
+// relaciones nombradas al mismo Product: el ancla y el recomendado.
+model ProductRecommendation {
+  id                   String                 @id @default(cuid())
+  productId            String
+  product              Product                @relation("recoAnchor", fields: [productId], references: [id])
+  recommendedProductId String
+  recommended          Product                @relation("recoTarget", fields: [recommendedProductId], references: [id])
+  strategy             RecommendationStrategy
+  score                Float
+  modelRunId           String?
+  createdAt            DateTime               @default(now())
+
+  @@unique([productId, recommendedProductId, strategy])
+  @@index([productId, strategy, score])
+}
+
+enum RecommendationStrategy {
+  BASKET // reglas de asociación / market basket
+  ITEM_ITEM // filtrado colaborativo item-item
+  CONTENT // basado en contenido (cold-start)
+}
+
+// Segmentación de clientes RFM + clustering (Fase 2). Sin relación formal a
+// User: se consulta por segmento y se pseudonimiza en el pipeline.
+model CustomerSegment {
+  id         String   @id @default(cuid())
+  userId     String
+  segment    String // "champions", "at_risk", "hibernating", ...
+  rScore     Int? // Recencia (1-5)
+  fScore     Int? // Frecuencia (1-5)
+  mScore     Int? // Monto (1-5)
+  clusterId  Int? // id de cluster k-means, si aplica
+  modelRunId String?
+  createdAt  DateTime @default(now())
+
+  @@unique([userId])
+  @@index([segment])
+}
+
+// Scoring de riesgo para seguridad inteligente (Fase 3): fraude en órdenes,
+// account takeover, riesgo de usuario. score 0..1, mayor = más riesgo.
+model RiskScore {
+  id          String      @id @default(cuid())
+  subjectType RiskSubject
+  subjectId   String
+  score       Float
+  reasons     Json? // señales que dispararon el score (explicabilidad)
+  modelRunId  String?
+  createdAt   DateTime    @default(now())
+
+  @@index([subjectType, score])
+  @@index([subjectId])
+}
+
+enum RiskSubject {
+  ORDER
+  USER
 }

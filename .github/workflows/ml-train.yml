@@ -1,0 +1,32 @@
+# Entrenamiento del pipeline de ML fuera de Vercel.
+# Vercel no puede entrenar modelos (timeout serverless, librerías pesadas), así
+# que el batch corre aquí. Lee/escribe Neon vía el secret NEON_DIRECT_URL.
+# Configúralo en: Settings → Secrets and variables → Actions.
+name: Entrenamiento ML
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # diario 06:00 UTC (~02:00–03:00 en Chile)
+  workflow_dispatch: {} # permite lanzarlo a mano desde la pestaña Actions
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        working-directory: ml
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar pipeline (Fases 1 y 2)
+        working-directory: ml
+        env:
+          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+          PYTHONUTF8: "1"
+        run: python -m jobs.train_all

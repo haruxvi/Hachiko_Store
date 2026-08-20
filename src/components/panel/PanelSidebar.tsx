@@ -23,6 +23,16 @@ const DAY_TO_DAY: Item[] = [
   { icon: 'list', label: 'Inventario', href: '/trastienda/inventario' },
 ];
 
+// Subsistema de análisis de datos y ML. Estas vistas leen el plano analítico
+// que el pipeline de Python precalcula (ver docs/machine-learning.md).
+const INTELLIGENCE: Item[] = [
+  { icon: 'sliders', label: 'Métricas', href: '/trastienda/metricas' },
+  { icon: 'arrow', label: 'Demanda', href: '/trastienda/demanda' },
+  { icon: 'truck', label: 'Qué reponer', href: '/trastienda/reponer' },
+  { icon: 'heart', label: 'Recomendaciones', href: '/trastienda/recomendaciones' },
+  { icon: 'eye', label: 'Clientes', href: '/trastienda/clientes' },
+];
+
 const THE_STORE: Item[] = [
   { icon: 'lock', label: 'Seguridad', href: '/trastienda/seguridad' },
   { icon: 'user', label: 'Mi cuenta', href: '/perfil' },
@@ -71,6 +81,11 @@ export default function PanelSidebar({ email }: { email: string }) {
 
       <GroupLabel>Día a día</GroupLabel>
       {DAY_TO_DAY.map((item) => (
+        <SideItem key={item.href} item={item} />
+      ))}
+
+      <GroupLabel>Inteligencia</GroupLabel>
+      {INTELLIGENCE.map((item) => (
         <SideItem key={item.href} item={item} />
       ))}
 

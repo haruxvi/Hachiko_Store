@@ -28,3 +28,7 @@ overrides:
   'brace-expansion@<1.1.18': ^1.1.18
   'brace-expansion@>=2.0.0 <2.1.4': ^2.1.4
   'brace-expansion@>=4.0.0 <5.0.9': ^5.0.9
+  # deepmerge-ts <8.0.0: stack exhaustion con grafos de objetos recursivos
+  # (CVE-2026-40345 / GHSA). Entra vía prisma > @prisma/config. El fix está en
+  # 8.0.0; sus breaking changes (merge de Map, tipos) no afectan a @prisma/config.
+  'deepmerge-ts@<8.0.0': ^8.0.1
