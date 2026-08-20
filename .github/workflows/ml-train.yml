@@ -9,6 +9,11 @@ on:
     - cron: "0 6 * * *" # diario 06:00 UTC (~02:00–03:00 en Chile)
   workflow_dispatch: {} # permite lanzarlo a mano desde la pestaña Actions
 
+# Mínimo privilegio para el GITHUB_TOKEN (CWE-275): este workflow solo lee el
+# repositorio y escribe en Neon vía secret; no modifica el repo ni sus recursos.
+permissions:
+  contents: read
+
 jobs:
   train:
     runs-on: ubuntu-latest
