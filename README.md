@@ -2,13 +2,17 @@
 
 # 🐕 Hachiko Store
 
-**E-commerce de productos coreanos para el mercado chileno.**
-Snacks, skincare, papelería y merch K-pop — curados e importados, despachados a todo Chile.
+**Comercio electrónico inteligente y seguro de productos coreanos para el mercado chileno.**
+Snacks, skincare, papelería y merch K-pop — curados e importados, despachados a todo Chile,
+con una capa de análisis de datos y machine learning sobre la operación.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-5.x-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.x-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)](https://neon.tech/)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
 [![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel)](https://vercel.com/)
 [![License](https://img.shields.io/badge/license-Proprietary-lightgrey)](#-licencia)
 
@@ -18,9 +22,9 @@ Snacks, skincare, papelería y merch K-pop — curados e importados, despachados
 
 ## 📖 Sobre el proyecto
 
-Hachiko es una tienda online full-stack construida sobre Next.js, pensada y desarrollada para una pyme chilena que importa y vende productos coreanos. El proyecto prioriza tres cosas por igual: **experiencia de usuario cálida**, **cumplimiento legal chileno** (Ley 21.719 de datos personales, Ley 19.496 de protección al consumidor, obligaciones SII) y **seguridad por diseño** (OWASP, segregación de roles, mínimo privilegio).
+Hachiko es una tienda online full-stack construida sobre Next.js, pensada y desarrollada para una pyme chilena que importa y vende productos coreanos. El proyecto prioriza cuatro cosas por igual: **experiencia de usuario cálida**, **cumplimiento legal chileno** (Ley 21.719 de datos personales, Ley 19.496 de protección al consumidor, obligaciones SII), **seguridad por diseño** (OWASP, segregación de roles, mínimo privilegio) y **una capa de inteligencia** (análisis de datos + machine learning) que convierte la operación diaria en decisiones.
 
-No es un template genérico de e-commerce: cada decisión técnica está documentada y atada a un requisito real de negocio o de normativa.
+No es un template genérico de e-commerce: cada decisión técnica está documentada y atada a un requisito real de negocio o de normativa. La IA no es un apéndice pegado encima — está gobernada, respeta el consentimiento y se apoya en la misma postura de seguridad del resto del sistema (por ejemplo, detecta fraude y ataques sobre los propios registros de la plataforma).
 
 ---
 
@@ -35,10 +39,11 @@ No es un template genérico de e-commerce: cada decisión técnica está documen
 
 ### Trastienda (vendedor)
 - Dashboard con KPIs operacionales y comerciales en tiempo casi real.
-- CRUD de productos y categorías.
+- CRUD de productos y categorías, con **edición de precio auditada** (cada cambio queda en un historial).
 - **Gestión de inventario con descuento de stock automático** al confirmar pago, vía sistema de reservas con TTL — sin oversell, sin race conditions.
 - Ajuste manual de stock con motivo obligatorio y trazabilidad completa (ledger inmutable).
 - Vista de órdenes para despacho con **datos mínimos** según Ley 21.719 (sin RUT, sin historial cruzado, sin medio de pago).
+- **Grupo "Inteligencia"** con 10 vistas de análisis y predicción (ver más abajo).
 
 ### Seguridad y cumplimiento
 - Autenticación con Argon2id + JWT + refresh token rotativo.
@@ -48,6 +53,53 @@ No es un template genérico de e-commerce: cada decisión técnica está documen
 - Audit log inmutable para acciones sensibles.
 - Módulo de monitoreo de amenazas en la trastienda (incidencias tipificadas por ley, bitácora encadenada por hash).
 - Validación Zod en todo input, rate limiting, headers de seguridad y CSP estricta.
+
+---
+
+## 🧠 Inteligencia: análisis de datos y Machine Learning
+
+Un e-commerce genera datos valiosos (ventas, inventario, comportamiento, seguridad). Este subsistema los aprovecha para apoyar la operación con **análisis descriptivo (BI)** y **modelos predictivos (ML)**, siguiendo la metodología estándar **CRISP-DM**. Documentación completa y detallada en [`docs/machine-learning.md`](docs/machine-learning.md).
+
+### Arquitectura de dos planos
+
+El entrenamiento de modelos **no corre en Vercel** (serverless, con timeouts y librerías pesadas): corre por *batch* en un proyecto Python independiente, y se comunica con la app **solo a través de la base de datos**.
+
+```
+┌──────────────────────────────┐        ┌───────────────────────────────┐
+│  PLANO OPERACIONAL (OLTP)    │        │   PLANO ANALÍTICO / ML        │
+│  esquema de la tienda        │──lee──▶│  /ml — Python, pandas,        │
+│  User, Product, Order...     │ crudo  │  scikit-learn                 │
+│  + AnalyticsEvent, PriceHist.│        │  corre en GitHub Actions      │
+│  + OrderStatusHistory        │        │  (cron), NUNCA en Vercel      │
+└──────────────────────────────┘        └───────────────┬───────────────┘
+              ▲                                          │ escribe
+              │  Next.js LEE resultados con Prisma       │ predicciones
+              └──────────────────────────────────────────┘
+```
+
+**Regla de oro:** Prisma es el único dueño del esquema; Python solo lee lo operacional y escribe las tablas derivadas. Toda predicción referencia el `ModelRun` (versión + métricas) que la generó — trazabilidad de punta a punta, el espejo analítico del `AuditLog`.
+
+### Modelos y técnicas
+
+| Módulo | Técnica | Salida |
+|--------|---------|--------|
+| Forecast de demanda | Regresión Ridge con estacionalidad (mes one-hot + tendencia) | Pronóstico por producto, 3 meses |
+| Reposición | Forecast + lead time + stock | Qué comprar y cuánto, días a quiebre |
+| Recomendador | Reglas de asociación (soporte / confianza / lift) | "Se compran juntos" |
+| Segmentación de clientes | RFM + clustering **KMeans** (silhouette) | Segmentos + clusters |
+| Fraude en órdenes | **Isolation Forest** (no supervisado) | Órdenes atípicas + señales |
+| Account-takeover | Detección por reglas (fuerza bruta + credential stuffing) | Cuentas bajo ataque |
+| KPIs / BI | Agregaciones sobre ventas pagadas | Ingresos, margen, ABC, geo |
+
+Principio transversal: **el modelo sugiere, la decisión es humana** — no hay decisiones automáticas con efecto jurídico sobre personas.
+
+### Las 10 vistas del panel "Inteligencia"
+
+**Métricas** (KPIs, márgenes, ABC, ventas por comuna, anomalías, alertas) · **Demanda** (forecast + productos en alza/baja) · **Qué reponer** (reposición + mermas + sobre-stock) · **Logística** (demanda y costo de envío por región, SLA por courier) · **Recomendaciones** (se compran juntos + packs) · **Clientes** (RFM, CLV, recompra/churn) · **Conversión** (embudo, carritos, búsquedas sin resultado) · **Riesgo** (fraude, cuentas atacadas, incidentes) · **Modelos** (trazabilidad y salud del pipeline) · **Reporte** (resumen ejecutivo imprimible a PDF).
+
+### Privacidad por diseño (Ley 21.719)
+
+El perfilado y las recomendaciones personalizadas operan **solo sobre usuarios con consentimiento** (`consentMarketing`); el pipeline entrena sobre datos **pseudonimizados** (nunca ve email ni teléfono); y las decisiones relevantes quedan auditables. La analítica agregada (KPIs, márgenes) no usa datos personales.
 
 ---
 
@@ -86,45 +138,35 @@ Las operaciones de stock corren dentro de transacciones con **nivel de aislamien
 
 El cliente solo ve "disponible" o "agotado". El vendedor ve los tres valores en la vista de inventario.
 
-### Reabastecimiento y ajuste manual auditado
+### Ledgers inmutables (stock y precio)
 
-El vendedor puede ajustar el stock a mano (reingreso de mercadería a mitad de mes, corrección de conteo, merma, vencimiento, devolución). Cada ajuste:
-
-- **Exige un motivo** (y nota obligatoria si es una corrección).
-- **No puede dejar el disponible en negativo** si hay reservas activas — el sistema lo impide y explica por qué.
-- Queda registrado con **quién, cuándo, cuánto y por qué**.
-
-### Ledger inmutable
-
-Todo movimiento —venta, reabastecimiento, merma, corrección, devolución— se escribe en una tabla **append-only** que nunca se actualiza ni se borra. Esto permite responder con precisión preguntas como *"¿cuánto vendí de este producto en julio?"* o *"¿quién dejó este SKU en cero el martes?"*, y constituye **respaldo legal ante el SII** y ante cualquier disputa.
+Todo movimiento de stock —venta, reabastecimiento, merma, corrección, devolución— se escribe en una tabla **append-only** que nunca se actualiza ni se borra. Del mismo modo, **cada cambio de precio queda registrado en `PriceHistory`** (precio anterior → nuevo, quién y cuándo). Esto da respaldo legal ante el SII, responde preguntas como *"¿quién dejó este SKU en cero el martes?"*, y —en el caso del precio— **habilita el análisis de elasticidad con datos reales** que se acumulan con el uso.
 
 ```
 2026-07-15 14:32 · VENTA    −2   Orden #2741                Stock: 47 → 45
 2026-07-15 09:10 · ENTRADA +20   Reabastecimiento (@vendedor) Stock: 27 → 47
                                   Nota: "Llegó el lote de junio"
 2026-07-12 11:20 · SALIDA   −1   Mermado (@vendedor)          Stock: 29 → 28
-                                  Nota: "Envase roto en bodega"
 ```
 
-### Dashboard operacional
+---
 
-El panel del vendedor traduce todo esto en una vista accionable: órdenes por despachar, alertas de **bajo stock** (umbral configurable por producto), productos más vendidos, valorización del inventario (a costo y a precio de venta) y tendencia de ventas — actualizado en tiempo casi real.
-
-
+## 🧰 Stack tecnológico
 
 | Capa | Tecnología |
 |------|-----------|
-| **Framework** | Next.js 15 (App Router, RSC, Server Actions) |
+| **Framework** | Next.js 16 (App Router, RSC, Server Actions) |
 | **Lenguaje** | TypeScript 5.x (`strict: true`) |
-| **UI** | React 19 + TailwindCSS |
-| **Formularios** | React Hook Form + Zod |
+| **UI** | React 19 + TailwindCSS (sistema de diseño propio "Shiba pastel") |
+| **Formularios** | React Hook Form + Zod 4 |
 | **Estado** | Zustand (carrito) + TanStack Query (server state) |
-| **ORM** | Prisma 5.x |
+| **ORM** | Prisma 6.x |
 | **Base de datos** | PostgreSQL (Neon, serverless) |
 | **Auth** | jose (JWT) + Argon2id + iron-session + TOTP |
 | **Pagos** | transbank-sdk + mercadopago SDK v2 |
 | **Email** | Resend (transaccional) |
-| **Despacho** | Abstracción multicourier (agregador en F1, courier directo en F2) |
+| **ML / análisis** | Python 3.12+, pandas, scikit-learn, SQLAlchemy + psycopg |
+| **Orquestación ML** | GitHub Actions (cron) — entrenamiento batch fuera de Vercel |
 | **Deploy** | Vercel |
 | **Gestor de paquetes** | pnpm (strict, `ignore-scripts`) |
 
@@ -133,55 +175,60 @@ El panel del vendedor traduce todo esto en una vista accionable: órdenes por de
 ## 🚀 Puesta en marcha
 
 ### Requisitos previos
-- Node.js 20 LTS
-- pnpm 9.x (`npm install -g pnpm`)
-- Una base de datos PostgreSQL — dos opciones:
-  - **Docker local** (recomendado para desarrollo en equipo): ver la guía paso a paso
-    [`docs/despliegue-local-docker.md`](docs/despliegue-local-docker.md).
-  - **[Neon](https://neon.tech/)** (cloud, recomendado para staging/producción).
-- Cuentas sandbox de Transbank y MercadoPago para pruebas
+- Node.js 20 LTS · pnpm 9.x (`npm install -g pnpm`)
+- Python 3.12+ (solo para el pipeline de ML)
+- Una base de datos PostgreSQL:
+  - **[Neon](https://neon.tech/)** (cloud, recomendado), o
+  - **Docker local**: ver [`docs/despliegue-local-docker.md`](docs/despliegue-local-docker.md).
+- Cuentas sandbox de Transbank y MercadoPago para pruebas.
 
-### Instalación
+### Instalación de la app
 
 ```bash
-# 1. Clonar el repositorio
 git clone https://github.com/haruxvi/Hachiko_Store.git
 cd Hachiko_Store
 
-# 2. Instalar dependencias (con scripts deshabilitados por seguridad, ver .npmrc)
-pnpm install
-
-# 3. Configurar variables de entorno
-cp .env.example .env.local
-# Editar .env.local con tus credenciales (DATABASE_URL de Docker o de Neon)
-
-# 4. Generar el cliente Prisma (ignore-scripts bloquea el postinstall automático)
-pnpm db:generate
-
-# 5. Aplicar el schema a la base de datos (el repo no versiona migraciones, ver nota abajo)
-pnpm exec prisma db push
-
-# 6. (Opcional) Cargar datos de prueba
-pnpm db:seed
-
-# 7. Levantar el entorno de desarrollo
-pnpm dev
+pnpm install                       # scripts deshabilitados por seguridad (.npmrc)
+cp .env.example .env               # editar con tus credenciales
+pnpm db:generate                   # cliente Prisma
+pnpm exec prisma db push           # sincronizar el esquema (sin migrations/)
+pnpm dev                           # http://localhost:3000
 ```
 
-La app queda disponible en `http://localhost:3000`.
+> ⚠️ No uses `prisma migrate dev`: este repo no versiona migraciones, el esquema se sincroniza con `prisma db push`.
 
-> ⚠️ No uses `prisma migrate dev`: este repo no versiona migraciones (no existe
-> `prisma/migrations/`), el esquema se sincroniza siempre con `prisma db push`. Si necesitas
-> el flujo completo con Docker para Postgres local, sigue
-> [`docs/despliegue-local-docker.md`](docs/despliegue-local-docker.md).
+### Datos de demostración (desarrollo)
+
+Los modelos necesitan datos. En desarrollo se generan con **datos sintéticos** (falsos, marcados y borrables), nunca reales. El **orden importa** (synthetic primero):
+
+```bash
+pnpm db:seed:synthetic   # ~24 meses, catálogo, clientes y ~9.000 pedidos con estacionalidad
+pnpm db:seed:security    # eventos de login fallidos + incidentes (vista Riesgo)
+pnpm db:seed:analytics   # eventos de navegación/carrito (vista Conversión)
+```
+
+Guía detallada para el equipo (qué hace cada uno, idempotencia, marcadores) en [`docs/machine-learning.md`](docs/machine-learning.md) §8.6.
+
+### Pipeline de ML (local)
+
+```bash
+cd ml
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt   # Windows
+.venv\Scripts\python -m jobs.train_all           # entrena todos los modelos
+```
+
+Lee `DIRECT_URL` del `.env` de la raíz. En la nube corre solo, por cron, vía GitHub Actions
+([`.github/workflows/ml-train.yml`](.github/workflows/ml-train.yml)); necesita el secret
+`NEON_DIRECT_URL` en el repositorio.
 
 ### Variables de entorno
 
-Todas las variables están documentadas en `.env.example`. Las imprescindibles:
+Documentadas en `.env.example`. Imprescindibles:
 
 ```bash
 DATABASE_URL=          # conexión Neon (pooled)
-DIRECT_URL=            # conexión directa para migraciones
+DIRECT_URL=            # conexión directa (migraciones + pipeline ML)
 JWT_SECRET=            # openssl rand -hex 32
 SESSION_SECRET=        # iron-session
 DATA_ENCRYPTION_KEY=   # AES-256-GCM para PII
@@ -191,24 +238,29 @@ RESEND_API_KEY=        # email transaccional
 CRON_SECRET=           # auth de cron jobs
 ```
 
-> ⚠️ **Nunca** commitees `.env.local`. Las credenciales de seed son de uso local exclusivo.
+> ⚠️ **Nunca** commitees `.env`. Las credenciales de seed son de uso local exclusivo.
 
 ---
 
 ## 📜 Scripts disponibles
 
 ```bash
-pnpm dev            # entorno de desarrollo
-pnpm build          # build de producción
-pnpm start          # servir build de producción
-pnpm lint           # ESLint
-pnpm typecheck      # verificación de tipos
-pnpm test           # tests unitarios (Vitest)
-pnpm test:e2e       # tests end-to-end (Playwright)
-pnpm audit          # auditoría de seguridad de dependencias
-pnpm db:studio      # explorador visual de la base de datos
-pnpm db:generate    # genera el cliente Prisma
-pnpm db:seed        # cargar datos de prueba
+# App
+pnpm dev                # desarrollo            pnpm build / pnpm start
+pnpm lint               # ESLint                pnpm typecheck   # tipos
+pnpm test               # Vitest                pnpm test:e2e    # Playwright
+pnpm audit              # auditoría de deps
+
+# Base de datos y datos de demo
+pnpm db:studio          # explorador visual     pnpm db:generate # cliente Prisma
+pnpm db:seed            # usuarios de prueba
+pnpm db:seed:synthetic  # dataset sintético (~9.000 pedidos)
+pnpm db:seed:security   # eventos de seguridad + incidentes
+pnpm db:seed:analytics  # eventos de comportamiento
+
+# Pipeline de ML (desde ml/)
+python -m jobs.train_all          # entrena todos los modelos
+python -m jobs.forecast_demand    # (o un job individual)
 ```
 
 ---
@@ -220,84 +272,71 @@ src/
 ├── app/
 │   ├── (storefront)/     # tienda pública (home, catálogo, producto, checkout)
 │   ├── (account)/        # cuenta del cliente (perfil, pedidos, datos ARCOP)
-│   ├── (panel)/          # trastienda (dashboard, productos, inventario, órdenes)
+│   ├── (panel)/          # trastienda: día a día + grupo "Inteligencia" (10 vistas)
 │   └── api/              # route handlers (auth, pagos, webhooks, cron)
 ├── lib/
-│   ├── auth/            # JWT, sesión, RBAC, TOTP
-│   ├── crypto/          # cifrado de PII
-│   ├── services/        # lógica de negocio (orders, catalog, inventory, payments…)
-│   ├── payments/        # integración Transbank + MercadoPago
-│   ├── shipping/        # abstracción multicourier
-│   └── validation/      # schemas Zod compartidos
-├── actions/             # Server Actions
-├── components/          # UI (ui primitives, storefront, panel)
-└── middleware.ts        # auth + RBAC en edge
+│   ├── auth/  crypto/  payments/  shipping/  validation/
+│   └── services/         # lógica de negocio (orders, catalog, inventory,
+│                         #   intelligence.service.ts = lectura del plano analítico)
+├── actions/              # Server Actions
+├── components/           # UI (ui, storefront, panel)
+└── middleware.ts         # auth + RBAC en edge
+
+ml/                       # pipeline de análisis de datos y ML (Python)
+├── ml/                   # db.py (conexión Neon), model_run.py (trazabilidad)
+├── jobs/                 # kpi_snapshots, forecast_demand, restock, market_basket,
+│                         #   customer_rfm, fraud_detection, account_takeover, train_all
+└── requirements.txt
 
 prisma/
-├── schema.prisma        # el esquema se sincroniza con `prisma db push` (sin migrations/)
-└── seed.ts
+├── schema.prisma         # operacional + plano analítico (se sincroniza con db push)
+├── seed.ts               # usuarios de prueba
+├── seed-synthetic.ts     # dataset sintético de negocio
+├── seed-security-events.ts
+└── seed-analytics-events.ts
 
-docs/                    # documentación viva del proyecto
+.github/workflows/ml-train.yml   # entrenamiento programado (cron)
+docs/                            # documentación viva (incl. machine-learning.md)
 ```
 
 ---
 
 ## 🔒 Ciberseguridad
 
-La seguridad no es una capa que se agregó al final: está construida dentro de la arquitectura. Esta sección detalla lo que se implementó concretamente en la plataforma, no buenas intenciones genéricas.
+La seguridad no es una capa que se agregó al final: está construida dentro de la arquitectura. Esta sección detalla lo que se implementó concretamente, no buenas intenciones genéricas.
 
-### Autenticación y gestión de sesiones
-- **Hash de contraseñas con Argon2id** (memory-hard), parámetros endurecidos contra ataques de fuerza bruta por GPU.
-- **JWT de acceso de vida corta** (15 min) firmado con jose, más **refresh token rotativo** en cookie `httpOnly` / `secure` / `sameSite: strict`.
-- **Invalidación global de sesiones** vía `tokenVersion`: al cambiar contraseña o detectar abuso, todas las sesiones activas del usuario mueren de inmediato.
-- **Bloqueo de cuenta** tras 5 intentos fallidos en ventana de 15 minutos.
+### Autenticación y sesiones
+- **Argon2id** (memory-hard) endurecido contra fuerza bruta por GPU.
+- **JWT de acceso corto** (15 min) + **refresh token rotativo** en cookie `httpOnly`/`secure`/`sameSite:strict`.
+- **Invalidación global** vía `tokenVersion`; **bloqueo de cuenta** tras 5 fallos en 15 min.
 
-### Doble factor (2FA) — TOTP estándar
-- Implementación **RFC 6238**, compatible con Google Authenticator, Microsoft Authenticator y Authy. Sin SMS, sin servicios pagados, sin dependencia de terceros.
-- El **secreto se guarda cifrado con AES-256-GCM**; el QR se genera en el propio servidor — el secreto nunca pasa por un tercero.
-- El código 2FA se solicita **solo después** de validar la contraseña, de modo que el flujo **no revela qué cuentas tienen 2FA activado** (anti-enumeración).
-- Los códigos errados **cuentan para el bloqueo de cuenta**; desactivar 2FA **exige un código vigente**.
-- Activación y desactivación quedan registradas en el **AuditLog**. Cubierto con tests unitarios propios.
+### Doble factor (2FA) — TOTP
+- **RFC 6238**, compatible con Google/Microsoft Authenticator y Authy, sin SMS.
+- Secreto **cifrado con AES-256-GCM**; QR generado en el servidor.
+- El 2FA se pide **solo tras validar contraseña** (anti-enumeración); desactivarlo exige un código vigente. Todo queda en el `AuditLog`.
 
 ### Control de acceso (RBAC + mínimo privilegio)
-- Dos roles con principio de **mínimo privilegio**: `CLIENT` (compra) y `SELLER` (opera la tienda). **No existe un superusuario** — es una decisión de diseño deliberada.
-- El **vendedor no es un superadministrador**: puede gestionar catálogo, inventario y ver lo justo para despachar, pero **no accede a la PII completa de los clientes** — así se evita infringir la Ley 21.719.
-- La verificación de rol ocurre en el **edge middleware** *antes* de llegar a la página, y de nuevo en cada route handler y server action vía `requireRole()`: el middleware es la primera capa, no la única. Si el rol no corresponde, los datos sensibles ni siquiera se cargan.
-- Las órdenes solo son accesibles por su dueño (filtrado por `userId`, sin IDOR); la eliminación de cuenta está restringida al propio cliente.
+- Dos roles: `CLIENT` (compra) y `SELLER` (opera la tienda). **No existe superusuario.**
+- El vendedor **no accede a la PII completa** de los clientes (Ley 21.719).
+- Verificación de rol en el **edge middleware** y de nuevo en cada route handler/server action vía `requireRole()`. Órdenes accesibles solo por su dueño (sin IDOR).
 
-### Protección de datos en reposo y en tránsito
-- **Cifrado de PII con AES-256-GCM** (nombre, dirección, teléfono, email de despacho), desencriptado únicamente en la capa de servicio cuando el rol lo autoriza.
-- HTTPS forzado con **HSTS**; headers de seguridad (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) y **CSP estricta** configurados a nivel de framework.
-
-### Validación, abuso y superficie de ataque
-- **Validación con Zod en todo input** (body, params, query), compartida entre cliente y servidor.
-- **Rate limiting** por IP y por usuario en endpoints sensibles (login, registro, pagos).
-- Consultas **siempre parametrizadas vía Prisma** — sin SQL crudo construido con strings.
-- **Patrón anti-enumeración**: respuestas idénticas exista o no un email, tanto en login como en recuperación de contraseña.
+### Datos, abuso y superficie de ataque
+- **PII cifrada con AES-256-GCM**; HTTPS con **HSTS**, headers de seguridad y **CSP estricta**.
+- **Validación Zod** en todo input; **rate limiting** por IP y usuario; consultas siempre parametrizadas vía Prisma.
 
 ### Pagos
-- **Confirmación server-side obligatoria**: nunca se confía en el redirect del cliente para marcar una orden como pagada.
-- **Webhooks con firma verificada** (HMAC en MercadoPago) e **idempotencia** vía tabla de webhooks procesados — un evento duplicado no descuenta stock dos veces.
-- **Cero almacenamiento de datos de tarjeta**: la tokenización ocurre en la pasarela.
+- **Confirmación server-side obligatoria** (nunca se confía en el redirect del cliente).
+- **Webhooks con firma verificada** + **idempotencia** (un evento duplicado no descuenta stock dos veces). **Cero almacenamiento de datos de tarjeta.**
 
-### Cadena de suministro (supply chain)
-- **pnpm con `ignore-scripts`** activado: los `postinstall` maliciosos —vector clásico de los ataques npm recientes— no se ejecutan.
-- **Lockfile siempre committeado**; CI instala con `--frozen-lockfile`.
-- **Versiones exactas** (sin `^`) en dependencias de auth, criptografía y pagos.
-- **Auditoría automática semanal** + **Dependabot** con revisión humana obligatoria antes de mergear cualquier bump.
+### Cadena de suministro y auditoría
+- **pnpm `ignore-scripts`**, lockfile committeado, versiones exactas en auth/cripto/pagos, **Dependabot + CodeQL** (code scanning + secret scanning) activos.
+- **AuditLog inmutable** (append-only) para eventos sensibles.
 
-### Auditoría
-- **AuditLog inmutable** (append-only) para eventos sensibles: login, cambios de rol, acceso a PII, activación/desactivación de 2FA, ajustes de stock, exports de datos.
+### Detección con ML (Fase de inteligencia)
+Sobre los propios registros de la plataforma, el pipeline detecta **fraude en órdenes** (Isolation Forest) y **ataques de fuerza bruta / credential stuffing** (sobre `AuditLog`), marcando casos para **revisión humana**. Es donde la IA y la ciberseguridad se refuerzan mutuamente.
 
 ### Monitoreo de amenazas en la trastienda
-
-El vendedor cuenta con un módulo de seguridad propio en `/trastienda/seguridad` que registra y muestra las incidencias de ciberseguridad de la plataforma (por ejemplo, intentos de acceso forzado / fuerza bruta al login, bloqueos de cuenta y otros eventos relevantes). No es solo un log técnico: está diseñado conforme al marco legal chileno.
-
-- **Tipificación legal:** cada incidencia se clasifica según la **Ley 21.459** (delitos informáticos), con flujo de **notificación a la autoridad** cuando corresponde (**Ley 21.663** de ciberseguridad y **Ley 21.719** de datos personales → Agencia de Protección de Datos).
-- **Bitácora encadenada por hash SHA-256** (append-only): cada evento se enlaza criptográficamente con el anterior, de modo que **alterar o borrar un registro rompe la cadena** y queda en evidencia. Incluye verificación de integridad (`verifyChain`).
-- **Tratamiento de IP conforme a la ley:** las direcciones IP asociadas a incidencias se conservan por el período definido con **fines exclusivos de eventual acción legal o investigación**, se **anonimizan** y se **eliminan automáticamente** al expirar, mediante un cron de limpieza programado. Esto equilibra la capacidad de respuesta a incidentes con la minimización de datos que exige la Ley 21.719.
-
-> La retención de IP se rige por la política definida en el cron de limpieza de auditoría (`src/app/api/cron/clean-audit-logs/route.ts`); ajusta el plazo en la documentación si cambia en el código.
+Módulo en `/trastienda/seguridad` con **tipificación legal** (Ley 21.459), flujo de **notificación a la autoridad** (Leyes 21.663 / 21.719) y **bitácora encadenada por hash SHA-256** (`verifyChain`): alterar o borrar un registro rompe la cadena. Las IP asociadas se conservan con fines de eventual acción legal, se **anonimizan** y se **eliminan automáticamente** al expirar (cron de limpieza), equilibrando respuesta a incidentes con minimización de datos.
 
 > ¿Encontraste una vulnerabilidad? No abras un issue público. Escribe al canal de seguridad privado del proyecto.
 
@@ -305,27 +344,37 @@ El vendedor cuenta con un módulo de seguridad propio en `/trastienda/seguridad`
 
 ## ⚖️ Cumplimiento legal (Chile)
 
-- **Ley 21.719** — Protección de datos personales (consentimiento granular, derechos ARCOP, registro de tratamiento, minimización de PII).
-- **Ley 21.459** — Delitos informáticos (tipificación de incidencias de seguridad en el módulo de la trastienda).
-- **Ley 21.663** — Marco de ciberseguridad (flujo de notificación de incidentes a la autoridad).
-- **Ley 19.496** — Protección al consumidor (derecho a retracto, precios con IVA, T&C, política de devoluciones).
+- **Ley 21.719** — Protección de datos personales (consentimiento granular, ARCOP, minimización de PII, perfilado con consentimiento).
+- **Ley 21.459** — Delitos informáticos (tipificación de incidencias en la trastienda).
+- **Ley 21.663** — Marco de ciberseguridad (notificación de incidentes a la autoridad).
+- **Ley 19.496** — Protección al consumidor (retracto, precios con IVA, T&C, devoluciones).
 - **SII** — Boleta electrónica e inicio de actividades de comercio electrónico.
+
+Documentación de cumplimiento y calidad en [`docs/`](docs/): ISO 25010/25012, ISO 12207, IEEE 730, CMMI, OWASP, retención/anonimización de datos y el subsistema de ML.
 
 ---
 
 ## 🗺️ Roadmap
 
-El roadmap completo vive en [`docs/roadmap-mejoras.md`](docs/roadmap-mejoras.md). Hitos principales:
+Hitos principales (el detalle vive en [`docs/`](docs/)):
 
 - [x] Autenticación + RBAC + 2FA
 - [x] Catálogo + carrito + checkout
-- [x] Inventario con stock automático
+- [x] Inventario con stock automático + ledger + historial de precios
+- [x] **Subsistema de inteligencia: BI + ML (Fases 0–5)** — 10 vistas, pipeline de modelos en CI
+- [x] Detección de fraude y ataques con ML
+- [x] Autenticación de doble factor (2FA TOTP)
+
+**Próximo (confirmado):**
+- [ ] Correos transaccionales — confirmación de compra y recuperación de contraseña (vía Resend)
+- [ ] Integración de couriers **Starken + Correos de Chile** con tracking real de despacho
 - [ ] Integración de pagos en producción
-- [ ] Recuperación de contraseña + verificación de email
-- [ ] Boleta electrónica (SII)
-- [ ] Costo de envío por zona + retiro en tienda
-- [ ] Correos transaccionales con tracking
+
+**Más adelante (por evaluar):**
 - [ ] SEO técnico
+- [ ] Costo de envío por zona en el checkout (el retiro en tienda ya está disponible)
+- [ ] Boleta electrónica al SII (según disponibilidad de tiempo)
+- [ ] Elasticidad-precio (a medida que se acumula `PriceHistory` real)
 
 ---
 
