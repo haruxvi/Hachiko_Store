@@ -1,13 +1,34 @@
+/**
+ * ============================================================================
+ *  SUBSISTEMA DE INTELIGENCIA — capa de LECTURA (análisis de datos + ML)
+ * ============================================================================
+ *
+ * Este archivo NO entrena modelos. Los modelos se entrenan por batch en Python
+ * (carpeta `/ml`, corre en GitHub Actions, nunca en Vercel) y dejan sus
+ * resultados precalculados en tablas de Prisma. Aquí solo se LEEN esos
+ * resultados para pintarlos en la trastienda. Arquitectura completa y detalle
+ * de cada modelo: `docs/machine-learning.md`.
+ *
+ * Qué hace el ML, a grandes rasgos, y qué función lo lee aquí:
+ *
+ *   Job de Python (ml/jobs)        Técnica                    Se lee con
+ *   ─────────────────────────      ───────────────────────    ──────────────────────
+ *   kpi_snapshots.py               Agregación (BI)            getMetricsDashboard
+ *   forecast_demand.py             Regresión Ridge estacional getDemandForecast
+ *   restock.py                     Forecast + lead time       getRestockSuggestions
+ *   market_basket.py               Reglas de asociación (lift)getRecommendations / getBundles
+ *   customer_rfm.py                RFM + clustering KMeans     getCustomerSegments
+ *   fraud_detection.py             Isolation Forest            getFraudRisk
+ *   account_takeover.py            Reglas sobre AuditLog       getAccountRisk
+ *   (todos)                        Trazabilidad ModelRun       getModelRuns
+ *
+ * Las funciones sin job asociado (tendencias, mermas, logística, conversión,
+ * churn, alertas) son BI de solo lectura: agregan datos operacionales en vivo,
+ * sin modelo entrenado.
+ */
 import { db } from '@/src/lib/db';
 
-/**
- * Servicio del subsistema de inteligencia (análisis de datos y ML).
- *
- * Solo LEE el plano analítico (tablas que el pipeline de Python precalcula).
- * En la Fase 0 estas tablas están vacías; las páginas de la trastienda usan
- * estos conteos para mostrar su estado ("en construcción / se poblará cuando
- * corra el pipeline"). Ver docs/machine-learning.md.
- */
+/** Conteos del plano analítico — usados por los placeholders de cada vista. */
 
 export interface IntelligenceOverview {
   demandForecasts: number;

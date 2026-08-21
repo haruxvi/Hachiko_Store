@@ -351,6 +351,120 @@ Puntos clave para no perderse:
 5. En **producción no se corren los seeds** — ahí los datos son reales. Los seeds son solo
    para desarrollo, demo y la defensa de la tesis.
 
+## 8.7 Catálogo completo de capacidades (KPIs y modelos)
+
+Inventario de todo lo que el subsistema entrega, agrupado por vista de la trastienda. Etiquetas:
+**ML** = modelo de machine learning · **BI** = análisis descriptivo · **MLOps** = gobernanza.
+Más de 40 capacidades en total.
+
+### Mapa de código — dónde vive cada vista
+
+| Vista | Página (Next) | Lectura (servicio) | Entrenamiento (Python) |
+|---|---|---|---|
+| Métricas | `src/app/(panel)/trastienda/metricas/page.tsx` | `getMetricsDashboard`, `getAlerts`, `getSalesAnomalies` | `ml/jobs/kpi_snapshots.py` |
+| Demanda | `.../trastienda/demanda/page.tsx` | `getDemandForecast`, `getProductTrends` | `ml/jobs/forecast_demand.py` |
+| Qué reponer | `.../trastienda/reponer/page.tsx` | `getRestockSuggestions`, `getShrinkage`, `getDeadStock` | `ml/jobs/restock.py` |
+| Logística | `.../trastienda/logistica/page.tsx` | `getLogistics` | — (BI) |
+| Recomendaciones | `.../trastienda/recomendaciones/page.tsx` | `getRecommendations`, `getBundles` | `ml/jobs/market_basket.py` |
+| Clientes | `.../trastienda/clientes/page.tsx` | `getCustomerSegments`, `getCustomerValue`, `getRepeatChurn` | `ml/jobs/customer_rfm.py` |
+| Conversión | `.../trastienda/conversion/page.tsx` | `getConversionAnalytics` | — (BI sobre `AnalyticsEvent`) |
+| Riesgo | `.../trastienda/riesgo/page.tsx` | `getFraudRisk`, `getAccountRisk`, `getIncidentAnalytics` | `ml/jobs/fraud_detection.py`, `ml/jobs/account_takeover.py` |
+| Modelos | `.../trastienda/modelos/page.tsx` | `getModelRuns` | (lee `ModelRun` de todos) |
+| Reporte | `.../trastienda/reporte/page.tsx` | (compone varias de las anteriores) | — |
+
+Todas las funciones de lectura viven en `src/lib/services/intelligence.service.ts` (que tiene, al
+inicio, un encabezado que mapea cada job de Python con su función de lectura). El orquestador del
+pipeline es `ml/jobs/train_all.py`.
+
+### Dónde está el ENTRENAMIENTO de cada modelo (línea exacta)
+
+Para mostrar el código del modelo directamente (p. ej. los árboles del Isolation Forest), sin buscar.
+*Las líneas pueden correrse unas pocas al editar; el archivo y la llamada son la referencia estable.*
+
+| Modelo | Técnica | Entrenamiento — archivo:línea |
+|---|---|---|
+| Forecast de demanda | Regresión Ridge estacional | `ml/jobs/forecast_demand.py:70` → `Ridge(alpha=1.0)` + `.fit(X, y)` |
+| Segmentación de clientes | **KMeans** (clustering) | `ml/jobs/customer_rfm.py:86` → `KMeans(...).fit(X)`; silhouette en `:88` |
+| Fraude en órdenes | **Isolation Forest** (árboles de decisión) | `ml/jobs/fraud_detection.py:79` → `IsolationForest(...)` + `.fit(X)` en `:80` |
+| Recomendador | Reglas de asociación (lift) | `ml/jobs/market_basket.py:50` → pares co-comprados; `lift` calculado en `:61` |
+| Account-takeover | Reglas + umbrales | `ml/jobs/account_takeover.py:22-23` → `BRUTE_FORCE_MIN`, `STUFFING_IP_MIN` |
+| Reposición | Forecast + lead time | `ml/jobs/restock.py:50-52` → demanda diaria y cantidad sugerida |
+| KPIs / BI | Agregación con pandas | `ml/jobs/kpi_snapshots.py` → `groupby(...).agg(...)` (bloque principal) |
+
+Cómo lo corres para demostrarlo en vivo:
+```bash
+cd ml && .venv/Scripts/python -m jobs.train_all          # todos los modelos
+cd ml && .venv/Scripts/python -m jobs.fraud_detection    # solo uno (p. ej. el Isolation Forest)
+```
+
+### Métricas — BI descriptivo
+- Ingresos por mes y por año (serie temporal). **BI**
+- Ingresos, órdenes, unidades y **ticket promedio (AOV)** de los últimos 12 meses. **BI**
+- **Margen** total y por producto/categoría, en CLP y en %. Usa `costCLP`. **BI**
+- **Clasificación ABC** de productos (Pareto: A ≈ 80% de ingresos, B ≈ 15%, C el resto). **BI**
+- **Ventas por comuna** (ranking geográfico). **BI**
+- **Anomalías de ventas**: días cuyos ingresos se desvían ≥ 2,5σ de lo normal (z-score). **BI**
+- **Alertas automáticas** (KPI fuera de rango): stock bajo, reposición urgente, incidentes críticos, cuentas atacadas, órdenes a revisar. **BI**
+
+### Demanda — predicción
+- **Forecast de demanda por producto**, 3 meses, con regresión Ridge estacional (mes one-hot + tendencia). **ML**
+- Bandas de incertidumbre (intervalo inferior/superior) y **MAE** del modelo. **ML**
+- **Riesgo de quiebre**: marca los productos cuyo pronóstico supera el stock. **ML**
+- **Productos en alza / en baja**: crecimiento de los últimos 90 días vs. los 90 anteriores. **BI**
+
+### Qué reponer — predicción + BI
+- **Sugerencia de reposición**: cuánto comprar (forecast + lead time + cobertura). **ML**
+- **Días hasta el quiebre** de stock por producto. **ML**
+- **Prioridad/urgencia** de cada reposición. **ML**
+- **Sobre-stock / capital inmovilizado**: productos con mucho stock y poca rotación, valorizados. **BI**
+- **Mermas**: pérdidas por daño/vencimiento (`DAMAGED`/`EXPIRED`), en unidades y en costo. **BI**
+
+### Logística — BI geo / operacional
+- **Ventas por región**. **BI**
+- **Costo de despacho promedio por región** y **envío como % de ventas** (erosión de margen). **BI**
+- **SLA por courier**: días promedio de entrega (Starken vs. Correos de Chile vs. retiro). **BI**
+- Volumen de entregas por courier. **BI**
+
+### Recomendaciones — data mining
+- **"Se compran juntos"** por producto: reglas de asociación con soporte, confianza y **lift**. **ML**
+- **Packs / bundles sugeridos**: los pares de mayor afinidad, con precio del pack. **ML**
+
+### Clientes — segmentación
+- **Segmentación RFM** (Recencia, Frecuencia, Monto) con scores 1–5. **ML**
+- **Segmentos nombrados**: campeones, leales, nuevos, prometedores, en riesgo, hibernando. **ML**
+- **Clustering KMeans** + **silhouette** (calidad de la segmentación). **ML**
+- **CLV** — valor de vida promedio del cliente. **BI**
+- **Recompra**: clientes que comprarán pronto según su ritmo habitual. **ML**
+- **Churn**: clientes en fuga (superaron su intervalo típico) e **intervalo promedio** entre compras. **ML**
+
+### Conversión — comportamiento
+- **Embudo de conversión** (vista → carrito → checkout → compra) con **% de caída por etapa**. **BI**
+- **Tasa de conversión general**. **BI**
+- **Carritos abandonados** y cuántos son **recuperables** (con cuenta, respetando consentimiento). **BI**
+- **Búsquedas sin resultado** (demanda insatisfecha) con ranking de términos. **BI**
+
+### Riesgo — seguridad inteligente
+- **Detección de fraude en órdenes** con **Isolation Forest**, score 0–1 y señales explicables. **ML**
+- **Detección de account-takeover / fuerza bruta** sobre `AuditLog`. **ML**
+- **Detección de credential stuffing** (IPs que golpean muchas cuentas distintas). **ML**
+- **Scoring de riesgo de cuenta**, con identificador pseudónimo (sin exponer PII). **ML**
+- **Analítica de incidentes**: total, abiertos, **MTTR**, % que afecta datos personales, distribución por categoría. **BI**
+
+### Modelos — gobernanza / MLOps
+- **Historial de corridas** (`ModelRun`): tipo, versión, estado, métricas, duración, filas. **MLOps**
+- **Última corrida por modelo** (base para monitoreo de *drift*). **MLOps**
+- **Tasa de éxito** del pipeline. **MLOps**
+- **Trazabilidad**: cada predicción referencia el `ModelRun` que la generó. **MLOps**
+
+### Reporte — ejecutivo
+- **Resumen ejecutivo imprimible a PDF**: KPIs de 12 meses, productos estrella (clase A), acciones sugeridas y estado de seguridad. **BI**
+
+### Preparadas / de infraestructura
+- **Elasticidad-precio** habilitada: `PriceHistory` acumula el historial real de precios con el uso. **ML (futuro)**
+- **Analítica temporal de operaciones**: `OrderStatusHistory` habilita tiempo en cada estado, cuellos de botella y SLA. **BI**
+
+---
+
 ## 9. Privacidad y seguridad — cumplimiento (Ley 21.719)
 
 El subsistema de ML se diseña con **privacidad por diseño**, coherente con
