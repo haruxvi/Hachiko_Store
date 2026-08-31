@@ -1,13 +1,13 @@
-# ── Núcleo (conexión a Neon + datos) — necesario desde la Fase 0 ──
-SQLAlchemy>=2.0
-psycopg[binary]>=3.2
-python-dotenv>=1.0
-pandas>=2.2
+# ── Dependencias del pipeline de ML — TODO lo que el código importa ──
+# Versiones fijadas a las verificadas en un venv limpio (pip freeze), no inventadas.
+SQLAlchemy==2.0.52
+psycopg[binary]==3.3.4     # driver de postgresql+psycopg:// (no se importa directo, es runtime)
+python-dotenv==1.2.3       # from dotenv import load_dotenv  (ml/db.py)
+pandas==3.0.5              # import pandas as pd  (db.py + varios jobs)
+numpy==2.5.2               # import numpy as np   (forecast_demand, customer_rfm, fraud_detection)
+scikit-learn==1.9.0        # Ridge, KMeans, IsolationForest, StandardScaler, silhouette_score
 
-# ── Librerías por fase (descomentar al llegar a cada una) ──
-# Fase 2 — predictivo:
-# scikit-learn>=1.5      # RFM/clustering, item-item
-# prophet>=1.1           # forecast estacional
-# mlxtend>=0.23          # reglas de asociación (market basket)
-# Fase 5 — gobernanza:
-# shap>=0.46             # explicabilidad de modelos
+# ── Aún no usadas por ningún job (descomentar y fijar versión al integrarlas) ──
+# prophet                  # forecast estacional (hoy se usa Ridge, no Prophet)
+# mlxtend                  # reglas de asociación (hoy market_basket está implementado a mano)
+# shap                     # explicabilidad de modelos (Fase 5, opcional)
