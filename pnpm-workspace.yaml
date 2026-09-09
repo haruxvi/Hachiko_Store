@@ -32,3 +32,10 @@ overrides:
   # (CVE-2026-40345 / GHSA). Entra vía prisma > @prisma/config. El fix está en
   # 8.0.0; sus breaking changes (merge de Map, tipos) no afectan a @prisma/config.
   'deepmerge-ts@<8.0.0': ^8.0.1
+  # browserslist <=4.28.6: crash / prototype write vía browserslist-stats.json
+  # no confiable (CVE-2026-73088). Dev-only (entra vía next, autoprefixer,
+  # eslint-config-next). Fix en 4.28.7.
+  'browserslist@<4.28.7': ^4.28.7
+  # postcss-selector-parser >=6.1.0 <6.1.3: DoS por recursión en toString (AST).
+  # Dev-only (vía tailwindcss). Fix en 6.1.3; se ancla a v6 (tailwind usa ^6).
+  'postcss-selector-parser@>=6.1.0 <6.1.3': ^6.1.3

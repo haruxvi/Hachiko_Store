@@ -228,6 +228,50 @@ export async function getDemandForecast() {
   };
 }
 
+// Ganancia esperada del próximo mes = Σ (unidades pronosticadas × margen unitario).
+// Cruza el forecast de demanda (ML) con el margen real (price − cost) de cada producto.
+export interface ExpectedProfit {
+  hasData: boolean;
+  periodStart: Date | null;
+  expectedRevenue: number;
+  expectedProfit: number;
+  marginPct: number;
+  top: { name: string; profit: number }[];
+}
+
+export async function getExpectedProfit(): Promise<ExpectedProfit> {
+  const first = await db.demandForecast.findFirst({ orderBy: { periodStart: 'asc' }, select: { periodStart: true } });
+  if (!first) {
+    return { hasData: false, periodStart: null, expectedRevenue: 0, expectedProfit: 0, marginPct: 0, top: [] };
+  }
+  const rows = await db.demandForecast.findMany({
+    where: { periodStart: first.periodStart },
+    include: { product: { select: { name: true, priceCLP: true, costCLP: true } } },
+  });
+
+  let expectedRevenue = 0;
+  let expectedProfit = 0;
+  const perProduct: { name: string; profit: number }[] = [];
+  for (const r of rows) {
+    const price = r.product.priceCLP;
+    const cost = r.product.costCLP ?? 0;
+    const revenue = r.predictedQty * price;
+    const profit = r.predictedQty * (price - cost);
+    expectedRevenue += revenue;
+    expectedProfit += profit;
+    perProduct.push({ name: r.product.name, profit });
+  }
+
+  return {
+    hasData: rows.length > 0,
+    periodStart: first.periodStart,
+    expectedRevenue,
+    expectedProfit,
+    marginPct: expectedRevenue > 0 ? expectedProfit / expectedRevenue : 0,
+    top: perProduct.sort((a, b) => b.profit - a.profit).slice(0, 5),
+  };
+}
+
 export interface RestockRow { productId: string; name: string; stock: number; suggestedQty: number; daysToStockout: number | null; reason: string; score: number }
 
 export async function getRestockSuggestions() {

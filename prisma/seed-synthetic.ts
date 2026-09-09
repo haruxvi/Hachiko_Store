@@ -16,6 +16,7 @@
  */
 import { PrismaClient, type Prisma, type OrderStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import { encrypt } from '../src/lib/crypto/pii';
 
 // Carga masiva: usa la conexión DIRECTA (no pooled) para evitar límites del
 // pooler serverless de Neon en inserciones grandes.
@@ -45,7 +46,7 @@ const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rnd() * arr.length)]!;
 const id = () => randomUUID();
 
 // ── Catálogo sintético (con costCLP para analítica de márgenes) ───────────
-type Cat = 'snacks' | 'skincare' | 'papeleria' | 'kpop';
+type Cat = 'snacks' | 'skincare' | 'papeleria' | 'kpop' | 'bebestibles' | 'sopas';
 interface P { sku: string; slug: string; name: string; cat: Cat; price: number; cost: number; weight: number }
 const CATALOG: P[] = [
   { sku: 'SYN-001', slug: 'syn-pepero-choco', name: 'Pepero Chocolate', cat: 'snacks', price: 1990, cost: 1200, weight: 60 },
@@ -72,6 +73,16 @@ const CATALOG: P[] = [
   { sku: 'SYN-032', slug: 'syn-photocard-set', name: 'Set Photocards', cat: 'kpop', price: 5990, cost: 3000, weight: 40 },
   { sku: 'SYN-033', slug: 'syn-lightstick', name: 'Lightstick Oficial', cat: 'kpop', price: 39990, cost: 27000, weight: 500 },
   { sku: 'SYN-034', slug: 'syn-poster-set', name: 'Set de Pósters', cat: 'kpop', price: 4990, cost: 2400, weight: 120 },
+  // Bebestibles (índices 24-27)
+  { sku: 'SYN-040', slug: 'syn-milkis', name: 'Milkis Soda', cat: 'bebestibles', price: 1490, cost: 800, weight: 250 },
+  { sku: 'SYN-041', slug: 'syn-aloe-drink', name: 'Bebida Aloe Vera', cat: 'bebestibles', price: 1690, cost: 950, weight: 500 },
+  { sku: 'SYN-042', slug: 'syn-sikhye', name: 'Sikhye (bebida de arroz)', cat: 'bebestibles', price: 1990, cost: 1150, weight: 240 },
+  { sku: 'SYN-043', slug: 'syn-yogurt-bebible', name: 'Yogurt Bebible Coreano', cat: 'bebestibles', price: 1290, cost: 700, weight: 150 },
+  // Sopas (índices 28-31)
+  { sku: 'SYN-050', slug: 'syn-ramyun-jin', name: 'Ramyun Jin', cat: 'sopas', price: 1590, cost: 900, weight: 120 },
+  { sku: 'SYN-051', slug: 'syn-ramyun-samyang', name: 'Ramyun Samyang', cat: 'sopas', price: 1690, cost: 950, weight: 130 },
+  { sku: 'SYN-052', slug: 'syn-udon-instant', name: 'Udon Instantáneo', cat: 'sopas', price: 2490, cost: 1500, weight: 250 },
+  { sku: 'SYN-053', slug: 'syn-kimchi-soup', name: 'Sopa de Kimchi', cat: 'sopas', price: 2990, cost: 1800, weight: 300 },
 ];
 // Combos que tienden a comprarse juntos (índices del catálogo) — para que el
 // recomendador market-basket tenga señal real.
@@ -83,6 +94,11 @@ const COMBOS: number[][] = [
   [19, 21], // álbum + photocards
   [22, 23], // lightstick + photocards
   [15, 16], // cuaderno + lápices
+  [28, 24], // ramyun jin + milkis (sopa + bebida)
+  [29, 25], // samyang + aloe
+  [30, 31], // udon + sopa kimchi
+  [4, 28], // ramen buldak + ramyun jin (picantes juntos)
+  [26, 30], // sikhye + udon
 ];
 
 // ── Geografía chilena (peso, envío base, factor de plazo) ─────────────────
@@ -172,6 +188,8 @@ async function main() {
     { slug: 'skincare', name: 'Skincare', order: 2 },
     { slug: 'papeleria', name: 'Papelería', order: 3 },
     { slug: 'kpop', name: 'K-pop', order: 4 },
+    { slug: 'bebestibles', name: 'Bebestibles', order: 5 },
+    { slug: 'sopas', name: 'Sopas', order: 6 },
   ];
   const catId: Record<Cat, string> = {} as Record<Cat, string>;
   for (const c of catDefs) {
@@ -297,8 +315,10 @@ async function main() {
         id: oid, userId: uid, subtotalCLP: subtotal, shippingCLP: shipping, totalCLP: subtotal + shipping,
         status, paymentStatus, paymentProvider: paymentStatus === 'PAID' ? (rnd() < 0.6 ? 'transbank' : 'mercadopago') : null,
         paidAt, shippedAt, deliveredAt, shippingMethod: method,
-        shippingFullName: fullName, shippingPhone: `+5695${randInt(1000000, 9999999)}`,
-        shippingStreet: isPickup ? null : `Calle ${pick(NAMES.last)}`, shippingNumber: isPickup ? null : String(randInt(100, 9999)),
+        // PII cifrada con AES-256-GCM, igual que el checkout real (createOrder),
+        // para que la vista del vendedor pueda descifrarla sin romperse.
+        shippingFullName: encrypt(fullName), shippingPhone: encrypt(`+5695${randInt(1000000, 9999999)}`),
+        shippingStreet: isPickup ? null : encrypt(`Calle ${pick(NAMES.last)}`), shippingNumber: isPickup ? null : encrypt(String(randInt(100, 9999))),
         shippingCommune: commune, shippingRegion: isPickup ? null : reg.region,
         shippingNotes: '[SYNTHETIC]', createdAt: created,
       });

@@ -411,6 +411,7 @@ cd ml && .venv/Scripts/python -m jobs.fraud_detection    # solo uno (p. ej. el I
 - Bandas de incertidumbre (intervalo inferior/superior) y **MAE** del modelo. **ML**
 - **Riesgo de quiebre**: marca los productos cuyo pronóstico supera el stock. **ML**
 - **Productos en alza / en baja**: crecimiento de los últimos 90 días vs. los 90 anteriores. **BI**
+- **Ganancia esperada del próximo mes**: Σ (unidades pronosticadas × margen unitario). Cruza el forecast (ML) con el margen real `price − cost`. Se lee con `getExpectedProfit` y se muestra en Demanda y en el Reporte. **ML + BI**
 
 ### Qué reponer — predicción + BI
 - **Sugerencia de reposición**: cuánto comprar (forecast + lead time + cobertura). **ML**

@@ -5,6 +5,7 @@ import {
   getAccountRisk,
   getIncidentAnalytics,
   getConversionAnalytics,
+  getExpectedProfit,
 } from '@/src/lib/services/intelligence.service';
 import { Eyebrow, Stat, clp, num, pct } from '@/src/components/panel/intelligence-ui';
 import PrintButton from '@/src/components/panel/PrintButton';
@@ -12,13 +13,14 @@ import PrintButton from '@/src/components/panel/PrintButton';
 export const revalidate = 60;
 
 export default async function ReportePage() {
-  const [m, restock, fraud, acc, inc, conv] = await Promise.all([
+  const [m, restock, fraud, acc, inc, conv, profit] = await Promise.all([
     getMetricsDashboard(),
     getRestockSuggestions(),
     getFraudRisk(),
     getAccountRisk(),
     getIncidentAnalytics(),
     getConversionAnalytics(),
+    getExpectedProfit(),
   ]);
   const today = new Date().toLocaleDateString('es-CL', { dateStyle: 'long' });
   const topA = m.products.filter((p) => p.abc === 'A').slice(0, 5);
@@ -40,6 +42,15 @@ export default async function ReportePage() {
           <Stat label="Margen" value={clp(m.totals.margin)} hint={pct(m.totals.marginPct)} accent />
           <Stat label="Órdenes" value={num(m.totals.orders)} />
           <Stat label="Conversión" value={pct(conv.overallConversion)} />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <Eyebrow>Proyección · próximo mes</Eyebrow>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <Stat label="Ganancia esperada" value={clp(profit.expectedProfit)} accent hint={`margen ${pct(profit.marginPct)}`} />
+          <Stat label="Ingresos esperados" value={clp(profit.expectedRevenue)} />
+          <Stat label="Reposición urgente" value={`${num(restock.urgent)} productos`} />
         </div>
       </section>
 

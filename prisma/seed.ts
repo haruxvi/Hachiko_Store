@@ -26,6 +26,16 @@ async function main() {
       update: {},
       create: { name: 'K-pop', slug: 'kpop', description: 'Merch y álbumes K-pop', order: 4 },
     }),
+    db.category.upsert({
+      where: { slug: 'bebestibles' },
+      update: {},
+      create: { name: 'Bebestibles', slug: 'bebestibles', description: 'Bebidas y jugos coreanos', order: 5 },
+    }),
+    db.category.upsert({
+      where: { slug: 'sopas' },
+      update: {},
+      create: { name: 'Sopas', slug: 'sopas', description: 'Ramen y sopas instantáneas coreanas', order: 6 },
+    }),
   ]);
 
   console.log(`Seeded ${categories.length} categories`);

@@ -1,11 +1,11 @@
-import { getDemandForecast, getProductTrends } from '@/src/lib/services/intelligence.service';
+import { getDemandForecast, getProductTrends, getExpectedProfit } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
-import { PageHeader, Eyebrow, Stat, num, pct, monthLabel } from '@/src/components/panel/intelligence-ui';
+import { PageHeader, Eyebrow, Stat, clp, num, pct, monthLabel } from '@/src/components/panel/intelligence-ui';
 
 export const revalidate = 60;
 
 export default async function DemandaPage() {
-  const [d, trends] = await Promise.all([getDemandForecast(), getProductTrends()]);
+  const [d, trends, profit] = await Promise.all([getDemandForecast(), getProductTrends(), getExpectedProfit()]);
 
   if (!d.hasData) {
     return (
@@ -28,8 +28,14 @@ export default async function DemandaPage() {
 
       <section className="space-y-3">
         <Eyebrow>Resumen del pronóstico</Eyebrow>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          <Stat label={`Unidades previstas · ${nextLabel}`} value={num(d.totalNextMonth)} accent />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Stat
+            label={`Ganancia esperada · ${nextLabel}`}
+            value={clp(profit.expectedProfit)}
+            accent
+            hint={`margen ${pct(profit.marginPct)} · ingresos ${clp(profit.expectedRevenue)}`}
+          />
+          <Stat label={`Unidades previstas · ${nextLabel}`} value={num(d.totalNextMonth)} />
           <Stat label="Productos pronosticados" value={num(d.products.length)} />
           <Stat label="Error medio del modelo" value={d.mae != null ? `${d.mae} uds/mes` : '—'} hint="Ridge con estacionalidad" />
         </div>
