@@ -16,12 +16,14 @@ overrides:
   # nanoid <3.3.17 (vía postcss). Se ancla a la línea v3: postcss 8.x declara
   # nanoid ^3 y saltar a v4+ (ESM-only) rompería el build de CSS.
   'nanoid@^3': ^3.3.17
-  # js-yaml <4.3.1 (vía eslint > @eslint/eslintrc). Anclado a v4: v5 es major.
-  'js-yaml@^4': ^4.3.1
+  # js-yaml <4.3.2 (vía eslint > @eslint/eslintrc). CPU/DoS con maxTotalMergeKeys
+  # (GHSA-2883-xcg3-v3hh). Anclado a v4: v5 es major.
+  'js-yaml@^4': ^4.3.2
   # axios <1.18.0 (vía transbank-sdk). Único paquete de producción afectado.
   axios: ^1.18.0
-  # sharp <0.35.0 (vía next, optimización de imágenes).
-  sharp: ^0.35.0
+  # sharp <0.35.4 (vía next, optimización de imágenes). Vulns en libheif
+  # (GHSA-g89c-p67h-r497, GHSA-2jg2-4ch7-h545).
+  sharp: ^0.35.4
   # brace-expansion: ReDoS. Conviven tres líneas mayores en el árbol
   # (eslint/minimatch, @typescript-eslint, resend > @react-email/render),
   # por eso se parchea cada rango por separado en vez de forzar una sola versión.
@@ -39,3 +41,6 @@ overrides:
   # postcss-selector-parser >=6.1.0 <6.1.3: DoS por recursión en toString (AST).
   # Dev-only (vía tailwindcss). Fix en 6.1.3; se ancla a v6 (tailwind usa ^6).
   'postcss-selector-parser@>=6.1.0 <6.1.3': ^6.1.3
+  # baseline-browser-mapping <2.11.0: DoS por terminación de proceso con input
+  # inválido (vía next). Fix en 2.11.0.
+  'baseline-browser-mapping@<2.11.0': ^2.11.0
