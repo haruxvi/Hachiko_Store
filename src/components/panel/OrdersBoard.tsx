@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Icon from '@/src/components/ui/Icon';
 import ShipOrderForm from '@/src/components/panel/ShipOrderForm';
 import { formatCLP } from '@/src/lib/format';
@@ -57,6 +57,19 @@ function FieldShow({ label, value, mono }: { label: string; value: string; mono?
 export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(orders[0]?.id ?? null);
   const selected = orders.find((o) => o.id === selectedId) ?? null;
+
+  // El detalle se abre en un panel lateral que, en pantallas < xl, cae debajo de
+  // la tabla. Al elegir una orden lo traemos a la vista para que "Ver" se note.
+  // block: 'nearest' evita saltos cuando el panel ya está visible (desktop).
+  const detailRef = useRef<HTMLElement | null>(null);
+  const skipInitialScroll = useRef(true);
+  useEffect(() => {
+    if (skipInitialScroll.current) {
+      skipInitialScroll.current = false;
+      return;
+    }
+    if (selectedId) detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedId]);
 
   const address = selected
     ? [
@@ -140,7 +153,7 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
 
       {/* ──────── PANEL DE DESPACHO ──────── */}
       {selected && (
-        <aside className="flex flex-col rounded-2xl border border-sand bg-snow px-7 py-8">
+        <aside ref={detailRef} className="flex flex-col rounded-2xl border border-sand bg-snow px-7 py-8">
           <div className="mb-1.5 flex items-start justify-between">
             <div>
               <div className="price-mono text-sm text-rust"># {selected.orderNumber}</div>

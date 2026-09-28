@@ -147,7 +147,7 @@ function MonthlyBars({ monthly }: { monthly: MetricPoint[] }) {
           const month = new Date(m.periodStart).getMonth();
           const peak = month === 8 || month === 11; // sep / dic
           return (
-            <div key={m.periodStart.toISOString()} className="group relative flex flex-1 flex-col justify-end">
+            <div key={m.periodStart.toISOString()} className="group relative flex h-full flex-1 flex-col justify-end">
               <div
                 className={`w-full rounded-t-[3px] ${peak ? 'bg-rust' : 'bg-tan'} transition group-hover:brightness-95`}
                 style={{ height: `${(m.revenue / max) * 100}%` }}
