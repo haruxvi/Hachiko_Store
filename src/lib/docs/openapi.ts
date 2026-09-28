@@ -45,7 +45,7 @@ export const openApiSpec = {
       'API del e-commerce Hachiko. Autenticación por cookies httpOnly (JWT firmado HS256): ' +
       '`hachiko_access` (15 min) y `hachiko_refresh` (7 días, scope `/api/auth/refresh`). ' +
       'Todas las respuestas de error siguen el formato `{ ok: false, error: { code, message } }`.',
-    contact: { email: 'contacto@hachiko.cl' },
+    contact: { email: 'hachiko.store.contacto@gmail.com' },
   },
   servers: [
     { url: 'http://localhost:3000', description: 'Desarrollo local' },

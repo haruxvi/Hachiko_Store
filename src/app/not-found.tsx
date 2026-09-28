@@ -35,7 +35,7 @@ export default function NotFound() {
             <Link href="/catalogo" className="btn-primary">
               Volver al catálogo
             </Link>
-            <a href="mailto:contacto@hachiko.cl" className="btn-link">
+            <a href="mailto:hachiko.store.contacto@gmail.com" className="btn-link">
               Avisar que algo está roto
             </a>
           </div>

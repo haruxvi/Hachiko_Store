@@ -43,8 +43,8 @@ export const ORDER: PolicySlug[] = [
 ];
 
 const mailto = (
-  <a href="mailto:contacto@hachiko.cl" className="font-medium text-rust hover:underline">
-    contacto@hachiko.cl
+  <a href="mailto:hachiko.store.contacto@gmail.com" className="font-medium text-rust hover:underline">
+    hachiko.store.contacto@gmail.com
   </a>
 );
 

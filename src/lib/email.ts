@@ -53,7 +53,7 @@ function layout(title: string, body: string): string {
         ${body}
       </div>
       <p style="font-size:12px;color:#9ca3af;margin-top:20px;">
-        Hachiko — productos coreanos · Santiago, Chile · contacto@hachiko.cl
+        Hachiko — productos coreanos · Santiago, Chile · hachiko.store.contacto@gmail.com
       </p>
     </div>
   </body>

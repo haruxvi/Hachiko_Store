@@ -87,8 +87,8 @@ export default async function CheckoutSuccessPage({
 
         <p className="mt-6 text-[13px] text-taupe">
           ¿Algo no calza? Escríbenos a{' '}
-          <a href="mailto:contacto@hachiko.cl" className="text-rust hover:underline">
-            contacto@hachiko.cl
+          <a href="mailto:hachiko.store.contacto@gmail.com" className="text-rust hover:underline">
+            hachiko.store.contacto@gmail.com
           </a>{' '}
           — respondemos en horario de barrio (10:00–19:00).
         </p>

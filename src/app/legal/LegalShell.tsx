@@ -137,10 +137,10 @@ export default function LegalShell({ active }: { active: PolicySlug }) {
             <div className="text-[13px] leading-[1.5] text-taupe">
               Escríbenos a{' '}
               <a
-                href="mailto:contacto@hachiko.cl"
+                href="mailto:hachiko.store.contacto@gmail.com"
                 className="font-medium text-rust hover:underline"
               >
-                contacto@hachiko.cl
+                hachiko.store.contacto@gmail.com
               </a>{' '}
               — respondemos en horario de barrio.
             </div>

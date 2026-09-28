@@ -55,7 +55,7 @@ export default function SiteFooter() {
               { label: 'Envíos a Chile', href: '/legal/despacho' },
               { label: 'Cambios y devoluciones', href: '/legal/devoluciones' },
               { label: 'Pago seguro', href: '/legal/terminos' },
-              { label: 'Contacto', href: 'mailto:contacto@hachiko.cl' },
+              { label: 'Contacto', href: 'mailto:hachiko.store.contacto@gmail.com' },
             ]}
           />
           <FooterCol

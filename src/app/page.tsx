@@ -155,7 +155,7 @@ export default async function HomePage() {
                 Si algo no nos convence en la prueba, no lo subimos. Por eso el catálogo es chico —
                 y por eso, esperamos, vale la pena.
               </p>
-              <a href="mailto:contacto@hachiko.cl" className="btn-link">
+              <a href="mailto:hachiko.store.contacto@gmail.com" className="btn-link">
                 Escríbenos <Icon name="arrow" size={14} />
               </a>
             </Reveal>
