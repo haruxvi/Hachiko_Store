@@ -159,10 +159,15 @@ export async function getClientOrders(userId: string) {
   });
 }
 
-// Vista SELLER — solo lo indispensable para generar la etiqueta Starken y despachar
+// Vista SELLER — solo lo indispensable para generar la etiqueta Starken y despachar.
+// Solo trae lo que sigue en el flujo de despacho (por empacar / preparando / enviado).
+// Excluye ENTREGADO y CANCELADO: son estados finales que no se despachan y, al
+// acumularse miles, obligaban a descifrar ~5 campos PII por orden en cada carga.
+const DISPATCH_STATUSES = ['PAID', 'PREPARING', 'SHIPPED'] as const;
+
 export async function getOrdersForSeller() {
   const orders = await db.order.findMany({
-    where: { paymentStatus: 'PAID', status: { not: 'CANCELLED' } },
+    where: { paymentStatus: 'PAID', status: { in: [...DISPATCH_STATUSES] } },
     include: { items: { select: { productName: true, quantity: true } } },
     orderBy: { createdAt: 'desc' },
   });
