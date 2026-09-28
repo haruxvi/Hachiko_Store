@@ -30,7 +30,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// Acordeón sin JavaScript: details/summary estilizado según el sistema.
 function AccordionRow({
   title,
   open,
@@ -68,7 +67,6 @@ export default async function ProductoPage({ params }: Props) {
   });
   const suggestions = related.filter((p) => p.id !== product.id).slice(0, 4);
 
-  // Datos estructurados para rich results de Google (precio y disponibilidad)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -86,9 +84,7 @@ export default async function ProductoPage({ params }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-6 pt-10 sm:px-12">
-      {/* Se escapa "<" para que un "</script>" dentro de la descripción del
-          producto no pueda salir del bloque JSON-LD (defensa en profundidad) */}
+    <div className="mx-auto max-w-[1440px] px-4 pt-6 sm:px-12 sm:pt-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
@@ -107,12 +103,15 @@ export default async function ProductoPage({ params }: Props) {
         <span className="text-soot">{product.name}</span>
       </div>
 
-      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,4fr)] lg:gap-16">
-        {/* Galería 60% */}
-        <ProductGallery images={product.images} alt={product.name} />
+      {/* Layout principal en 2 columnas de lado a lado */}
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12">
+        {/* Galería (Lado Izquierdo) */}
+        <div className="w-full">
+          <ProductGallery images={product.images} alt={product.name} />
+        </div>
 
-        {/* Info 40% */}
-        <div>
+        {/* Información y detalles (Lado Derecho) */}
+        <div className="flex flex-col">
           {product.nameKorean && (
             <div className="hangul mb-2 text-sm text-taupe">{product.nameKorean}</div>
           )}
@@ -193,9 +192,9 @@ export default async function ProductoPage({ params }: Props) {
         </div>
       </div>
 
-      {/* También te puede gustar */}
+      {/* Galería de recomendaciones */}
       {suggestions.length > 0 && (
-        <section className="pt-16 lg:pt-24">
+        <section className="pt-16 lg:pt-24 pb-12">
           <div className="mb-6 flex items-end justify-between">
             <h2 className="font-display text-[28px] font-bold tracking-[-0.02em] text-soot">
               También te puede gustar

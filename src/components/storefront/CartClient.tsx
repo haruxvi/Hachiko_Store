@@ -56,60 +56,68 @@ export default function CartClient() {
         </span>
       </h1>
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex flex-col gap-4">
-          {items.map((item) => (
-            <div key={item.id} className="card-hs flex gap-4 p-4">
-              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-btn bg-cream">
-                {item.image ? (
-                  /* eslint-disable-next-line @next/next/no-img-element -- URLs externas sin host fijo; next/image exige remotePatterns */
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="ph h-full w-full !border-0 text-[8px]">·</div>
-                )}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-soot">{item.name}</h3>
-                <p className="price-mono text-sm text-soot">{formatCLP(item.priceCLP)}</p>
-                <div className="mt-2 flex items-center gap-1">
-                  <div className="inline-flex items-center overflow-hidden rounded-chip border border-sand">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      aria-label="Quitar uno"
-                      className="px-2.5 py-1.5 text-soot hover:bg-soot/5"
-                    >
-                      <Icon name="minus" size={13} />
-                    </button>
-                    <span className="price-mono min-w-8 border-x border-sand px-2 py-1.5 text-center text-[13px]">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      aria-label="Agregar uno"
-                      className="px-2.5 py-1.5 text-soot hover:bg-soot/5"
-                    >
-                      <Icon name="plus" size={13} />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => removeItem(item.id)}
-                    className="ml-3 text-xs text-taupe underline decoration-sand underline-offset-4 hover:text-alert"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-              <p className="price-mono shrink-0 text-sm text-soot">
-                {formatCLP(item.priceCLP * item.quantity)}
-              </p>
-            </div>
-          ))}
+        <div className="flex flex-col gap-3">
+  {items.map((item) => (
+    <div key={item.id} className="card-hs flex items-center gap-3 p-3">
+      {/* Imagen compacta */}
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-btn bg-cream">
+        {item.image ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={item.image}
+            alt={item.name}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="ph h-full w-full !border-0 text-[8px]">·</div>
+        )}
+      </div>
+
+      {/* Info y Controles */}
+      <div className="flex-1 min-w-0">
+        <h3 className="truncate text-sm font-semibold text-soot">{item.name}</h3>
+        <p className="price-mono text-xs text-taupe">{formatCLP(item.priceCLP)}</p>
+
+        <div className="mt-1.5 flex items-center gap-2">
+          {/* Selector de cantidad compacto */}
+          <div className="inline-flex items-center overflow-hidden rounded-chip border border-sand">
+            <button
+              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+              aria-label="Quitar uno"
+              className="px-2 py-1 text-soot hover:bg-soot/5"
+            >
+              <Icon name="minus" size={11} />
+            </button>
+            <span className="price-mono min-w-6 border-x border-sand px-1.5 py-1 text-center text-xs">
+              {item.quantity}
+            </span>
+            <button
+              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+              aria-label="Agregar uno"
+              className="px-2 py-1 text-soot hover:bg-soot/5"
+            >
+              <Icon name="plus" size={11} />
+            </button>
+          </div>
+
+          <button
+            onClick={() => removeItem(item.id)}
+            className="text-xs text-taupe underline decoration-sand underline-offset-2 hover:text-alert"
+          >
+            Eliminar
+          </button>
         </div>
+      </div>
+
+      {/* Subtotal del item */}
+      <p className="price-mono shrink-0 text-sm font-medium text-soot">
+        {formatCLP(item.priceCLP * item.quantity)}
+      </p>
+    </div>
+  ))}
+</div>
 
         {/* Resumen */}
         <aside className="card-hs h-fit overflow-hidden lg:sticky lg:top-6">

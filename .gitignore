@@ -49,3 +49,6 @@ test-results/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Este proyecto usa pnpm; nunca commitear el lockfile de npm
+package-lock.json

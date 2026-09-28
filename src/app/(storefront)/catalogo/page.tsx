@@ -28,33 +28,26 @@ const SORT_LABELS: Record<ProductSort, string> = {
   'price-desc': 'Precio: mayor a menor',
 };
 
-// Checkbox custom del sistema de diseño: caja 18px radio 6, rust al activarse.
+// Checkbox custom adaptado para distribución horizontal (chips/píldoras)
 function FilterCheck({ label, checked, href }: { label: string; checked: boolean; href: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2.5 py-1.5 text-sm">
+    <Link 
+      href={href} 
+      className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+        checked 
+          ? 'border-rust bg-rust/10 text-rust font-semibold' 
+          : 'border-sand bg-snow text-soot hover:border-taupe'
+      }`}
+    >
       <span
-        className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-snow ${
-          checked ? 'border-rust bg-rust' : 'border-sand bg-snow'
+        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+          checked ? 'border-rust bg-rust text-snow' : 'border-sand bg-snow'
         }`}
       >
-        {checked && <Icon name="check" size={12} stroke={2.5} />}
+        {checked && <Icon name="check" size={10} stroke={2.5} />}
       </span>
-      <span className={`flex-1 text-soot ${checked ? 'font-semibold' : 'font-medium'}`}>
-        {label}
-      </span>
+      <span>{label}</span>
     </Link>
-  );
-}
-
-function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-6 border-b border-sand pb-6">
-      <div className="mb-3 flex items-center justify-between font-display text-[15px] font-bold text-soot">
-        {title}
-        <Icon name="chevron" size={14} stroke={2} />
-      </div>
-      {children}
-    </div>
   );
 }
 
@@ -80,7 +73,6 @@ export default async function CatalogoPage({ searchParams }: Props) {
 
   const activeCategory = categories.find((c) => c.slug === params.categoria);
 
-  // Conserva los filtros activos al navegar (paginación, orden, stock)
   const baseQuery = (overrides: Record<string, string | undefined>) => {
     const q = new URLSearchParams();
     const merged = {
@@ -106,9 +98,9 @@ export default async function CatalogoPage({ searchParams }: Props) {
     activeChips.push({ label: 'Disponible ahora', href: `/catalogo${baseQuery({ stock: undefined, pagina: undefined })}` });
 
   return (
-    <div className="mx-auto max-w-[1440px] px-6 sm:px-12">
+    <div className="mx-auto max-w-[1440px] px-4 sm:px-12">
       {/* Breadcrumb + título */}
-      <section className="pb-6 pt-10">
+      <section className="pb-4 pt-6 sm:pt-10">
         <div className="mb-4 flex items-center gap-1.5 text-[13px] text-taupe">
           <Link href="/" className="hover:text-rust">
             Inicio
@@ -126,25 +118,26 @@ export default async function CatalogoPage({ searchParams }: Props) {
             <span className="text-soot">Catálogo</span>
           )}
         </div>
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="hangul mb-1 text-[15px] text-taupe">하치코 · 카탈로그</div>
-            <h1 className="font-display text-4xl font-bold leading-none tracking-[-0.02em] text-soot sm:text-5xl">
+            <h1 className="font-display text-3xl sm:text-5xl font-bold leading-none tracking-[-0.02em] text-soot">
               {activeCategory?.name ?? 'Catálogo'}
             </h1>
-            <p className="mt-3 max-w-[520px] text-[15px] text-taupe">
+            <p className="mt-2 max-w-[520px] text-[14px] sm:text-[15px] text-taupe">
               {params.q
                 ? `Resultados para “${params.q}”.`
                 : 'Curado a mano y empacado en Recoleta. Lo que ves es lo que hay en bodega.'}
             </p>
           </div>
 
-          {/* Orden — formulario GET: funciona sin JavaScript */}
+          {/* Formulario Ordenar */}
           <form method="get" action="/catalogo" className="flex items-center gap-2">
             {params.categoria && <input type="hidden" name="categoria" value={params.categoria} />}
             {params.q && <input type="hidden" name="q" value={params.q} />}
             {params.stock && <input type="hidden" name="stock" value={params.stock} />}
-            <span className="text-[13px] text-taupe">Ordenar</span>
+            <span className="text-[13px] text-taupe shrink-0">Ordenar</span>
             <select
               name="orden"
               defaultValue={sort}
@@ -157,18 +150,21 @@ export default async function CatalogoPage({ searchParams }: Props) {
                 </option>
               ))}
             </select>
-            <button type="submit" className="btn-outline btn-sm">
+            <button type="submit" className="btn-outline btn-sm shrink-0">
               Aplicar
             </button>
           </form>
         </div>
       </section>
 
-      <section className="grid gap-8 pt-2 lg:grid-cols-[260px_1fr] lg:gap-12">
-        {/* Filtros laterales — persistentes, no drawer */}
-        <aside className="lg:sticky lg:top-6 lg:self-start">
-          <FilterGroup title="Buscar">
-            <form method="get" action="/catalogo" className="flex gap-2">
+      {/* FILTROS EN LÍNEA HORIZONTAL */}
+      <section className="flex flex-col gap-6 pt-4">
+        <aside className="w-full border-y border-sand py-4 flex flex-col gap-4">
+          
+          {/* Fila de Buscador + Stock */}
+          <div className="flex flex-wrap items-center gap-4 justify-between">
+            {/* Buscador */}
+            <form method="get" action="/catalogo" className="flex-1 min-w-[240px] max-w-xs">
               {params.categoria && (
                 <input type="hidden" name="categoria" value={params.categoria} />
               )}
@@ -178,12 +174,26 @@ export default async function CatalogoPage({ searchParams }: Props) {
                 defaultValue={params.q ?? ''}
                 placeholder="Buscar productos…"
                 aria-label="Buscar productos"
-                className="input-hs"
+                className="input-hs w-full text-xs"
               />
             </form>
-          </FilterGroup>
 
-          <FilterGroup title="Categoría">
+            {/* Filtro de Stock */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-soot uppercase tracking-wider">Stock:</span>
+              <FilterCheck
+                label="Disponible ahora"
+                checked={inStockOnly}
+                href={`/catalogo${baseQuery({ stock: inStockOnly ? undefined : '1', pagina: undefined })}`}
+              />
+            </div>
+          </div>
+
+          {/* Fila de Categorías al lado (Scroll Horizontal en móvil) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+            <span className="text-xs font-bold text-soot uppercase tracking-wider shrink-0 mr-1">
+              Categoría:
+            </span>
             <FilterCheck label="Todo" checked={!params.categoria} href="/catalogo" />
             {categories.map((c) => (
               <FilterCheck
@@ -193,32 +203,29 @@ export default async function CatalogoPage({ searchParams }: Props) {
                 href={`/catalogo${baseQuery({ categoria: c.slug, pagina: undefined })}`}
               />
             ))}
-          </FilterGroup>
+          </div>
 
-          <FilterGroup title="Stock">
-            <FilterCheck
-              label="Disponible ahora"
-              checked={inStockOnly}
-              href={`/catalogo${baseQuery({ stock: inStockOnly ? undefined : '1', pagina: undefined })}`}
-            />
-          </FilterGroup>
-
+          {/* Limpiar filtros si existen activos */}
           {activeChips.length > 0 && (
-            <Link href="/catalogo" className="btn-link mt-2 !text-[13px]">
-              Limpiar {activeChips.length} {activeChips.length === 1 ? 'filtro activo' : 'filtros activos'}
-            </Link>
+            <div>
+              <Link href="/catalogo" className="btn-link !text-[12px]">
+                Limpiar {activeChips.length} {activeChips.length === 1 ? 'filtro activo' : 'filtros activos'}
+              </Link>
+            </div>
           )}
         </aside>
 
-        {/* Grid */}
+        {/* Grid de Productos */}
         <div>
-          <div className="mb-6 flex flex-wrap items-center gap-2">
-            {activeChips.map((chip) => (
-              <Link key={chip.label} href={chip.href} className="chip-rust gap-2">
-                {chip.label} <Icon name="close" size={11} />
-              </Link>
-            ))}
-            <span className="ml-auto self-center text-[13px] text-taupe">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {activeChips.map((chip) => (
+                <Link key={chip.label} href={chip.href} className="chip-rust gap-2">
+                  {chip.label} <Icon name="close" size={11} />
+                </Link>
+              ))}
+            </div>
+            <span className="text-[13px] text-taupe ml-auto">
               {total} {total === 1 ? 'producto' : 'productos'}
             </span>
           </div>
@@ -230,7 +237,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
                 : 'No hay productos en esta categoría.'}
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:gap-6 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
               {products.map((p) => (
                 <ProductCardHs
                   key={p.id}
