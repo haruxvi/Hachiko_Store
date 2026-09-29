@@ -14,10 +14,33 @@ import {
   archiveCategory,
 } from '@/src/lib/services/catalog.service';
 
+// Identificador de la BD: la mayoría son cuid, pero el catálogo sintético se
+// sembró con UUID (seed-synthetic usa randomUUID). Aceptamos cualquier id acotado
+// en vez de exigir formato cuid, para no romper la edición ni el ajuste de stock
+// de esos productos. Si el id no existe, Prisma falla igual más abajo.
+const idSchema = z.string().min(1).max(64);
+
+// Traduce errores conocidos de Prisma a mensajes claros para el vendedor, en vez
+// de mostrar el texto crudo ("Unique constraint failed on the fields: (slug)").
+function friendlyDbError(e: unknown, fallback: string): string {
+  if (e && typeof e === 'object' && 'code' in e) {
+    const code = (e as { code?: string }).code;
+    if (code === 'P2002') {
+      const target = (e as { meta?: { target?: string[] | string } }).meta?.target;
+      const fields = Array.isArray(target) ? target.join(',') : String(target ?? '');
+      if (fields.includes('slug')) return 'Ya existe otro registro con ese slug (URL). Cambia el slug.';
+      if (fields.includes('sku')) return 'Ya existe otro producto con ese SKU. Cambia el SKU.';
+      return 'Ese valor ya existe y debe ser único.';
+    }
+    if (code === 'P2025') return 'No se encontró el registro (puede haber sido eliminado).';
+  }
+  return e instanceof Error ? e.message : fallback;
+}
+
 // ─── Stock adjustment ────────────────────────────────────────
 
 const AdjustStockSchema = z.object({
-  productId: z.string().cuid(),
+  productId: idSchema,
   newStock: z.number().int().min(0).max(99999),
   reason: z.enum([
     'RESTOCK',
@@ -74,7 +97,7 @@ const ProductActionSchema = z.object({
   images: z.array(z.string()).max(10).default([]),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
-  categoryId: z.string().cuid(),
+  categoryId: idSchema,
 });
 
 type ProductActionInput = z.infer<typeof ProductActionSchema>;
@@ -96,12 +119,12 @@ export async function createProductAction(
     revalidatePath('/trastienda/inventario');
     return { ok: true, id: product.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al crear producto' };
+    return { ok: false, error: friendlyDbError(e, 'Error al crear producto') };
   }
 }
 
 const UpdateProductSchema = ProductActionSchema.partial().extend({
-  id: z.string().cuid(),
+  id: idSchema,
 });
 
 export async function updateProductAction(
@@ -123,7 +146,7 @@ export async function updateProductAction(
     revalidatePath(`/trastienda/productos/${id}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al actualizar producto' };
+    return { ok: false, error: friendlyDbError(e, 'Error al actualizar producto') };
   }
 }
 
@@ -191,12 +214,12 @@ export async function createCategoryAction(
     revalidatePath('/trastienda/categorias');
     return { ok: true, id: cat.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al crear categoría' };
+    return { ok: false, error: friendlyDbError(e, 'Error al crear categoría') };
   }
 }
 
 const UpdateCategorySchema = CategoryActionSchema.partial().extend({
-  id: z.string().cuid(),
+  id: idSchema,
 });
 
 export async function updateCategoryAction(
@@ -217,7 +240,7 @@ export async function updateCategoryAction(
     revalidatePath('/trastienda/categorias');
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al actualizar categoría' };
+    return { ok: false, error: friendlyDbError(e, 'Error al actualizar categoría') };
   }
 }
 
