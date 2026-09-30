@@ -1,133 +1,107 @@
 # Despliegue local con Docker
 
-Guía para levantar Hachiko en una máquina de desarrollo y ver la página en
-`http://localhost:3000`, sin exponer nada a la red ni comprometer credenciales.
+Guía para levantar Hachiko **completo en tu PC** (app + base de datos) con un
+solo comando, viendo la tienda en `http://localhost:3000`, sin exponer nada a la
+red ni tocar la base de producción.
+
+> Producción vive en **Vercel + Neon**. Este entorno es **local y aislado**: la
+> app se conecta a un Postgres que corre en un contenedor en tu máquina, nunca a
+> Neon. Lo que agregues o borres aquí **no afecta los datos reales**.
 
 ## Requisitos
 
-- Docker Desktop (o Docker Engine) corriendo
-- Node.js ≥ 20 y pnpm ≥ 9 (`corepack enable` lo instala)
+- **Docker Desktop** (o Docker Engine) corriendo, con Docker Compose v2+.
 
-## 1 · Base de datos PostgreSQL en Docker
+Eso es todo: no necesitas Node ni pnpm en el host, corren dentro del contenedor.
 
-```powershell
-docker run -d --name hachiko-pg `
-  --restart unless-stopped `
-  -e POSTGRES_USER=hachiko `
-  -e POSTGRES_PASSWORD=<contraseña-local> `
-  -e POSTGRES_DB=hachiko `
-  -p 127.0.0.1:5433:5432 `
-  -v hachiko_pgdata:/var/lib/postgresql/data `
-  postgres:16
+## Levantar todo (un comando)
+
+```bash
+docker compose up --build
 ```
 
-Puntos de seguridad de este comando:
+La primera vez construye la imagen (varios minutos) y genera los datos. Cada
+arranque:
 
-- **`-p 127.0.0.1:5433:5432`** liga el puerto solo a localhost. Sin el prefijo
-  `127.0.0.1:` Docker publica en todas las interfaces y la base queda visible
-  para cualquier equipo de tu red local. No lo omitas.
-- La contraseña es local y no viaja a ningún repositorio; aún así usa una
-  generada al azar, no `123456`.
-- El volumen `hachiko_pgdata` conserva los datos entre reinicios
-  (`docker start hachiko-pg` después de reiniciar el PC).
+1. Levanta un **Postgres local** aislado (servicio `db`).
+2. Sincroniza el esquema (`prisma db push`).
+3. Carga datos base (categorías, productos y los usuarios de prueba).
+4. **Solo la primera vez**, genera el dataset sintético completo (~24 meses:
+   ~9.300 pedidos, 250 clientes, eventos de seguridad y analítica). En arranques
+   posteriores lo detecta y lo omite, así el inicio es rápido.
+5. Sirve la app en `http://localhost:3000`.
 
-## 2 · Variables de entorno
+Cuando veas `✓ Ready`, abre <http://localhost:3000>. La tienda y el panel ya
+quedan con datos: catálogo, pedidos por despachar, inventario, etc.
 
-Copia la plantilla y complétala. El archivo `.env.local` está en `.gitignore`:
-**nunca lo agregues al repositorio ni lo compartas**.
+## Accesos
 
-```powershell
-Copy-Item .env.example .env.local
-```
+Los siguientes usuarios se crean en la **BD local** (credenciales de descarte,
+**distintas de las de producción**):
 
-Genera los secretos con un RNG criptográfico (PowerShell):
-
-```powershell
-function New-Hex([int]$n) { $b = New-Object byte[] $n; [System.Security.Cryptography.RandomNumberGenerator]::Fill($b); [Convert]::ToHexString($b).ToLower() }
-"JWT_SECRET=$(New-Hex 32)"
-"SESSION_SECRET=$(New-Hex 32)"
-"DATA_ENCRYPTION_KEY=$(New-Hex 32)"   # debe quedar de 64 caracteres hex exactos
-"CRON_SECRET=$(New-Hex 16)"
-```
-
-Valores mínimos del `.env.local`:
-
-```ini
-DATABASE_URL="postgresql://hachiko:<contraseña-local>@localhost:5433/hachiko"
-DIRECT_URL="postgresql://hachiko:<contraseña-local>@localhost:5433/hachiko"
-
-JWT_SECRET="<generado>"
-SESSION_SECRET="<generado>"
-DATA_ENCRYPTION_KEY="<generado, 64 hex>"
-CRON_SECRET="<generado>"
-
-# Transbank — ambiente de INTEGRACIÓN. Estas credenciales son públicas y
-# oficiales de prueba (publicadas por Transbank); no mueven dinero real.
-TBK_ENV="integration"
-TBK_COMMERCE_CODE="597055555532"
-TBK_API_KEY="579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C"
-
-# MercadoPago: usa las credenciales de PRUEBA de tu propia cuenta
-# (panel de desarrolladores → credenciales de test). Con placeholders la
-# opción MercadoPago del checkout falla; Webpay funciona igual.
-MP_ACCESS_TOKEN="TEST-..."
-MP_PUBLIC_KEY="TEST-..."
-MP_WEBHOOK_SECRET="<cualquier-valor-local>"
-
-# Resend: opcional en local. Sin una API key real no se envían correos
-# (verificación de email, confirmaciones), el resto de la app funciona.
-RESEND_API_KEY="re_placeholder"
-
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-
-# Usuarios de prueba (opcional). El seed SOLO los crea si defines estas
-# variables; elige contraseñas aleatorias, son cuentas reales en tu BD local.
-SEED_SELLER_EMAIL="vendedor@hachiko.local"
-SEED_SELLER_PASSWORD="<elige-una>"
-SEED_CLIENT_EMAIL="cliente@hachiko.local"
-SEED_CLIENT_PASSWORD="<elige-una>"
-```
-
-## 3 · Instalar, crear el esquema y poblar
-
-```powershell
-pnpm install
-pnpm db:generate          # genera el cliente Prisma
-pnpm exec prisma db push  # crea las tablas (el repo no versiona migraciones)
-pnpm db:seed              # categorías, producto demo y usuarios de prueba
-```
-
-## 4 · Levantar el sitio
-
-```powershell
-pnpm dev
-```
+| Rol | Dónde | Correo | Contraseña |
+| --- | --- | --- | --- |
+| Cliente | Tienda (`/`) | `cliente@hachiko.local` | `Cliente.Local2026` |
+| Vendedor | Panel (`/trastienda`) | `vendedor@hachiko.local` | `Vendedor.Local2026` |
 
 - Tienda: <http://localhost:3000>
-- Panel vendedor: <http://localhost:3000/trastienda> (inicia sesión con el
-  usuario SELLER del seed)
+- Panel vendedor: <http://localhost:3000/trastienda>
 - Pago de prueba Webpay (integración): tarjeta VISA `4051 8856 0044 6623`,
   CVV `123`, cualquier fecha futura; RUT `11.111.111-1`, clave `123`.
+
+> Estas contraseñas se definen en `docker-compose.yml` (variables
+> `SEED_SELLER_PASSWORD` / `SEED_CLIENT_PASSWORD`). Cámbialas ahí si quieres.
 
 ## Comandos útiles
 
 | Acción | Comando |
 | --- | --- |
-| Parar / arrancar la base | `docker stop hachiko-pg` / `docker start hachiko-pg` |
-| Ver datos con Prisma Studio | `pnpm db:studio` |
-| Build de producción local | `pnpm build && pnpm start` |
-| Typecheck / lint / tests | `pnpm typecheck` / `pnpm lint` / `pnpm test` |
+| Levantar (segundo plano) | `docker compose up -d --build` |
+| Ver logs de la app | `docker compose logs -f app` |
+| Detener (conserva los datos) | `docker compose down` |
+| Detener y **borrar** la BD local | `docker compose down -v` |
+| Reconstruir tras cambiar dependencias | `docker compose up --build` |
+| Regenerar los datos sintéticos a mano | `docker compose exec app pnpm db:seed:synthetic` |
+| Abrir una shell en el contenedor | `docker compose exec app sh` |
 
-## Notas de seguridad
+> Los tableros de **Inteligencia / Métricas** se nutren de tablas derivadas que
+> calcula el pipeline de Python (en CI, no en la app). En local pueden aparecer
+> vacíos o como *placeholder* aunque haya datos sintéticos; es esperado. Lo que
+> sí se llena es lo operativo: catálogo, pedidos, inventario y seguridad.
 
-- `.env.local` y cualquier `.env*` están en `.gitignore`. Verifica con
-  `git status` antes de commitear: ningún secreto debe aparecer.
-- La CSP del sitio permite `'unsafe-eval'` **solo en desarrollo** (lo exige el
-  runtime de webpack de `next dev`); la política de producción es estricta y
-  no se modifica.
-- No publiques el puerto 3000 ni el 5433 fuera de localhost. Si necesitas
-  mostrar la página a otra persona, usa un túnel autenticado en vez de abrir
-  puertos en el router.
-- Las credenciales de Transbank de integración son públicas; las de
-  **producción** (comercio real) van únicamente en el entorno del servidor de
-  producción, jamás en archivos del repo.
+## Subida de imágenes en local (opcional)
+
+La subida de fotos usa Vercel Blob y necesita `BLOB_READ_WRITE_TOKEN`. En este
+entorno local no se incluye, así que el botón "Subir foto" avisa que falta
+configurarlo; **pegar una URL de imagen sí funciona**. Para habilitar la subida,
+agrega la variable `BLOB_READ_WRITE_TOKEN` al servicio `app` en
+`docker-compose.yml`.
+
+## Por qué es seguro y aislado
+
+- **No toca Neon.** La app apunta a `postgresql://…@db:5432/hachiko` (el
+  contenedor local). Tu `.env` real —con Neon y tus secretos— está en
+  `.dockerignore` y **no entra a la imagen**.
+- **No expone tu IP.** El sitio se publica solo en `127.0.0.1:3000` (loopback),
+  accesible únicamente desde tu PC. La BD no publica puertos: vive dentro de la
+  red interna de Compose.
+- **Secretos de descarte.** Las claves de `docker-compose.yml`
+  (`JWT_SECRET`, `DATA_ENCRYPTION_KEY`, etc.) solo protegen esta base local; no
+  son las de producción.
+- **Transbank** usa el ambiente de **integración** (credenciales públicas de
+  prueba, no mueven dinero real). Las de producción viven solo en Vercel.
+
+## Alternativa sin contenedor para la app
+
+Si prefieres correr solo la base en Docker y la app con `pnpm` en el host
+(ciclo de recarga más rápido para desarrollar), puedes levantar únicamente el
+Postgres y usar un `.env.local` propio:
+
+```bash
+docker compose up -d db
+# luego, en el host, con tu .env.local apuntando a 127.0.0.1:5432:
+pnpm install && pnpm exec prisma db push && pnpm db:seed && pnpm dev
+```
+
+Para esto tendrías que publicar el puerto del servicio `db` (agrega
+`ports: ['127.0.0.1:5432:5432']` al servicio `db`).

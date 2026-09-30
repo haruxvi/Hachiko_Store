@@ -1,0 +1,76 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Hachiko Store — entorno LOCAL y aislado (Docker).
+#
+# Levanta DOS servicios: una base Postgres local (db) y la app (app). Todo corre
+# en tu PC y NO toca la base de producción (Neon): la app se conecta al Postgres
+# del contenedor, no a Neon. Las claves de aquí son de DESCARTE, solo protegen
+# esta BD local; NO son tus secretos reales ni las credenciales de producción.
+#
+# Uso:
+#   docker compose up --build        # levantar (primera vez construye la imagen)
+#   docker compose down              # detener (conserva los datos en el volumen)
+#   docker compose down -v           # detener y BORRAR los datos locales
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hachiko
+      POSTGRES_PASSWORD: hachiko_local
+      POSTGRES_DB: hachiko
+    volumes:
+      - hachiko_dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hachiko -d hachiko']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    # Sin `ports`: la BD solo es visible dentro de la red interna de compose.
+    # No se publica a tu PC ni a la red → nadie externo la alcanza.
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+
+      # Conexión a la BD LOCAL del contenedor (host `db` = servicio de arriba).
+      DATABASE_URL: postgresql://hachiko:hachiko_local@db:5432/hachiko?schema=public
+      DIRECT_URL: postgresql://hachiko:hachiko_local@db:5432/hachiko?schema=public
+
+      # Secretos de DESCARTE — válidos en formato, solo para este entorno local.
+      # (DATA_ENCRYPTION_KEY debe ser 64 hex; JWT/SESSION ≥ 32 caracteres.)
+      JWT_SECRET: local-dev-only-jwt-secret-0123456789abcdef
+      SESSION_SECRET: local-dev-only-session-secret-0123456789abcdef
+      DATA_ENCRYPTION_KEY: b9f3c1a7d2e84056f1a9c3b7d5e0f2a4c6b8d0e2f4a6c8b0d2e4f6a8c0b2d4e6
+      CRON_SECRET: local-dev-only-cron-secret
+
+      # Transbank: ambiente de INTEGRACIÓN (credenciales públicas de prueba, no
+      # mueven dinero real). Permite probar el checkout Webpay en local.
+      TBK_ENV: integration
+      TBK_COMMERCE_CODE: '597055555532'
+      TBK_API_KEY: 579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C
+
+      # MercadoPago: placeholders de PRUEBA. Con estos la opción MercadoPago del
+      # checkout no completa el pago, pero la app arranca y Webpay funciona. Para
+      # probar MP, reemplaza por tus credenciales TEST del panel de MercadoPago.
+      MP_ACCESS_TOKEN: TEST-0000000000000000-000000-placeholder-000000000
+      MP_PUBLIC_KEY: TEST-00000000-0000-0000-0000-000000000000
+
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      # Usuarios que crea el seed. Credenciales LOCALES de descarte, distintas de
+      # las de producción. Con estas entras al sitio (cliente) y al panel (vendedor).
+      SEED_SELLER_EMAIL: vendedor@hachiko.local
+      SEED_SELLER_PASSWORD: Vendedor.Local2026
+      SEED_CLIENT_EMAIL: cliente@hachiko.local
+      SEED_CLIENT_PASSWORD: Cliente.Local2026
+    ports:
+      # Solo loopback (127.0.0.1): el sitio queda accesible únicamente desde tu
+      # PC, nunca desde la red → no expone tu IP.
+      - '127.0.0.1:3000:3000'
+
+volumes:
+  hachiko_dbdata:

@@ -1,0 +1,20 @@
+# No copiar al contexto de build (más liviano y, sobre todo, NO incluir secretos)
+node_modules
+.next
+.git
+.gitignore
+# .env* NUNCA entra a la imagen: el stack local usa su propia BD y claves de
+# descarte definidas en docker-compose.yml, jamás tu Neon ni tus secretos reales.
+.env
+.env.*
+*.log
+npm-debug.log*
+# Python / ML (no se usa en el contenedor de la app)
+ml/.venv
+ml/__pycache__
+**/__pycache__
+*.pyc
+# Artefactos de test/deploy
+playwright-report
+test-results
+.vercel
