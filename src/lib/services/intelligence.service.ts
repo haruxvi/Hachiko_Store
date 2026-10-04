@@ -199,23 +199,45 @@ function metric(json: unknown, key: string): number | null {
 
 export interface ForecastPoint { periodStart: Date; predicted: number; lower: number; upper: number }
 export interface ForecastProduct { productId: string; name: string; stock: number; nextMonth: number; points: ForecastPoint[] }
+export type PeriodFilter = 'day' | 'week' | 'month';
 
-export async function getDemandForecast() {
+export async function getDemandForecast(period: PeriodFilter = 'month') {
+  // Factor de escala según el período seleccionado (asumiendo base de pronóstico mensual = 30 días)
+  const scaleFactor = period === 'day' ? 1 / 30 : period === 'week' ? 7 / 30 : 1;
+
   const [rows, run] = await Promise.all([
     db.demandForecast.findMany({
       orderBy: [{ productId: 'asc' }, { periodStart: 'asc' }],
       include: { product: { select: { name: true, stock: true } } },
     }),
-    db.modelRun.findFirst({ where: { modelType: 'demand_forecast' }, orderBy: { startedAt: 'desc' } }),
+    db.modelRun.findFirst({
+      where: { modelType: 'demand_forecast' },
+      orderBy: { startedAt: 'desc' },
+    }),
   ]);
 
   const byProduct = new Map<string, ForecastProduct>();
+
   for (const r of rows) {
-    const p = byProduct.get(r.productId) ?? { productId: r.productId, name: r.product.name, stock: r.product.stock, nextMonth: 0, points: [] };
-    p.points.push({ periodStart: r.periodStart, predicted: r.predictedQty, lower: r.lowerQty ?? r.predictedQty, upper: r.upperQty ?? r.predictedQty });
+    const p = byProduct.get(r.productId) ?? {
+      productId: r.productId,
+      name: r.product.name,
+      stock: r.product.stock,
+      nextMonth: 0,
+      points: [],
+    };
+
+    // Redondeamos con Math.round para asegurar números enteros sin comas
+    const predicted = Math.round(r.predictedQty * scaleFactor);
+    const lower = Math.round((r.lowerQty ?? r.predictedQty) * scaleFactor);
+    const upper = Math.round((r.upperQty ?? r.predictedQty) * scaleFactor);
+
+    p.points.push({ periodStart: r.periodStart, predicted, lower, upper });
     byProduct.set(r.productId, p);
   }
-  const products = [...byProduct.values()].map((p) => ({ ...p, nextMonth: p.points[0]?.predicted ?? 0 }))
+
+  const products = [...byProduct.values()]
+    .map((p) => ({ ...p, nextMonth: p.points[0]?.predicted ?? 0 }))
     .sort((a, b) => b.nextMonth - a.nextMonth);
 
   return {
@@ -223,13 +245,15 @@ export async function getDemandForecast() {
     lastUpdated: run?.finishedAt ?? null,
     mae: metric(run?.metrics, 'mae_promedio'),
     horizon: metric(run?.metrics, 'horizonte_meses'),
-    totalNextMonth: products.reduce((a, p) => a + p.nextMonth, 0),
+    // Redondeamos el total acumulado
+    totalNextMonth: Math.round(products.reduce((a, p) => a + p.nextMonth, 0)),
     products,
   };
 }
-
 // Ganancia esperada del próximo mes = Σ (unidades pronosticadas × margen unitario).
 // Cruza el forecast de demanda (ML) con el margen real (price − cost) de cada producto.
+
+
 export interface ExpectedProfit {
   hasData: boolean;
   periodStart: Date | null;
@@ -239,39 +263,53 @@ export interface ExpectedProfit {
   top: { name: string; profit: number }[];
 }
 
-export async function getExpectedProfit(): Promise<ExpectedProfit> {
-  const first = await db.demandForecast.findFirst({ orderBy: { periodStart: 'asc' }, select: { periodStart: true } });
-  if (!first) {
+export async function getExpectedProfit(period: PeriodFilter = 'month'): Promise<ExpectedProfit> {
+  const first = await db.demandForecast.findFirst({
+    orderBy: { periodStart: 'asc' },
+    select: { periodStart: true },
+  });
+
+  if (!first || !first.periodStart) {
     return { hasData: false, periodStart: null, expectedRevenue: 0, expectedProfit: 0, marginPct: 0, top: [] };
   }
+
   const rows = await db.demandForecast.findMany({
     where: { periodStart: first.periodStart },
     include: { product: { select: { name: true, priceCLP: true, costCLP: true } } },
   });
 
-  let expectedRevenue = 0;
-  let expectedProfit = 0;
+  if (rows.length === 0) {
+    return { hasData: false, periodStart: first.periodStart, expectedRevenue: 0, expectedProfit: 0, marginPct: 0, top: [] };
+  }
+
+  const scaleFactor = period === 'day' ? 1 / 30 : period === 'week' ? 7 / 30 : 1;
+
+  let totalRevenue = 0;
+  let totalProfit = 0;
   const perProduct: { name: string; profit: number }[] = [];
+
   for (const r of rows) {
     const price = r.product.priceCLP;
     const cost = r.product.costCLP ?? 0;
-    const revenue = r.predictedQty * price;
-    const profit = r.predictedQty * (price - cost);
-    expectedRevenue += revenue;
-    expectedProfit += profit;
+
+    const scaledQty = r.predictedQty * scaleFactor;
+    const revenue = scaledQty * price;
+    const profit = scaledQty * (price - cost);
+
+    totalRevenue += revenue;
+    totalProfit += profit;
     perProduct.push({ name: r.product.name, profit });
   }
 
   return {
-    hasData: rows.length > 0,
+    hasData: true,
     periodStart: first.periodStart,
-    expectedRevenue,
-    expectedProfit,
-    marginPct: expectedRevenue > 0 ? expectedProfit / expectedRevenue : 0,
+    expectedRevenue: Math.round(totalRevenue),
+    expectedProfit: Math.round(totalProfit),
+    marginPct: totalRevenue > 0 ? totalProfit / totalRevenue : 0,
     top: perProduct.sort((a, b) => b.profit - a.profit).slice(0, 5),
   };
 }
-
 export interface RestockRow { productId: string; name: string; stock: number; suggestedQty: number; daysToStockout: number | null; reason: string; score: number }
 
 export async function getRestockSuggestions() {
