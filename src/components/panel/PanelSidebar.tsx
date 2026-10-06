@@ -19,6 +19,7 @@ const DAY_TO_DAY: Item[] = [
   { icon: 'grid', label: 'Resumen', href: '/trastienda', exact: true },
   { icon: 'box', label: 'Por despachar', href: '/trastienda/ordenes' },
   { icon: 'package', label: 'Productos', href: '/trastienda/productos' },
+  { icon: 'list', label: 'Carga masiva', href: '/trastienda/productos/importar' },
   { icon: 'tag', label: 'Categorías', href: '/trastienda/categorias' },
   { icon: 'list', label: 'Inventario', href: '/trastienda/inventario' },
 ];
@@ -47,9 +48,14 @@ const THE_STORE: Item[] = [
 
 function SideItem({ item }: { item: Item }) {
   const pathname = usePathname();
-  const active = item.exact
-    ? pathname === item.href
-    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const insideImport =
+    pathname === '/trastienda/productos/importar' ||
+    pathname.startsWith('/trastienda/productos/importar/');
+  const active =
+    !(item.href === '/trastienda/productos' && insideImport) &&
+    (item.exact
+      ? pathname === item.href
+      : pathname === item.href || pathname.startsWith(`${item.href}/`));
 
   return (
     <Link
