@@ -16,7 +16,8 @@ const clpShort = (n: number) => n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const num = (n: number) => n.toLocaleString('es-CL');
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getMonth()]} ${new Date(d).getFullYear()}`;
+// Períodos guardados a medianoche UTC: leer en UTC para no correr el mes en Chile.
+const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getUTCMonth()]} ${new Date(d).getUTCFullYear()}`;
 
 export default async function MetricasPage() {
   const [d, alerts, anomalies] = await Promise.all([getMetricsDashboard(), getAlerts(), getSalesAnomalies()]);
@@ -144,7 +145,7 @@ function MonthlyBars({ monthly }: { monthly: MetricPoint[] }) {
     <div>
       <div className="flex h-44 items-end gap-[3px]">
         {monthly.map((m) => {
-          const month = new Date(m.periodStart).getMonth();
+          const month = new Date(m.periodStart).getUTCMonth();
           const peak = month === 8 || month === 11; // sep / dic
           return (
             <div key={m.periodStart.toISOString()} className="group relative flex h-full flex-1 flex-col justify-end">

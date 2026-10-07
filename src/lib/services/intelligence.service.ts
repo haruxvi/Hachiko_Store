@@ -197,14 +197,13 @@ function metric(json: unknown, key: string): number | null {
   return null;
 }
 
-export interface ForecastPoint { periodStart: Date; predicted: number; lower: number; upper: number }
+export interface ForecastPoint { periodStart: Date; horizonDays: number; predicted: number; lower: number; upper: number }
 export interface ForecastProduct { productId: string; name: string; stock: number; nextMonth: number; points: ForecastPoint[] }
-export type PeriodFilter = 'day' | 'week' | 'month';
 
-export async function getDemandForecast(period: PeriodFilter = 'month') {
-  // Factor de escala según el período seleccionado (asumiendo base de pronóstico mensual = 30 días)
-  const scaleFactor = period === 'day' ? 1 / 30 : period === 'week' ? 7 / 30 : 1;
-
+// Devuelve el pronóstico tal como lo entrega el modelo: unidades por período
+// mensual (horizonDays días). Las vistas por día/semana se derivan en la UI
+// (src/lib/forecast-period.ts) para no alterar el dato de origen.
+export async function getDemandForecast() {
   const [rows, run] = await Promise.all([
     db.demandForecast.findMany({
       orderBy: [{ productId: 'asc' }, { periodStart: 'asc' }],
@@ -227,12 +226,13 @@ export async function getDemandForecast(period: PeriodFilter = 'month') {
       points: [],
     };
 
-    // Redondeamos con Math.round para asegurar números enteros sin comas
-    const predicted = Math.round(r.predictedQty * scaleFactor);
-    const lower = Math.round((r.lowerQty ?? r.predictedQty) * scaleFactor);
-    const upper = Math.round((r.upperQty ?? r.predictedQty) * scaleFactor);
-
-    p.points.push({ periodStart: r.periodStart, predicted, lower, upper });
+    p.points.push({
+      periodStart: r.periodStart,
+      horizonDays: r.horizonDays,
+      predicted: r.predictedQty,
+      lower: r.lowerQty ?? r.predictedQty,
+      upper: r.upperQty ?? r.predictedQty,
+    });
     byProduct.set(r.productId, p);
   }
 
@@ -245,44 +245,37 @@ export async function getDemandForecast(period: PeriodFilter = 'month') {
     lastUpdated: run?.finishedAt ?? null,
     mae: metric(run?.metrics, 'mae_promedio'),
     horizon: metric(run?.metrics, 'horizonte_meses'),
-    // Redondeamos el total acumulado
-    totalNextMonth: Math.round(products.reduce((a, p) => a + p.nextMonth, 0)),
+    totalNextMonth: products.reduce((a, p) => a + p.nextMonth, 0),
     products,
   };
 }
+
 // Ganancia esperada del próximo mes = Σ (unidades pronosticadas × margen unitario).
 // Cruza el forecast de demanda (ML) con el margen real (price − cost) de cada producto.
-
-
 export interface ExpectedProfit {
   hasData: boolean;
   periodStart: Date | null;
+  horizonDays: number;
   expectedRevenue: number;
   expectedProfit: number;
   marginPct: number;
   top: { name: string; profit: number }[];
 }
 
-export async function getExpectedProfit(period: PeriodFilter = 'month'): Promise<ExpectedProfit> {
+export async function getExpectedProfit(): Promise<ExpectedProfit> {
+  const empty = { hasData: false, horizonDays: 30, expectedRevenue: 0, expectedProfit: 0, marginPct: 0, top: [] };
+
   const first = await db.demandForecast.findFirst({
     orderBy: { periodStart: 'asc' },
     select: { periodStart: true },
   });
-
-  if (!first || !first.periodStart) {
-    return { hasData: false, periodStart: null, expectedRevenue: 0, expectedProfit: 0, marginPct: 0, top: [] };
-  }
+  if (!first) return { ...empty, periodStart: null };
 
   const rows = await db.demandForecast.findMany({
     where: { periodStart: first.periodStart },
     include: { product: { select: { name: true, priceCLP: true, costCLP: true } } },
   });
-
-  if (rows.length === 0) {
-    return { hasData: false, periodStart: first.periodStart, expectedRevenue: 0, expectedProfit: 0, marginPct: 0, top: [] };
-  }
-
-  const scaleFactor = period === 'day' ? 1 / 30 : period === 'week' ? 7 / 30 : 1;
+  if (rows.length === 0) return { ...empty, periodStart: first.periodStart };
 
   let totalRevenue = 0;
   let totalProfit = 0;
@@ -291,10 +284,8 @@ export async function getExpectedProfit(period: PeriodFilter = 'month'): Promise
   for (const r of rows) {
     const price = r.product.priceCLP;
     const cost = r.product.costCLP ?? 0;
-
-    const scaledQty = r.predictedQty * scaleFactor;
-    const revenue = scaledQty * price;
-    const profit = scaledQty * (price - cost);
+    const revenue = r.predictedQty * price;
+    const profit = r.predictedQty * (price - cost);
 
     totalRevenue += revenue;
     totalProfit += profit;
@@ -304,12 +295,14 @@ export async function getExpectedProfit(period: PeriodFilter = 'month'): Promise
   return {
     hasData: true,
     periodStart: first.periodStart,
+    horizonDays: rows[0]!.horizonDays,
     expectedRevenue: Math.round(totalRevenue),
     expectedProfit: Math.round(totalProfit),
     marginPct: totalRevenue > 0 ? totalProfit / totalRevenue : 0,
     top: perProduct.sort((a, b) => b.profit - a.profit).slice(0, 5),
   };
 }
+
 export interface RestockRow { productId: string; name: string; stock: number; suggestedQty: number; daysToStockout: number | null; reason: string; score: number }
 
 export async function getRestockSuggestions() {

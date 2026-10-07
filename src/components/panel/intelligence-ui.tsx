@@ -6,7 +6,9 @@ export const num = (n: number) => n.toLocaleString('es-CL');
 export const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-export const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getMonth()]} ${new Date(d).getFullYear()}`;
+// Los períodos se guardan a medianoche UTC (p. ej. 2026-10-01T00:00Z). Leerlos en
+// hora local corre el mes hacia atrás en zonas como Chile (UTC−3 → "sep").
+export const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getUTCMonth()]} ${new Date(d).getUTCFullYear()}`;
 
 export function PageHeader({ title, subtitle, updated }: { title: string; subtitle: string; updated?: Date | null }) {
   return (
