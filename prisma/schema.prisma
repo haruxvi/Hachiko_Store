@@ -667,3 +667,59 @@ enum RiskSubject {
   ORDER
   USER
 }
+
+// ─── PROMOCIONES POR CORREO (newsletter) ──────────────────
+
+// Suscriptor de promociones desde el formulario público (puede no tener cuenta).
+// Ley 21.719: el consentimiento se registra al suscribirse (versión, fecha, IP) y
+// solo se activa cuando el titular confirma desde su correo (doble opt-in), lo que
+// prueba que controla esa casilla. Tras la baja se conserva el registro para
+// respetar la oposición; las suscripciones nunca confirmadas se eliminan a los 30 días.
+model NewsletterSubscriber {
+  id                 String           @id @default(cuid())
+  email              String           @unique
+  status             SubscriberStatus @default(PENDING)
+  consentVersion     String
+  consentAt          DateTime
+  consentIp          String?
+  confirmationSentAt DateTime?
+  confirmedAt        DateTime?
+  unsubscribedAt     DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([status])
+}
+
+enum SubscriberStatus {
+  PENDING
+  CONFIRMED
+  UNSUBSCRIBED
+}
+
+// Promoción enviada por un vendedor. Guarda el contenido tal como se envió y el
+// resultado, como respaldo de qué se comunicó, cuándo y a cuántas personas.
+model PromoCampaign {
+  id             String      @id @default(cuid())
+  subject        String
+  title          String
+  body           String
+  ctaLabel       String?
+  ctaPath        String?
+  productIds     String[]
+  status         PromoStatus @default(SENDING)
+  recipientCount Int         @default(0)
+  failedCount    Int         @default(0)
+  createdById    String
+  createdAt      DateTime    @default(now())
+  sentAt         DateTime?
+
+  @@index([createdAt])
+}
+
+enum PromoStatus {
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}

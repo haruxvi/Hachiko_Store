@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Zen_Maru_Gothic, Quicksand, JetBrains_Mono, Fraunces } from 'next/font/google';
 import WhatsAppButton from '@/src/components/storefront/WhatsAppButton';
 import ServiceWorkerRegister from '@/src/components/ServiceWorkerRegister';
+import CookieNotice from '@/src/components/storefront/CookieNotice';
 import './globals.css';
 
 // Sistema tipográfico Hachiko:
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <WhatsAppButton />
         <ServiceWorkerRegister />
+        <CookieNotice />
       </body>
     </html>
   );

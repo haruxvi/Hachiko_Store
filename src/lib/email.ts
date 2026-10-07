@@ -5,10 +5,12 @@ import { shippingLabel, trackingUrlFor } from '@/src/lib/shipping';
 // rompe el flujo que lo dispara (un webhook de pago no puede caerse porque
 // Resend esté abajo) — por eso sendEmail captura y solo registra el error.
 
-interface EmailInput {
+export interface EmailInput {
   to: string;
   subject: string;
   html: string;
+  /** Cabeceras extra (p. ej. List-Unsubscribe en los correos de promociones). */
+  headers?: Record<string, string>;
 }
 
 export async function sendEmail(input: EmailInput): Promise<boolean> {
@@ -28,6 +30,7 @@ export async function sendEmail(input: EmailInput): Promise<boolean> {
       to: input.to,
       subject: input.subject,
       html: input.html,
+      ...(input.headers ? { headers: input.headers } : {}),
     });
     if (error) {
       console.error(`[email] Error de Resend: ${error.message}`);
@@ -38,6 +41,58 @@ export async function sendEmail(input: EmailInput): Promise<boolean> {
     console.error('[email] Fallo al enviar', e);
     return false;
   }
+}
+
+export interface BatchResult {
+  sent: number;
+  failed: number;
+  /** NOT_CONFIGURED: falta RESEND_API_KEY, no se intentó enviar nada. */
+  reason?: 'NOT_CONFIGURED';
+}
+
+// Resend acepta hasta 100 correos por llamada de lote.
+const BATCH_SIZE = 100;
+
+// Envío masivo (promociones). Igual que sendEmail, nunca lanza: informa cuántos
+// salieron y cuántos fallaron, para dejarlo registrado en la campaña.
+export async function sendEmailBatch(messages: EmailInput[]): Promise<BatchResult> {
+  const apiKey = process.env['RESEND_API_KEY'];
+  const from = process.env['EMAIL_FROM'] ?? 'Hachiko <hola@hachiko.cl>';
+
+  if (!apiKey) {
+    console.warn(`[email] RESEND_API_KEY no configurada; lote de ${messages.length} correos omitido`);
+    return { sent: 0, failed: messages.length, reason: 'NOT_CONFIGURED' };
+  }
+
+  const { Resend } = await import('resend');
+  const resend = new Resend(apiKey);
+  let sent = 0;
+  let failed = 0;
+
+  for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+    const chunk = messages.slice(i, i + BATCH_SIZE);
+    try {
+      const { error } = await resend.batch.send(
+        chunk.map((m) => ({
+          from,
+          to: m.to,
+          subject: m.subject,
+          html: m.html,
+          ...(m.headers ? { headers: m.headers } : {}),
+        })),
+      );
+      if (error) {
+        console.error(`[email] Error de Resend en lote: ${error.message}`);
+        failed += chunk.length;
+      } else {
+        sent += chunk.length;
+      }
+    } catch (e) {
+      console.error('[email] Fallo al enviar lote', e);
+      failed += chunk.length;
+    }
+  }
+  return { sent, failed };
 }
 
 // ─── Layout común ─────────────────────────────────────────

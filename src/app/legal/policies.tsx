@@ -53,7 +53,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'privacidad',
     label: 'Privacidad',
     title: 'Política de Privacidad',
-    meta: 'Versión 1.0 — vigente desde el 10 de junio de 2026',
+    meta: 'Versión 1.1 — vigente desde el 7 de octubre de 2026',
     intro:
       'Cómo tratamos tus datos personales, conforme a la Ley N° 21.719. En resumen: pedimos lo mínimo, lo cuidamos, y puedes ejercer tus derechos cuando quieras.',
     law: 'Ley N° 21.719 · Protección de Datos Personales',
@@ -112,9 +112,13 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 cumplimiento de obligación legal.
               </>,
               <>
-                <strong>Comunicaciones de marketing</strong>: solo si marcaste la casilla
-                correspondiente. Base de licitud: tu consentimiento, que puedes revocar en cualquier
-                momento desde tu perfil sin afectar tu cuenta.
+                <strong>Promociones por correo</strong> (tu correo electrónico): solo si marcaste la
+                casilla al registrarte o en tu perfil, o si te suscribiste desde el pie de página del
+                sitio. En este último caso la suscripción se activa recién cuando la confirmas desde
+                el enlace que te enviamos, para asegurar que el correo es tuyo. Base de licitud: tu
+                consentimiento, que puedes revocar en cualquier momento con el enlace{' '}
+                <strong>&ldquo;Darme de baja&rdquo;</strong> que trae cada correo de promociones, o
+                desde tu perfil, sin afectar tu cuenta ni los correos de tus pedidos.
               </>,
             ],
           },
@@ -146,6 +150,12 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 incidentes no contiene datos personales de clientes y se conserva como evidencia
                 auditable.
               </>,
+              <>
+                <strong>Suscripción a promociones</strong>: mientras sigas suscrito. Si no confirmas
+                la suscripción, tu correo se elimina automáticamente a los <strong>30 días</strong>.
+                Si te das de baja, conservamos solo el registro de tu baja, para no volver a
+                escribirte.
+              </>,
             ],
           },
         ],
@@ -173,8 +183,9 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 exclusivamente para el despacho.
               </>,
               <>
-                <strong>Proveedores de infraestructura y correo transaccional</strong> (alojamiento
-                del sitio, base de datos y envío de correos de pedidos): pueden implicar transferencia
+                <strong>Proveedores de infraestructura y correo</strong> (alojamiento del sitio,
+                base de datos, almacenamiento de imágenes y envío de correos de pedidos y de
+                promociones): pueden implicar transferencia
                 internacional de datos a proveedores que ofrecen garantías adecuadas de seguridad.
               </>,
               <>

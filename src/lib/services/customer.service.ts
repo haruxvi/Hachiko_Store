@@ -1,6 +1,7 @@
 import { db } from '@/src/lib/db';
 import { encrypt, decrypt, decryptOptional } from '@/src/lib/crypto/pii';
 import { writeAudit } from './audit.service';
+import { unsubscribeEmailEverywhere } from './newsletter.service';
 
 export async function exportUserData(userId: string) {
   const user = await db.user.findUnique({
@@ -151,13 +152,19 @@ export async function updateUserConsent(
   userId: string,
   consentMarketing: boolean
 ) {
-  await db.user.update({
+  const user = await db.user.update({
     where: { id: userId },
     data: {
       consentMarketing,
       consentUpdatedAt: new Date(),
     },
+    select: { email: true },
   });
+
+  // Revocar el marketing desde el perfil también da de baja una suscripción del
+  // footer con el mismo correo: la persona deja de recibir promociones por
+  // cualquier vía (Ley 21.719, revocación efectiva).
+  if (!consentMarketing) await unsubscribeEmailEverywhere(user.email);
 
   await writeAudit({
     actorId: userId,

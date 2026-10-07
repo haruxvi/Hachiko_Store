@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import NewsletterForm from '@/src/components/storefront/NewsletterForm';
 
 function FooterCol({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
@@ -25,20 +26,10 @@ export default function SiteFooter() {
           <div>
             <div className="mb-3 font-display text-lg font-bold text-soot">Carta del barrio</div>
             <p className="mb-4 max-w-[280px] text-sm text-taupe">
-              Un correo al mes. Recetas, lanzamientos pequeños y las cosas raras que encontramos en
-              Seúl.
+              Promociones exclusivas, lanzamientos y las cosas raras que encontramos en Seúl, directo a
+              tu correo.
             </p>
-            <form className="flex gap-2">
-              <input
-                type="email"
-                placeholder="tu@correo.cl"
-                aria-label="Email para el boletín"
-                className="input-hs flex-1"
-              />
-              <button type="submit" className="btn-primary btn-sm !px-3.5 !py-2.5">
-                Suscribir
-              </button>
-            </form>
+            <NewsletterForm />
           </div>
           <FooterCol
             title="Tienda"

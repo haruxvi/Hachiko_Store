@@ -26,7 +26,8 @@ export type IconName =
   | 'bell'
   | 'package'
   | 'settings'
-  | 'store';
+  | 'store'
+  | 'mail';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -170,6 +171,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M3 9.5h18" />
       <path d="M5 9.5V20h14V9.5" />
       <path d="M10 20v-5h4v5" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3.5 6.5 8.5 6.5 8.5-6.5" />
     </>
   ),
 };
