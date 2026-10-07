@@ -94,7 +94,6 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
 
     const data = {
       sku: fd.get('sku') as string,
-      slug: fd.get('slug') as string,
       name: fd.get('name') as string,
       nameKorean: (fd.get('nameKorean') as string) || undefined,
       description: fd.get('description') as string,
@@ -135,10 +134,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="SKU" name="sku" defaultValue={v?.sku} required />
-        <Field label="Slug (URL)" name="slug" defaultValue={v?.slug} required />
-      </div>
+      <Field label="SKU" name="sku" defaultValue={v?.sku} required />
 
       <Field label="Nombre" name="name" defaultValue={v?.name} required />
       <Field label="Nombre coreano" name="nameKorean" defaultValue={v?.nameKorean ?? ''} />

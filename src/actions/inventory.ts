@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/src/lib/auth/session';
@@ -100,21 +101,33 @@ const ProductActionSchema = z.object({
   categoryId: idSchema,
 });
 
-type ProductActionInput = z.infer<typeof ProductActionSchema>;
+const CreateProductSchema = ProductActionSchema.omit({ slug: true });
+
+function productSlug(name: string) {
+  const base = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80)
+    .replace(/-$/, '') || 'producto';
+  return `${base}-${randomUUID().slice(0, 8)}`;
+}
 
 export async function createProductAction(
-  input: ProductActionInput,
+  input: z.infer<typeof CreateProductSchema>,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session || session.role !== 'SELLER') {
     return { ok: false, error: 'Sin permisos' };
   }
 
-  const parsed = ProductActionSchema.safeParse(input);
+  const parsed = CreateProductSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
 
   try {
-    const product = await createProduct(parsed.data);
+    const product = await createProduct({ ...parsed.data, slug: productSlug(parsed.data.name) });
     revalidatePath('/trastienda/productos');
     revalidatePath('/trastienda/inventario');
     return { ok: true, id: product.id };
