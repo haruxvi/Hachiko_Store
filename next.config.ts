@@ -29,6 +29,11 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+  // Solo afecta a `next dev` (p. ej. el stack de Docker local): Next 16 bloquea los
+  // recursos de desarrollo pedidos desde orígenes distintos de "localhost", y
+  // Docker Desktop abre el sitio como 127.0.0.1. Sin esto, el JS no termina de
+  // cargar y los formularios (login incluido) no funcionan en esa dirección.
+  allowedDevOrigins: ['127.0.0.1'],
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],

@@ -128,7 +128,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
   const v = initial;
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+    <form method="post" onSubmit={handleSubmit} className="max-w-2xl space-y-5">
       {error && (
         <div className="rounded-input border border-rust/30 bg-rust/[0.08] px-4 py-3 text-sm text-[#b06a2c]">
           {error}

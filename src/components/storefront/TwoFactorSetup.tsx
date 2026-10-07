@@ -104,7 +104,7 @@ export default function TwoFactorSetup({ enabled }: { enabled: boolean }) {
             <summary className="cursor-pointer">¿No puedes escanear? Ingresa la clave manual</summary>
             <code className="block mt-2 break-all bg-gray-50 p-2 rounded">{uri}</code>
           </details>
-          <form onSubmit={handleConfirm} className="flex gap-3">
+          <form method="post" onSubmit={handleConfirm} className="flex gap-3">
             <input
               name="code"
               inputMode="numeric"
@@ -126,7 +126,7 @@ export default function TwoFactorSetup({ enabled }: { enabled: boolean }) {
       )}
 
       {enabled && (
-        <form onSubmit={handleDisable} className="space-y-3">
+        <form method="post" onSubmit={handleDisable} className="space-y-3">
           <p className="text-sm text-gray-500">
             Para desactivar el doble factor, confirma con un código vigente de tu app:
           </p>

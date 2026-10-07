@@ -44,7 +44,7 @@ export default function ShipOrderForm({ orderId, carrierLabel, isPickup }: Props
   }
 
   return (
-    <form onSubmit={handle}>
+    <form method="post" onSubmit={handle}>
       {!isPickup && (
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-taupe">Tracking {carrierLabel}</span>

@@ -62,9 +62,17 @@ export default async function SiteHeader() {
           />
         </form>
 
+        {/* Atajo solo de navegación: el rol sale de la sesión verificada en el
+            servidor (JWE), no de estado del cliente. El acceso real a /trastienda
+            lo siguen controlando el middleware, el layout del panel y cada acción. */}
         {session?.role === 'SELLER' && (
-          <Link href="/trastienda" className="btn-ghost btn-sm hidden sm:inline-flex">
-            Trastienda
+          <Link
+            href="/trastienda"
+            aria-label="Ir a la trastienda"
+            className="btn-outline btn-sm !px-2.5 sm:!px-3.5"
+          >
+            <Icon name="grid" size={16} />
+            <span className="hidden sm:inline">Trastienda</span>
           </Link>
         )}
         <Link

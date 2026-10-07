@@ -22,7 +22,7 @@ function buildCsp(nonce: string): string {
     // imagen externas (pegar link). Las imágenes son contenido pasivo: no ejecutan
     // código, y la defensa anti-XSS vive en script-src (nonce + strict-dynamic).
     "img-src 'self' data: blob: https:",
-    `connect-src 'self' webpay3g.transbank.cl api.mercadopago.com${isDev ? ' ws://localhost:3000' : ''}`,
+    `connect-src 'self' webpay3g.transbank.cl api.mercadopago.com${isDev ? ' ws://localhost:3000 ws://127.0.0.1:3000' : ''}`,
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",

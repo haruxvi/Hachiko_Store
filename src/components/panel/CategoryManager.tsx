@@ -86,7 +86,7 @@ export default function CategoryManager({
         editing === cat.id ? (
           <form
             key={cat.id}
-            onSubmit={(e) => handleUpdate(cat.id, e)}
+            method="post" onSubmit={(e) => handleUpdate(cat.id, e)}
             className="border rounded-xl p-4 space-y-3 bg-blue-50"
           >
             <CategoryFields defaultValues={cat} />
@@ -127,7 +127,7 @@ export default function CategoryManager({
 
       {showNew ? (
         <form
-          onSubmit={handleCreate}
+          method="post" onSubmit={handleCreate}
           className="border rounded-xl p-4 space-y-3 bg-green-50"
         >
           <p className="font-medium text-sm">Nueva categoría</p>

@@ -182,7 +182,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form method="post" onSubmit={handleSubmit(onSubmit)}>
         {/* ── 1 · Envío ── */}
         <Section num="1" title="¿A dónde lo enviamos?">
           {/* Método de entrega: lo que se elija aquí es lo ÚNICO que el cliente

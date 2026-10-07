@@ -39,6 +39,8 @@ const INTELLIGENCE: Item[] = [
 ];
 
 const THE_STORE: Item[] = [
+  // Vuelta a la vitrina pública; `exact` evita que '/' quede activo en todo el panel.
+  { icon: 'store', label: 'Ver tienda', href: '/', exact: true },
   { icon: 'lock', label: 'Seguridad', href: '/trastienda/seguridad' },
   { icon: 'user', label: 'Mi cuenta', href: '/perfil' },
 ];

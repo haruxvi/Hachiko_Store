@@ -47,7 +47,7 @@ export default function IncidentForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">
+    <form method="post" onSubmit={handleSubmit} className="max-w-2xl space-y-4">
       {error && (
         <div className="rounded-btn border border-alert/30 bg-alert/10 px-4 py-3 text-sm text-alert">
           {error}

@@ -25,7 +25,8 @@ export type IconName =
   | 'sliders'
   | 'bell'
   | 'package'
-  | 'settings';
+  | 'settings'
+  | 'store';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   search: (
@@ -161,6 +162,14 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="12" cy="12" r="3" />
       <path d="M19 12c0 .5 0 1-.1 1.4l2 1.6-2 3.5-2.4-1a7 7 0 0 1-2.5 1.5L13.5 22h-3l-.5-2.5a7 7 0 0 1-2.5-1.5l-2.4 1-2-3.5 2-1.6c0-.4-.1-.9-.1-1.4s0-1 .1-1.4l-2-1.6 2-3.5 2.4 1A7 7 0 0 1 10 6.5L10.5 4h3l.5 2.5a7 7 0 0 1 2.5 1.5l2.4-1 2 3.5-2 1.6c.1.4.1.9.1 1.4z" />
+    </>
+  ),
+  store: (
+    <>
+      <path d="M3 9.5 5 4h14l2 5.5" />
+      <path d="M3 9.5h18" />
+      <path d="M5 9.5V20h14V9.5" />
+      <path d="M10 20v-5h4v5" />
     </>
   ),
 };
