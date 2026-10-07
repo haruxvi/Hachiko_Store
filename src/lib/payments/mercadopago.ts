@@ -24,7 +24,7 @@ export async function createMpPreference(
       external_reference: orderId,
       items,
       back_urls: {
-        success: `${appUrl}/checkout/success`,
+        success: `${appUrl}/checkout/success?order=${encodeURIComponent(orderId)}`,
         failure: `${appUrl}/checkout/failure`,
         pending: `${appUrl}/checkout/pending`,
       },

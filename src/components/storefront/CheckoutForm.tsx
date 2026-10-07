@@ -84,7 +84,7 @@ function PayLogo({ name }: { name: 'WEBPAY' | 'MERCADOPAGO' }) {
 }
 
 export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddress | null }) {
-  const { items, clear, total } = useCartStore();
+  const { items, total } = useCartStore();
   const {
     register,
     handleSubmit,
@@ -137,7 +137,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
       });
       const json = (await res.json()) as { ok: boolean; data?: { url: string; token: string } };
       if (json.ok && json.data) {
-        clear();
+        window.sessionStorage.setItem('hachiko-pending-payment', orderId);
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = json.data.url;
@@ -157,7 +157,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
       });
       const json = (await res.json()) as { ok: boolean; data?: { initPoint: string } };
       if (json.ok && json.data) {
-        clear();
+        window.sessionStorage.setItem('hachiko-pending-payment', orderId);
         window.location.href = json.data.initPoint;
       }
     }

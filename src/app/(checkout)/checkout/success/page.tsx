@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getSession } from '@/src/lib/auth/session';
 import { getOrderForClient } from '@/src/lib/services/order.service';
+import PaymentReturnCart from '@/src/components/storefront/PaymentReturnCart';
 import Shiba from '@/src/components/ui/Shiba';
 
 export const metadata = { title: 'Pedido confirmado — Hachiko' };
@@ -29,8 +30,30 @@ export default async function CheckoutSuccessPage({
   const order =
     orderId && session ? await getOrderForClient(orderId, session.sub) : null;
 
+  if (!order || order.paymentStatus !== 'PAID') {
+    return (
+      <div className="mx-auto max-w-[560px] px-6 py-24 text-center">
+        {order && <PaymentReturnCart paid={false} orderId={order.id} />}
+        <Shiba size={180} mood="idle" />
+        <h1 className="mb-3 mt-8 font-display text-3xl font-bold text-soot">
+          {order ? 'Estamos confirmando tu pago' : 'No encontramos una orden pagada'}
+        </h1>
+        <p className="mb-8 leading-[1.7] text-taupe">
+          {order
+            ? 'Tu carrito sigue disponible mientras recibimos la confirmación del medio de pago. Revisaremos el estado durante unos segundos; si tarda más, consulta tus pedidos.'
+            : 'Tu carrito sigue disponible. Puedes volver a revisarlo o intentar el pago otra vez.'}
+        </p>
+        <div className="flex justify-center gap-3">
+          <Link href="/carrito" className="btn-primary">Volver al carrito</Link>
+          {order && <Link href="/pedidos" className="btn-link">Ver mis pedidos</Link>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-6 py-16 sm:px-12">
+      <PaymentReturnCart paid orderId={order.id} />
       <div className="mx-auto max-w-[880px] text-center">
         {/* Shiba feliz + confeti discreto — la mascota aparece acá y en pocos lugares más */}
         <div className="relative mb-6 inline-block">
