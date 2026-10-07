@@ -148,6 +148,21 @@ export async function saveDefaultShippingAddress(userId: string, input: SavedAdd
   }
 }
 
+// Resumen para el perfil: cuántas compras pagadas tiene la persona y en qué va
+// la última. Dos consultas livianas en paralelo (Order está indexado por userId).
+export async function getAccountSummary(userId: string) {
+  const paid = { userId, paymentStatus: 'PAID' as const };
+  const [orderCount, lastOrder] = await Promise.all([
+    db.order.count({ where: paid }),
+    db.order.findFirst({
+      where: paid,
+      orderBy: { createdAt: 'desc' },
+      select: { orderNumber: true, status: true, shippingMethod: true },
+    }),
+  ]);
+  return { orderCount, lastOrder };
+}
+
 export async function updateUserConsent(
   userId: string,
   consentMarketing: boolean

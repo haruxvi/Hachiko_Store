@@ -171,11 +171,12 @@ export const TrackingSchema = z.object({
 // ─── Account ─────────────────────────────────────────────
 
 export const UpdateProfileSchema = z.object({
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
+  firstName: z.string().trim().min(1, 'Escribe tu nombre.').max(100, 'El nombre es demasiado largo.').optional(),
+  lastName: z.string().trim().min(1, 'Escribe tu apellido.').max(100, 'El apellido es demasiado largo.').optional(),
   phone: z
     .string()
-    .regex(/^\+?56\s?9\s?\d{4}\s?\d{4}$/)
+    .trim()
+    .regex(/^\+?56\s?9\s?\d{4}\s?\d{4}$/, 'Revisa el teléfono: usa el formato +56 9 1234 5678.')
     .optional(),
   consentMarketing: z.boolean().optional(),
 });

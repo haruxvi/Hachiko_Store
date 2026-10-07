@@ -18,7 +18,10 @@ const config: Config = {
         tan: { DEFAULT: '#F3BE8B', mid: '#ED9F5C', soft: '#FBE6BC' },
         rust: { DEFAULT: '#EC9C4A', dark: '#DE8C3D' }, // CTAs primarios — naranja Shiba brillante
         soot: '#3D2F25', // texto principal — marrón cálido, NO negro
-        taupe: '#A8907A', // texto secundario
+        // texto secundario. `deep` es el mismo tono más oscuro para texto chico:
+        // DEFAULT da 2,8:1 sobre cream (no cumple WCAG AA, que exige 4,5:1);
+        // deep da 5,1:1 sobre cream y 5,5:1 sobre snow.
+        taupe: { DEFAULT: '#A8907A', deep: '#7A6552' },
         blush: '#F9D7CE', // decorativo — un solo uso por vista
         petal: '#F0A48F', // SOLO ilustración (lengua / orejas internas)
         mint: { DEFAULT: '#D8ECDC', deep: '#86B596' },

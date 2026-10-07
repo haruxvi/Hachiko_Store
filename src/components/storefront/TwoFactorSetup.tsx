@@ -58,97 +58,106 @@ export default function TwoFactorSetup({ enabled }: { enabled: boolean }) {
     setLoading(false);
   }
 
+  // Presentación de marca (ítem de la sección Seguridad del perfil). La lógica de
+  // activación/desactivación de arriba no cambia.
+  const focusRing = 'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rust/40';
+  const codeInput =
+    'input-hs w-36 text-center font-mono text-lg tracking-[0.35em] placeholder:tracking-[0.35em]';
+
   return (
-    <div className="border rounded-xl p-5">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold">Doble factor de autenticación (2FA)</h2>
-        <span
-          className={`text-xs px-2 py-0.5 rounded-full ${
-            enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
-          }`}
-        >
-          {enabled ? 'Activo' : 'Inactivo'}
-        </span>
+    <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span
+            aria-hidden="true"
+            className={`mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full ${enabled ? 'bg-mint-deep' : 'border-2 border-taupe-deep/60'}`}
+          />
+          <div>
+            <h3 className="text-[15px] font-semibold text-soot">Doble factor</h3>
+            <p className="mt-1 max-w-[42ch] text-sm leading-relaxed text-taupe-deep">
+              {enabled
+                ? 'Activo. Al iniciar sesión te pediremos también el código de tu app de autenticación.'
+                : 'Además de tu contraseña, te pediremos un código de 6 dígitos de una app como Google Authenticator o Authy.'}
+            </p>
+          </div>
+        </div>
       </div>
-      <p className="text-sm text-gray-500 mb-4">
-        Protege tu cuenta con un código de 6 dígitos generado por una app de autenticación
-        (Google Authenticator, Microsoft Authenticator, Authy u otra compatible).
-      </p>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4">
+        <p role="alert" className="mt-4 rounded-input border border-alert/30 bg-alert/[0.06] px-4 py-3 text-sm text-soot">
           {error}
-        </div>
+        </p>
       )}
 
       {!enabled && !qrDataUrl && (
         <button
           onClick={handleStart}
           disabled={loading}
-          className="bg-rose-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-rose-700 disabled:opacity-50"
+          className={`btn-primary btn-sm mt-4 min-h-11 disabled:opacity-60 ${focusRing}`}
         >
-          {loading ? 'Generando...' : 'Activar doble factor'}
+          {loading ? 'Generando código…' : 'Activar doble factor'}
         </button>
       )}
 
       {!enabled && qrDataUrl && (
-        <div className="space-y-4">
-          <ol className="text-sm text-gray-600 list-decimal pl-5 space-y-1">
-            <li>Abre tu app de autenticación y escanea este código QR.</li>
-            <li>Ingresa el código de 6 dígitos que te muestra la app para confirmar.</li>
+        <div className="mt-5 space-y-4 rounded-[18px] border border-sand bg-snow p-5">
+          <ol className="list-decimal space-y-1.5 pl-5 text-sm text-soot">
+            <li>Abre tu app de autenticación y escanea este código.</li>
+            <li>Escribe el código de 6 dígitos que te muestra la app.</li>
           </ol>
           {/* data URL generada en el servidor — el secreto no pasa por terceros */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qrDataUrl} alt="Código QR para app de autenticación" className="border rounded-lg" />
-          <details className="text-xs text-gray-400">
-            <summary className="cursor-pointer">¿No puedes escanear? Ingresa la clave manual</summary>
-            <code className="block mt-2 break-all bg-gray-50 p-2 rounded">{uri}</code>
+          <img src={qrDataUrl} alt="Código QR para tu app de autenticación" className="rounded-input border border-sand" />
+          <details className="text-sm text-taupe-deep">
+            <summary className="cursor-pointer">¿No puedes escanearlo? Usa la clave manual</summary>
+            <code className="mt-2 block break-all rounded-input bg-cream p-2 text-xs text-soot">{uri}</code>
           </details>
-          <form method="post" onSubmit={handleConfirm} className="flex gap-3">
+          <form method="post" onSubmit={handleConfirm} className="flex flex-wrap items-center gap-3">
+            <label className="sr-only" htmlFor="totp-confirm">Código de 6 dígitos</label>
             <input
+              id="totp-confirm"
               name="code"
               inputMode="numeric"
+              autoComplete="one-time-code"
               pattern="\d{6}"
               maxLength={6}
               required
               placeholder="000000"
-              className="border rounded-lg px-3 py-2 text-sm tracking-widest text-center w-32"
+              className={codeInput}
             />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-rose-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-rose-700 disabled:opacity-50"
-            >
-              {loading ? 'Verificando...' : 'Confirmar y activar'}
+            <button type="submit" disabled={loading} className={`btn-primary btn-sm min-h-11 disabled:opacity-60 ${focusRing}`}>
+              {loading ? 'Verificando…' : 'Confirmar y activar'}
             </button>
           </form>
         </div>
       )}
 
       {enabled && (
-        <form method="post" onSubmit={handleDisable} className="space-y-3">
-          <p className="text-sm text-gray-500">
-            Para desactivar el doble factor, confirma con un código vigente de tu app:
-          </p>
-          <div className="flex gap-3">
-            <input
-              name="code"
-              inputMode="numeric"
-              pattern="\d{6}"
-              maxLength={6}
-              required
-              placeholder="000000"
-              className="border rounded-lg px-3 py-2 text-sm tracking-widest text-center w-32"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="border text-red-600 text-sm px-4 py-2 rounded-lg hover:bg-red-50 disabled:opacity-50"
-            >
-              {loading ? 'Verificando...' : 'Desactivar 2FA'}
-            </button>
-          </div>
-        </form>
+        <details className="mt-3 text-sm">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-taupe-deep underline decoration-taupe underline-offset-4 hover:text-soot">
+            Desactivar doble factor
+          </summary>
+          <form method="post" onSubmit={handleDisable} className="mt-2 space-y-3">
+            <p className="text-sm text-taupe-deep">Confirma con un código vigente de tu app:</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="sr-only" htmlFor="totp-disable">Código de 6 dígitos</label>
+              <input
+                id="totp-disable"
+                name="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                maxLength={6}
+                required
+                placeholder="000000"
+                className={codeInput}
+              />
+              <button type="submit" disabled={loading} className={`btn-outline btn-sm min-h-11 disabled:opacity-60 ${focusRing}`}>
+                {loading ? 'Verificando…' : 'Desactivar'}
+              </button>
+            </div>
+          </form>
+        </details>
       )}
     </div>
   );

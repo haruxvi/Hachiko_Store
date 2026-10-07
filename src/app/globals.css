@@ -163,3 +163,21 @@
     transition: none !important;
   }
 }
+
+/* Timbre del carnet de socio (perfil). Es el único movimiento de esa página: cae
+   una vez al cargar, como un sello sobre papel. Se usa con `motion-safe:`, así
+   que con "reducir movimiento" activado el timbre aparece quieto. */
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-20deg) scale(1.4);
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(-9deg) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-11deg) scale(1);
+  }
+}
