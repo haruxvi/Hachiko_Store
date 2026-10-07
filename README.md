@@ -60,7 +60,7 @@ No es un template genérico de e-commerce: cada decisión técnica está documen
 
 - **Carga masiva de productos:** disponible para vendedores en `/trastienda/productos/importar`. Acepta archivos CSV y XLSX, valida los datos y muestra una vista previa antes de guardar. Si una fila tiene errores, no se importa ninguna.
 - **Reposición por SKU:** un SKU existente permite sumar stock sin cambiar el nombre, precio o fotos del producto. La vista previa distingue productos nuevos y reposiciones, y muestra el stock actual y final. Los movimientos quedan registrados en el inventario.
-- **Plantilla Excel:** conserva el diseño de Hachiko, con instrucciones para crear productos o reponer stock, campos editables diferenciados por color y SKU y URL automáticos para productos nuevos.
+- **Plantilla Excel:** conserva el diseño de Hachiko, con instrucciones para crear productos o reponer stock, campos editables diferenciados por color y SKU automático para productos nuevos. La URL se genera internamente al importar, sin pedir una columna adicional.
 - **URL automática en el formulario manual:** el slug se genera al crear el producto y ya no se solicita al vendedor. Al editar un producto, se conserva su URL para mantener los enlaces existentes.
 - **Carrito al cancelar el pago:** los productos permanecen en el carrito durante el pago con Webpay o MercadoPago. Se vacía al volver a la tienda cuando se verifica que la orden del intento de pago quedó pagada; abrir un enlace antiguo de confirmación no vuelve a vaciarlo.
 

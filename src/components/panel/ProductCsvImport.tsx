@@ -127,7 +127,7 @@ export default function ProductCsvImport({
         </p>
         <p className="text-sm text-taupe">
           Si editas un Excel, guárdalo antes de subirlo para actualizar las
-          fórmulas de SKU y URL. Luego podrás validarlo y revisar los productos
+          fórmulas de SKU. Luego podrás validarlo y revisar los productos
           antes de guardarlos.
         </p>
         <p className="text-sm text-taupe">
@@ -146,13 +146,12 @@ export default function ProductCsvImport({
               precio_clp, stock, peso_gramos.
             </p>
             <p>
-              <strong>Opcionales:</strong> sku, slug, costo_clp, stock_minimo
+              <strong>Opcionales:</strong> sku, costo_clp, stock_minimo
               (5), nombre_coreano, imagenes, activo (si), destacado (no).
             </p>
             <p>
               Precios en pesos enteros: 1990, sin $ ni puntos. Stock desde 0;
-              precio y peso mayores que 0. El slug usa minúsculas, números y
-              guiones, por ejemplo: ramen-picante.
+              precio y peso mayores que 0.
             </p>
             <p>
               En imagenes puedes pegar enlaces HTTPS o rutas locales. Separa
@@ -239,7 +238,7 @@ export default function ProductCsvImport({
           </p>
           {recoveredIdentifiers > 0 && (
             <p className="text-sm text-rust">
-              Se regeneraron SKU o URL de {recoveredIdentifiers} productos
+              Se regeneraron identificadores de {recoveredIdentifiers} productos
               porque sus fórmulas no tenían un valor válido. Revísalos antes de
               importar.
             </p>
