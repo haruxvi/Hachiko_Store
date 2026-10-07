@@ -12,18 +12,18 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-type Params = { profitPeriod?: string; unitsPeriod?: string; tablePeriod?: string };
+// `periodo` controla toda la página. Los parámetros antiguos (uno por sección) se
+// aceptan como respaldo para que los links guardados sigan funcionando.
+type Params = { periodo?: string; tablePeriod?: string; unitsPeriod?: string; profitPeriod?: string };
 
-const SHORT: Record<ForecastPeriod, string> = { day: 'Día', week: 'Sem.', month: 'Mes' };
+const LABEL: Record<ForecastPeriod, string> = { day: 'Día', week: 'Semana', month: 'Mes' };
 const PER: Record<ForecastPeriod, string> = { day: 'por día', week: 'por semana', month: 'del mes' };
 
 export default async function DemandaPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
-  const profitPeriod = parsePeriod(params.profitPeriod);
-  const unitsPeriod = parsePeriod(params.unitsPeriod);
-  const tablePeriod = parsePeriod(params.tablePeriod);
+  const period = parsePeriod(params.periodo ?? params.tablePeriod ?? params.unitsPeriod ?? params.profitPeriod);
 
-  // Una sola lectura del pronóstico: las tres vistas derivan del mismo dato mensual.
+  // Una sola lectura del pronóstico: toda la página deriva del mismo dato mensual.
   const [forecast, trends, profit] = await Promise.all([
     getDemandForecast(),
     getProductTrends(),
@@ -50,55 +50,32 @@ export default async function DemandaPage({ searchParams }: { searchParams: Prom
 
   const totalUnits = forecast.products.reduce((sum, p) => {
     const pt = p.points[0];
-    return pt ? sum + scaleToPeriod(pt.predicted, unitsPeriod, pt.horizonDays) : sum;
+    return pt ? sum + scaleToPeriod(pt.predicted, period, pt.horizonDays) : sum;
   }, 0);
-
-  const hrefWith = (key: keyof Params, value: ForecastPeriod) => {
-    const q = new URLSearchParams({ profitPeriod, unitsPeriod, tablePeriod });
-    q.set(key, value);
-    return `/trastienda/demanda?${q.toString()}`;
-  };
-
-  const averageNote = (p: ForecastPeriod) =>
-    p === 'month' ? null : `promedio ${PER[p]} derivado del pronóstico mensual`;
 
   return (
     <div className="space-y-8">
       <PageHeader title="Demanda" subtitle="Lo que viene, para comprar a tiempo" updated={forecast.lastUpdated} />
 
       <section className="space-y-3">
-        <Eyebrow>Resumen del pronóstico · {forecastMonth}</Eyebrow>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Eyebrow>Resumen del pronóstico · {forecastMonth}</Eyebrow>
+          <PeriodToggle current={period} />
+        </div>
+        {period !== 'month' && (
+          <p className="text-[12px] text-taupe">
+            Vista {PER[period]}: promedio derivado del pronóstico mensual del modelo, suponiendo demanda pareja
+            durante el mes.
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <div className="card-hs shadow-soft flex flex-col justify-between p-4">
-            <div className="flex items-center justify-between gap-1 border-b border-sand/40 pb-2">
-              <span className="truncate text-[12px] font-medium text-taupe">Ganancia esperada {PER[profitPeriod]}</span>
-              <PeriodToggle current={profitPeriod} href={(p) => hrefWith('profitPeriod', p)} />
-            </div>
-            <div className="mt-3">
-              <div className="price-mono text-2xl font-semibold tracking-tight text-mint-deep">
-                {clp(scaleToPeriod(profit.expectedProfit, profitPeriod, profit.horizonDays))}
-              </div>
-              <p className="mt-1 text-[11px] text-taupe">
-                margen {pct(profit.marginPct)} · ingresos{' '}
-                {clp(scaleToPeriod(profit.expectedRevenue, profitPeriod, profit.horizonDays))}
-              </p>
-              {averageNote(profitPeriod) && <p className="mt-0.5 text-[11px] text-taupe">{averageNote(profitPeriod)}</p>}
-            </div>
-          </div>
-
-          <div className="card-hs shadow-soft flex flex-col justify-between p-4">
-            <div className="flex items-center justify-between gap-1 border-b border-sand/40 pb-2">
-              <span className="truncate text-[12px] font-medium text-taupe">Unidades previstas {PER[unitsPeriod]}</span>
-              <PeriodToggle current={unitsPeriod} href={(p) => hrefWith('unitsPeriod', p)} />
-            </div>
-            <div className="mt-3">
-              <div className="price-mono text-2xl font-semibold tracking-tight text-soot">
-                {formatUnits(totalUnits, unitsPeriod)}
-              </div>
-              {averageNote(unitsPeriod) && <p className="mt-1 text-[11px] text-taupe">{averageNote(unitsPeriod)}</p>}
-            </div>
-          </div>
-
+          <Stat
+            label={`Ganancia esperada ${PER[period]}`}
+            value={clp(scaleToPeriod(profit.expectedProfit, period, profit.horizonDays))}
+            accent
+            hint={`margen ${pct(profit.marginPct)} · ingresos ${clp(scaleToPeriod(profit.expectedRevenue, period, profit.horizonDays))}`}
+          />
+          <Stat label={`Unidades previstas ${PER[period]}`} value={formatUnits(totalUnits, period)} />
           <Stat label="Productos pronosticados" value={num(forecast.products.length)} />
           <Stat
             label="Error medio del modelo"
@@ -109,10 +86,7 @@ export default async function DemandaPage({ searchParams }: { searchParams: Prom
       </section>
 
       <section className="card-hs shadow-soft p-6">
-        <div className="flex items-center justify-between gap-3">
-          <Eyebrow>Pronóstico por producto</Eyebrow>
-          <PeriodToggle current={tablePeriod} href={(p) => hrefWith('tablePeriod', p)} />
-        </div>
+        <Eyebrow>Pronóstico por producto</Eyebrow>
         <p className="mt-1 text-[12px] text-taupe">
           Ordenado por demanda estimada. El riesgo de quiebre compara siempre el pronóstico del mes completo con el
           stock actual, sin importar la vista elegida.
@@ -124,7 +98,7 @@ export default async function DemandaPage({ searchParams }: { searchParams: Prom
               <tr className="border-b border-sand text-left text-taupe">
                 <th className="py-2 pr-3 text-[12px] font-medium">Producto</th>
                 <th className="py-2 pr-3 text-right text-[12px] font-medium">
-                  {forecastMonth} · {PER[tablePeriod]}
+                  {forecastMonth} · {PER[period]}
                 </th>
                 <th className="py-2 pr-3 text-right text-[12px] font-medium">Rango</th>
                 <th className="py-2 pr-3 text-right text-[12px] font-medium">Stock</th>
@@ -137,7 +111,7 @@ export default async function DemandaPage({ searchParams }: { searchParams: Prom
                 // Señal de negocio: pronóstico MENSUAL vs stock. Una vista por día
                 // nunca superaría el stock y escondería quiebres reales.
                 const risk = pt ? pt.predicted > p.stock : false;
-                const show = (q: number) => formatUnits(pt ? scaleToPeriod(q, tablePeriod, pt.horizonDays) : 0, tablePeriod);
+                const show = (q: number) => formatUnits(pt ? scaleToPeriod(q, period, pt.horizonDays) : 0, period);
                 return (
                   <tr key={p.productId} className="border-b border-sand/40 last:border-0 hover:bg-sand/10">
                     <td className="py-2.5 pr-3 font-medium text-soot">{p.name}</td>
@@ -195,22 +169,22 @@ export default async function DemandaPage({ searchParams }: { searchParams: Prom
   );
 }
 
-function PeriodToggle({ current, href }: { current: ForecastPeriod; href: (p: ForecastPeriod) => string }) {
+function PeriodToggle({ current }: { current: ForecastPeriod }) {
   return (
-    <div className="flex shrink-0 items-center rounded-chip bg-sand/30 p-0.5 text-[10px]">
+    <nav aria-label="Período del pronóstico" className="inline-flex rounded-chip border border-sand bg-cream p-0.5">
       {FORECAST_PERIODS.map((p) => (
         <Link
           key={p}
-          href={href(p)}
+          href={p === 'month' ? '/trastienda/demanda' : `/trastienda/demanda?periodo=${p}`}
           scroll={false}
           aria-current={current === p ? 'true' : undefined}
-          className={`rounded px-1.5 py-0.5 font-medium transition ${
+          className={`rounded-[6px] px-3 py-1 text-[13px] font-medium transition ${
             current === p ? 'bg-soot text-snow' : 'text-taupe hover:text-soot'
           }`}
         >
-          {SHORT[p]}
+          {LABEL[p]}
         </Link>
       ))}
-    </div>
+    </nav>
   );
 }
