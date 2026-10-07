@@ -68,6 +68,24 @@ Para usar la carga masiva, descarga la plantilla desde la trastienda y consulta 
 
 ---
 
+## 📱 Instalar como app (PWA)
+
+Hachiko se puede instalar en el celular o el computador como una app, con su propio ícono y en pantalla completa, directo desde **[hachiko-store.vercel.app](https://hachiko-store.vercel.app)**. No necesita tienda de aplicaciones ni descargar archivos.
+
+| Dispositivo | Cómo instalar |
+| --- | --- |
+| **Android** (Chrome) | Abrir el sitio → menú **⋮** → **Instalar app** (o el aviso "Agregar a la pantalla principal"). |
+| **iPhone / iPad** (Safari) | Abrir el sitio → botón **Compartir** → **Agregar a inicio**. |
+| **Computador** (Chrome / Edge) | Abrir el sitio → ícono de **instalar** en la barra de direcciones. |
+
+Una vez instalada, al mantener presionado el ícono aparecen accesos directos a **Catálogo**, **Mi carrito** y **Mis pedidos**. Si se pierde la conexión, se muestra una página "Sin conexión" en lugar de un error del navegador.
+
+**Privacidad por diseño:** el service worker ([`public/sw.js`](public/sw.js)) solo guarda en el dispositivo archivos públicos (scripts, estilos, fuentes e íconos). **Nunca guarda páginas ni respuestas de la API**, porque contienen datos personales y de sesión (perfil, pedidos, checkout, trastienda): si otra persona usa el mismo equipo, no puede verlos sin conexión. Esta regla está cubierta por tests automáticos ([`tests/unit/pwa.test.ts`](tests/unit/pwa.test.ts)).
+
+> Archivos de la PWA: manifiesto en [`src/app/manifest.ts`](src/app/manifest.ts), página offline en [`src/app/offline/page.tsx`](src/app/offline/page.tsx) e íconos generados con [`scripts/generate-pwa-icons.mjs`](scripts/generate-pwa-icons.mjs) a partir del logo vectorial.
+
+---
+
 ## 🧠 Inteligencia: análisis de datos y Machine Learning
 
 Un e-commerce genera datos valiosos (ventas, inventario, comportamiento, seguridad). Este subsistema los aprovecha para apoyar la operación con **análisis descriptivo (BI)** y **modelos predictivos (ML)**, siguiendo la metodología estándar **CRISP-DM**. Documentación completa y detallada en [`docs/machine-learning.md`](docs/machine-learning.md).

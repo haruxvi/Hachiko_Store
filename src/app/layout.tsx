@@ -1,6 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Zen_Maru_Gothic, Quicksand, JetBrains_Mono, Fraunces } from 'next/font/google';
 import WhatsAppButton from '@/src/components/storefront/WhatsAppButton';
+import ServiceWorkerRegister from '@/src/components/ServiceWorkerRegister';
 import './globals.css';
 
 // Sistema tipográfico Hachiko:
@@ -48,6 +49,23 @@ export const metadata: Metadata = {
     description:
       'Snacks, skincare, papelería y merch K-pop con despacho a todo Chile y retiro en tienda (Recoleta).',
   },
+  // PWA: el manifiesto (src/app/manifest.ts) lo enlaza Next automáticamente.
+  // iOS no usa los íconos ni el nombre del manifiesto: se declaran aparte.
+  applicationName: 'Hachiko',
+  appleWebApp: { capable: true, title: 'Hachiko', statusBarStyle: 'default' },
+  icons: {
+    icon: [
+      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/icons/apple-touch-icon.png',
+  },
+};
+
+// Color de la barra del sistema (Android/escritorio) con la app instalada: el
+// amarillo del header.
+export const viewport: Viewport = {
+  themeColor: '#FBE7A0',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -59,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <WhatsAppButton />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
