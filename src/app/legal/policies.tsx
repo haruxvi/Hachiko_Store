@@ -198,6 +198,24 @@ const POLICIES: Record<PolicySlug, Policy> = {
         ],
       },
       {
+        h: 'Menores de edad',
+        blocks: [
+          {
+            kind: 'p',
+            content: (
+              <>
+                Hachiko está dirigido a personas de <strong>14 años o más</strong>. Las personas
+                menores de 14 años no deben crear una cuenta, suscribirse ni comprar sin la
+                autorización de su padre, madre o representante legal, conforme a la Ley N° 21.719.
+                Si detectamos que recibimos datos de un menor de 14 años sin esa autorización, los
+                eliminaremos. Si eres padre, madre o representante y crees que un menor a tu cargo
+                nos entregó sus datos, escríbenos a {mailto}.
+              </>
+            ),
+          },
+        ],
+      },
+      {
         h: 'Tus derechos (ARCOP)',
         blocks: [
           {

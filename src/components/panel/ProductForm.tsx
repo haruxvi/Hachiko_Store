@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createProductAction, updateProductAction } from '@/src/actions/inventory';
+import { safeImageUrl } from '@/src/lib/image-url';
 
 type Category = { id: string; name: string };
 
@@ -75,8 +76,14 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
   }
 
   function addUrl() {
-    const url = urlDraft.trim();
-    if (!url) return;
+    if (!urlDraft.trim()) return;
+    // Lo que se pega se valida antes de usarlo como src de una imagen.
+    const url = safeImageUrl(urlDraft);
+    if (!url) {
+      setError('La URL de la imagen debe empezar con https://');
+      return;
+    }
+    setError('');
     setImages((prev) => (prev.includes(url) ? prev : [...prev, url]));
     setUrlDraft('');
   }
@@ -175,7 +182,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
           {images.map((src, i) => (
             <div key={`${src}-${i}`} className="group relative aspect-square overflow-hidden rounded-input border border-sand bg-cream">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
+              <img src={safeImageUrl(src) ?? undefined} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
               {i === 0 && (
                 <span className="absolute left-1.5 top-1.5 rounded-chip bg-soot/80 px-1.5 py-0.5 text-[10px] font-medium text-snow">
                   Principal

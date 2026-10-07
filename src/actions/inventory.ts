@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/src/lib/auth/session';
+import { safeImageUrl } from '@/src/lib/image-url';
 import { adjustStock } from '@/src/lib/services/inventory.service';
 import {
   createProduct,
@@ -95,7 +96,20 @@ const ProductActionSchema = z.object({
   stock: z.number().int().min(0),
   lowStockThreshold: z.number().int().min(0).default(5),
   weightGrams: z.number().int().positive(),
-  images: z.array(z.string()).max(10).default([]),
+  // Se muestran a todos los clientes: solo https (misma regla que la carga masiva).
+  images: z
+    .array(
+      z.string().transform((v, ctx) => {
+        const url = safeImageUrl(v);
+        if (!url) {
+          ctx.addIssue({ code: 'custom', message: 'Las imágenes deben ser URLs https.' });
+          return z.NEVER;
+        }
+        return url;
+      }),
+    )
+    .max(10)
+    .default([]),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
   categoryId: idSchema,

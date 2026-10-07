@@ -14,21 +14,20 @@ const header =
 const row = "SKU-1,snack,Snack,Descripcion,snacks,1990,10,100";
 describe("CSV de productos", () => {
   it("genera identificadores estables si faltan las columnas o quedan vacías", () => {
-    const minimal =
-      "nombre,descripcion,categoria,precio_clp,stock,peso_gramos\nTé de limón,Demo,snacks,1990,10,100";
-    const a = parseProductCsv(minimal, cats);
-    const b = parseProductCsv(
-      "sku,slug," + minimal.replace("\n", "\n,,"),
-      cats,
-    );
+    const minHeader = "nombre,descripcion,categoria,precio_clp,stock,peso_gramos";
+    const minRow = "Té de limón,Demo,snacks,1990,10,100";
+    const samePriceChanged = "Té de limón,Demo,snacks,2990,10,100";
+    // a: sin columnas sku/slug. b: con las columnas presentes pero vacías.
+    const a = parseProductCsv(`${minHeader}\n${minRow}`, cats);
+    const b = parseProductCsv(`sku,slug,${minHeader}\n,,${minRow}`, cats);
     expect(a.issues).toEqual([]);
     expect(b.issues).toEqual([]);
     expect(productAt(a.rows[0])).toEqual(productAt(b.rows[0]));
     expect(productAt(a.rows[0])?.sku).toMatch(/^AUTO-[A-F0-9]{8}$/);
     expect(productAt(a.rows[0])?.slug).toMatch(/^te-de-limon-[a-f0-9]{8}$/);
+    // Cambiar solo el precio no cambia el SKU automático.
     expect(
-      productAt(parseProductCsv(minimal.replace("1990", "2990"), cats).rows[0])
-        ?.sku,
+      productAt(parseProductCsv(`${minHeader}\n${samePriceChanged}`, cats).rows[0])?.sku,
     ).toBe(productAt(a.rows[0])?.sku);
   });
   it("mantiene identificadores manuales y rechaza duplicados automáticos", () => {
