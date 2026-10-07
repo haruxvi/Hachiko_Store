@@ -5,11 +5,12 @@ const mocks = vi.hoisted(() => ({
   session: vi.fn(),
   categories: vi.fn(),
   existing: vi.fn(),
+  txExisting: vi.fn(),
+  update: vi.fn(),
   transaction: vi.fn(),
   createManyAndReturn: vi.fn(),
   movementMany: vi.fn(),
   audit: vi.fn(),
-  count: vi.fn(),
   categoryCount: vi.fn(),
   revalidate: vi.fn(),
 }));
@@ -38,7 +39,7 @@ beforeEach(() => {
     { id: "clh12345678901234567890123", slug: "snacks", name: "Snacks" },
   ]);
   mocks.existing.mockResolvedValue([]);
-  mocks.count.mockResolvedValue(0);
+  mocks.txExisting.mockResolvedValue([]);
   mocks.categoryCount.mockResolvedValue(1);
   mocks.createManyAndReturn.mockImplementation(async ({ data }) =>
     data.map((product: { sku: string }, index: number) => ({
@@ -50,8 +51,9 @@ beforeEach(() => {
     fn({
       category: { count: mocks.categoryCount },
       product: {
+        findMany: mocks.txExisting,
         createManyAndReturn: mocks.createManyAndReturn,
-        count: mocks.count,
+        update: mocks.update,
       },
       stockMovement: { createMany: mocks.movementMany },
       auditLog: { create: mocks.audit },
@@ -126,7 +128,12 @@ describe("Carga masiva autorizada", () => {
       [header, ...rows].join("\r\n") + "\r\n",
       true,
     );
-    expect(result).toEqual({ ok: true, count: 1000 });
+    expect(result).toEqual({
+      ok: true,
+      count: 1000,
+      createdCount: 1000,
+      restockedCount: 0,
+    });
     expect(mocks.transaction).toHaveBeenCalledOnce();
     expect(mocks.createManyAndReturn).toHaveBeenCalledOnce();
     expect(mocks.createManyAndReturn.mock.calls[0]![0].data).toHaveLength(1000);
@@ -150,9 +157,115 @@ describe("Carga masiva autorizada", () => {
     expect(r.ok).toBe(true);
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
-  it("rechaza duplicados existentes", async () => {
-    mocks.existing.mockResolvedValue([{ sku: "TEST-001", slug: "otro" }]);
-    expect((await importProductsCsv(csv, true)).ok).toBe(false);
+  it("suma stock de un SKU existente sin cambiar sus datos", async () => {
+    mocks.categories.mockResolvedValue([]);
+    const product = {
+      id: "existing-1",
+      sku: "TEST-001",
+      slug: "otro",
+      name: "Nombre en tienda",
+      stock: 7,
+      priceCLP: 2990,
+      active: true,
+      archivedAt: null,
+      category: { name: "Snacks" },
+    };
+    mocks.existing.mockResolvedValue([product]);
+    mocks.txExisting.mockResolvedValue([product]);
+    const preview = await importProductsCsv("sku,stock\nTEST-001,20\n");
+    expect(preview.ok).toBe(true);
+    if (preview.ok)
+      expect(preview.preview?.[0]).toMatchObject({
+        operation: "restock",
+        name: "Nombre en tienda",
+        stock: 20,
+        currentStock: 7,
+        resultingStock: 27,
+      });
+    mocks.categories.mockResolvedValue([
+      { id: "clh12345678901234567890123", slug: "snacks", name: "Snacks" },
+    ]);
+    const fullRowPreview = await importProductsCsv(csv);
+    expect(fullRowPreview.ok).toBe(true);
+    if (fullRowPreview.ok)
+      expect(fullRowPreview.preview?.[0]).toMatchObject({
+        operation: "restock",
+        name: "Nombre en tienda",
+        price: 2990,
+      });
+    expect(await importProductsCsv("sku,stock\nTEST-001,20\n", true)).toEqual({
+      ok: true,
+      count: 1,
+      createdCount: 0,
+      restockedCount: 1,
+    });
+    expect(mocks.createManyAndReturn).not.toHaveBeenCalled();
+    expect(mocks.update).toHaveBeenCalledWith({
+      where: { id: "existing-1" },
+      data: { stock: { increment: 20 } },
+    });
+    expect(mocks.movementMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          productId: "existing-1",
+          reason: "RESTOCK",
+          quantity: 20,
+          previousStock: 7,
+          resultingStock: 27,
+        }),
+      ],
+    });
+  });
+  it("mezcla un producto nuevo y una reposición en el mismo archivo", async () => {
+    const existing = {
+      id: "existing-1",
+      sku: "EXIST-1",
+      slug: "producto-existente",
+      name: "Producto existente",
+      stock: 5,
+      priceCLP: 4500,
+      active: true,
+      archivedAt: null,
+      category: { name: "Snacks" },
+    };
+    mocks.existing.mockResolvedValue([existing]);
+    mocks.txExisting.mockResolvedValue([existing]);
+    const restock = [
+      "EXIST-1",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "3",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ].join(";");
+    const mixed = csv + restock + "\r\n";
+    expect(await importProductsCsv(mixed, true)).toEqual({
+      ok: true,
+      count: 2,
+      createdCount: 1,
+      restockedCount: 1,
+    });
+    expect(mocks.createManyAndReturn.mock.calls[0]![0].data).toHaveLength(1);
+    expect(mocks.update).toHaveBeenCalledOnce();
+    expect(
+      mocks.movementMany.mock.calls[0]![0].data.map(
+        (movement: { reason: string }) => movement.reason,
+      ),
+    ).toEqual(["INITIAL_LOAD", "RESTOCK"]);
+  });
+  it("rechaza reposición de un SKU desconocido y cantidad cero", async () => {
+    expect((await importProductsCsv("sku,stock\nDESCONOCIDO,2\n")).ok).toBe(
+      false,
+    );
+    expect((await importProductsCsv("sku,stock\nTEST-001,0\n")).ok).toBe(false);
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
   it("no guarda si cualquier fila es inválida", async () => {
@@ -162,7 +275,12 @@ describe("Carga masiva autorizada", () => {
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
   it("crea producto, stock inicial y auditoría dentro de una transacción", async () => {
-    expect(await importProductsCsv(csv, true)).toEqual({ ok: true, count: 1 });
+    expect(await importProductsCsv(csv, true)).toEqual({
+      ok: true,
+      count: 1,
+      createdCount: 1,
+      restockedCount: 0,
+    });
     expect(mocks.createManyAndReturn).toHaveBeenCalledOnce();
     expect(mocks.movementMany).toHaveBeenCalledWith({
       data: [
@@ -193,8 +311,20 @@ describe("Carga masiva autorizada", () => {
       inserted[1]!.createdAt.getTime(),
     );
   });
-  it("revalida duplicados al confirmar", async () => {
-    mocks.count.mockResolvedValue(1);
+  it("revalida si un SKU cambió entre la vista previa y la confirmación", async () => {
+    mocks.txExisting.mockResolvedValue([
+      {
+        id: "other",
+        sku: "TEST-001",
+        slug: "test-producto-uno",
+        name: "Otro",
+        stock: 1,
+        priceCLP: 1990,
+        active: true,
+        archivedAt: null,
+        category: { name: "Snacks" },
+      },
+    ]);
     expect((await importProductsCsv(csv, true)).ok).toBe(false);
     expect(mocks.createManyAndReturn).not.toHaveBeenCalled();
   });

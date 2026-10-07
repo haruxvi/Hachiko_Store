@@ -63,6 +63,7 @@ const HEADER_ALIASES: Record<string, string> = {
   "precio venta": "precio_clp",
   stock: "stock",
   "stock un": "stock",
+  "stock sumar": "stock",
   cantidad: "stock",
   existencias: "stock",
   "peso g": "peso_gramos",

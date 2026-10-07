@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import ExcelJS from "exceljs";
 import { productXlsxToCsv } from "@/src/lib/product-xlsx";
-import { parseProductCsv } from "@/src/lib/product-csv";
+import { parseProductCsv, type CsvRow } from "@/src/lib/product-csv";
+const productAt = (row?: CsvRow) =>
+  row?.kind === "product" ? row.product : undefined;
 
 describe("lectura de Excel para productos", () => {
   it("encuentra encabezados bajo un título y conserva la fila real", async () => {
@@ -59,9 +61,43 @@ describe("lectura de Excel para productos", () => {
       { id: "clh12345678901234567890123", name: "Snacks", slug: "snacks" },
     ]);
     expect(parsed.issues).toEqual([]);
-    expect(parsed.rows[0]?.product.name).toBe("Galletas de frutilla");
-    expect(parsed.rows[0]?.product.priceCLP).toBe(2490);
+    expect(productAt(parsed.rows[0])?.name).toBe("Galletas de frutilla");
+    expect(productAt(parsed.rows[0])?.priceCLP).toBe(2490);
     expect(converted.csv).not.toContain("No importar");
+  });
+  it("lee una fila de reposición desde la plantilla descriptiva", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Productos");
+    sheet.getRow(7).values = [
+      "Nombre *",
+      "Descripción *",
+      "Categoría *",
+      "Precio (CLP) *",
+      "Stock / sumar *",
+      "Peso (g) *",
+      "Costo (CLP)",
+      "Stock mínimo",
+      "Nombre coreano",
+      "Fotos (URLs)",
+      "Activo",
+      "Destacado",
+      "SKU automático",
+      "URL automática",
+      "SKU existente (reposición)",
+    ];
+    sheet.getCell("E8").value = 7;
+    sheet.getCell("M8").value = { formula: "O8", result: "PROD-1" };
+    sheet.getCell("N8").value = { formula: "LOWER(M8)", result: "prod-1" };
+    sheet.getCell("O8").value = "PROD-1";
+    const converted = await productXlsxToCsv(
+      new Uint8Array(await workbook.xlsx.writeBuffer()),
+    );
+    const parsed = parseProductCsv(converted.csv, []);
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.rows).toEqual([
+      { row: 2, kind: "restock", sku: "PROD-1", quantity: 7 },
+    ]);
+    expect(converted.rowNumbers).toEqual([8]);
   });
 
   it("recupera productos cuando las fórmulas de SKU y URL tienen #REF!", async () => {
@@ -116,8 +152,8 @@ describe("lectura de Excel para productos", () => {
     expect(converted.rowNumbers).toEqual([2]);
     expect(converted.recoveredIdentifiers).toBe(1);
     expect(parsed.issues).toEqual([]);
-    expect(parsed.rows[0]?.product.sku).toMatch(/^AUTO-/);
-    expect(parsed.rows[0]?.product.slug).toMatch(/^galletas-seoul-/);
+    expect(productAt(parsed.rows[0])?.sku).toMatch(/^AUTO-/);
+    expect(productAt(parsed.rows[0])?.slug).toMatch(/^galletas-seoul-/);
   });
 
   it("explica qué columnas faltan en un libro sin productos", async () => {

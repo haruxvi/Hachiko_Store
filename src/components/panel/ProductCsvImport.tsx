@@ -11,11 +11,14 @@ import {
 
 type Preview = {
   row: number;
+  operation: "create" | "restock";
   sku: string;
   name: string;
   category: string;
   price: number;
   stock: number;
+  currentStock: number;
+  resultingStock: number;
   active: boolean;
 };
 export default function ProductCsvImport({
@@ -29,7 +32,10 @@ export default function ProductCsvImport({
   const [preview, setPreview] = useState<Preview[]>([]);
   const [recoveredIdentifiers, setRecoveredIdentifiers] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<number | null>(null);
+  const [done, setDone] = useState<{
+    createdCount: number;
+    restockedCount: number;
+  } | null>(null);
   async function select(file?: File) {
     setFile(null);
     setFilename("");
@@ -60,7 +66,10 @@ export default function ProductCsvImport({
         setPreview([]);
         setRecoveredIdentifiers(0);
       } else if (commit) {
-        setDone(result.count);
+        setDone({
+          createdCount: result.createdCount,
+          restockedCount: result.restockedCount,
+        });
         setPreview([]);
         setRecoveredIdentifiers(0);
         setFile(null);
@@ -99,7 +108,9 @@ export default function ProductCsvImport({
             </h3>
             <p className="mt-1 text-sm text-taupe">
               Excel con el diseño de Hachiko, instrucciones y 100 filas vacías
-              para completar. El SKU y la URL se calculan automáticamente.
+              para completar. El SKU se calcula automáticamente para productos
+              nuevos; también puedes indicar el SKU de uno existente para sumar
+              stock.
             </p>
           </div>
           <a
@@ -118,6 +129,12 @@ export default function ProductCsvImport({
           Si editas un Excel, guárdalo antes de subirlo para actualizar las
           fórmulas de SKU y URL. Luego podrás validarlo y revisar los productos
           antes de guardarlos.
+        </p>
+        <p className="text-sm text-taupe">
+          Para reponer un producto existente, escribe su SKU en la columna «SKU
+          existente» y la cantidad que quieres sumar en «Stock». Puedes dejar
+          vacíos los demás datos de esa fila. No se modifican el precio, el
+          nombre ni las fotos del producto existente.
         </p>
         <details className="text-sm">
           <summary className="cursor-pointer font-medium text-rust">
@@ -172,13 +189,14 @@ export default function ProductCsvImport({
         </label>
         {filename && <p className="text-sm text-taupe">Archivo: {filename}</p>}
         <p className="text-xs text-taupe">
-          La validación no guarda productos. Si faltan SKU o URL, se generan
-          automáticamente. Solo se crean productos nuevos: si hay errores o
-          identificadores repetidos, no se importa ninguna fila.
+          La validación no guarda cambios. Un SKU nuevo crea el producto; un SKU
+          existente suma la cantidad indicada a su stock. Si hay errores, no se
+          guarda ninguna fila. Volver a importar el mismo archivo sumará stock
+          nuevamente.
         </p>
         <button
           type="button"
-          disabled={!file || busy || !categories.length}
+          disabled={!file || busy}
           onClick={() => startTransition(() => submit(false))}
           className="btn-primary disabled:opacity-50"
         >
@@ -186,7 +204,8 @@ export default function ProductCsvImport({
         </button>
         {!categories.length && (
           <p className="text-sm text-alert">
-            Crea al menos una categoría activa antes de importar.
+            Para crear productos nuevos, crea al menos una categoría activa. La
+            reposición de SKU existentes sigue disponible.
           </p>
         )}
       </section>
@@ -212,7 +231,11 @@ export default function ProductCsvImport({
         <section className="rounded-card border border-sand bg-snow p-6 space-y-4">
           <h2 className="font-display text-lg">3. Confirma la importación</h2>
           <p className="text-sm text-taupe">
-            {preview.length} productos válidos. Todavía no se han guardado.
+            {preview.length} filas válidas:{" "}
+            {preview.filter((entry) => entry.operation === "create").length}{" "}
+            productos nuevos y{" "}
+            {preview.filter((entry) => entry.operation === "restock").length}{" "}
+            reposiciones. Todavía no se han guardado.
           </p>
           {recoveredIdentifiers > 0 && (
             <p className="text-sm text-rust">
@@ -228,10 +251,12 @@ export default function ProductCsvImport({
                   {[
                     "Fila",
                     "SKU",
+                    "Acción",
                     "Producto",
                     "Categoría",
                     "Precio",
-                    "Stock",
+                    "Cantidad",
+                    "Stock actual → final",
                     "Estado",
                   ].map((h) => (
                     <th key={h} className="p-2">
@@ -245,12 +270,18 @@ export default function ProductCsvImport({
                   <tr key={p.row} className="border-b border-sand">
                     <td className="p-2">{p.row}</td>
                     <td className="p-2 font-mono text-xs">{p.sku}</td>
+                    <td className="p-2">
+                      {p.operation === "create" ? "Crear" : "Sumar stock"}
+                    </td>
                     <td className="p-2">{p.name}</td>
                     <td className="p-2">{p.category}</td>
                     <td className="p-2 whitespace-nowrap">
                       ${p.price.toLocaleString("es-CL")}
                     </td>
                     <td className="p-2">{p.stock}</td>
+                    <td className="p-2 whitespace-nowrap">
+                      {p.currentStock} → {p.resultingStock}
+                    </td>
                     <td className="p-2">{p.active ? "Activo" : "Inactivo"}</td>
                   </tr>
                 ))}
@@ -263,7 +294,7 @@ export default function ProductCsvImport({
             className="btn-primary disabled:opacity-50"
             onClick={() => startTransition(() => submit(true))}
           >
-            {busy ? "Importando…" : `Importar ${preview.length} productos`}
+            {busy ? "Importando…" : `Confirmar ${preview.length} filas`}
           </button>
         </section>
       )}
@@ -274,7 +305,8 @@ export default function ProductCsvImport({
         >
           <h2 className="font-display text-lg">Importación completada</h2>
           <p className="mt-2 text-sm">
-            Se crearon {done} productos y se registró su stock inicial.
+            Se crearon {done.createdCount} productos y se repuso el stock de{" "}
+            {done.restockedCount} productos existentes.
           </p>
           <Link href="/trastienda/productos" className="btn-primary mt-4">
             Ver productos

@@ -22,7 +22,9 @@ const REQUIRED = CSV_HEADERS.slice(2, 8);
 export type CsvCategory = { id: string; name: string; slug: string };
 export type CsvIssue = { row: number; message: string };
 export type CsvProduct = ReturnType<typeof ProductSchema.parse>;
-export type CsvRow = { row: number; product: CsvProduct; categoryName: string };
+export type CsvRow =
+  | { row: number; kind: "product"; product: CsvProduct; categoryName: string }
+  | { row: number; kind: "restock"; sku: string; quantity: number };
 
 function categoryKey(value: string) {
   return value
@@ -115,9 +117,14 @@ export function parseProductCsv(
   const headers = table.shift()?.map((h) => h.toLowerCase()) ?? [];
   if (new Set(headers).size !== headers.length)
     issues.push({ row: 1, message: "Hay columnas repetidas." });
-  for (const h of REQUIRED)
-    if (!headers.includes(h))
-      issues.push({ row: 1, message: `Falta la columna ${h}.` });
+  const fullProduct = REQUIRED.every((header) => headers.includes(header));
+  const stockOnly = headers.includes("sku") && headers.includes("stock");
+  if (!fullProduct && !stockOnly)
+    issues.push({
+      row: 1,
+      message:
+        "Incluye las columnas de productos o, para reponer stock, sku y stock.",
+    });
   for (const h of headers)
     if (!CSV_HEADERS.includes(h))
       issues.push({ row: 1, message: `Columna desconocida: ${h}.` });
@@ -156,6 +163,36 @@ export function parseProductCsv(
       }
       return Number(value(key));
     };
+    const restockOnly =
+      stockOnly &&
+      (!fullProduct ||
+        [
+          "nombre",
+          "descripcion",
+          "categoria",
+          "precio_clp",
+          "peso_gramos",
+        ].every((key) => !value(key)));
+    if (restockOnly) {
+      const sku = value("sku");
+      const quantity = integer("stock");
+      if (!sku || sku.length > 50)
+        issues.push({
+          row,
+          message: "Para reponer stock, indica un SKU válido.",
+        });
+      if (quantity <= 0)
+        issues.push({
+          row,
+          message: "La cantidad a sumar debe ser mayor que 0.",
+        });
+      if (skus.has(sku.toLowerCase()))
+        issues.push({ row, message: `SKU repetido en el archivo: ${sku}.` });
+      skus.add(sku.toLowerCase());
+      if (issues.length === start)
+        rows.push({ row, kind: "restock", sku, quantity });
+      return;
+    }
     const boolean = (key: string, fallback: boolean) => {
       const v = value(key).toLowerCase();
       if (!v) return fallback;
@@ -237,7 +274,12 @@ export function parseProductCsv(
     skus.add(sku.toLowerCase());
     slugs.add(slug);
     if (parsed.success && issues.length === start)
-      rows.push({ row, product: parsed.data, categoryName: category!.name });
+      rows.push({
+        row,
+        kind: "product",
+        product: parsed.data,
+        categoryName: category!.name,
+      });
   });
   return { rows, issues };
 }

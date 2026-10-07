@@ -104,7 +104,8 @@ export const ProductSchema = z.object({
   images: z.array(z.string()).max(10),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
-  categoryId: z.string().cuid(),
+  // Las categorías pueden usar cuid o UUID (por ejemplo, datos ya sembrados).
+  categoryId: z.string().min(1).max(64),
 });
 
 // ─── Orders ──────────────────────────────────────────────

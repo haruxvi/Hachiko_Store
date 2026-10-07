@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseProductCsv, MAX_CSV_BYTES } from "@/src/lib/product-csv";
+import {
+  parseProductCsv,
+  MAX_CSV_BYTES,
+  type CsvRow,
+} from "@/src/lib/product-csv";
+const productAt = (row?: CsvRow) =>
+  row?.kind === "product" ? row.product : undefined;
 const cats = [
   { id: "clh12345678901234567890123", name: "Snacks", slug: "snacks" },
 ];
@@ -17,17 +23,17 @@ describe("CSV de productos", () => {
     );
     expect(a.issues).toEqual([]);
     expect(b.issues).toEqual([]);
-    expect(a.rows[0]?.product).toEqual(b.rows[0]?.product);
-    expect(a.rows[0]?.product.sku).toMatch(/^AUTO-[A-F0-9]{8}$/);
-    expect(a.rows[0]?.product.slug).toMatch(/^te-de-limon-[a-f0-9]{8}$/);
+    expect(productAt(a.rows[0])).toEqual(productAt(b.rows[0]));
+    expect(productAt(a.rows[0])?.sku).toMatch(/^AUTO-[A-F0-9]{8}$/);
+    expect(productAt(a.rows[0])?.slug).toMatch(/^te-de-limon-[a-f0-9]{8}$/);
     expect(
-      parseProductCsv(minimal.replace("1990", "2990"), cats).rows[0]?.product
-        .sku,
-    ).toBe(a.rows[0]?.product.sku);
+      productAt(parseProductCsv(minimal.replace("1990", "2990"), cats).rows[0])
+        ?.sku,
+    ).toBe(productAt(a.rows[0])?.sku);
   });
   it("mantiene identificadores manuales y rechaza duplicados automáticos", () => {
     expect(
-      parseProductCsv(header + "\n" + row, cats).rows[0]?.product.sku,
+      productAt(parseProductCsv(header + "\n" + row, cats).rows[0])?.sku,
     ).toBe("SKU-1");
     const automatic = ",,Snack,Descripcion,snacks,1990,10,100";
     expect(
@@ -44,7 +50,22 @@ describe("CSV de productos", () => {
       cats,
     );
     expect(r.issues).toEqual([]);
-    expect(r.rows[0]?.product.priceCLP).toBe(1990);
+    expect(productAt(r.rows[0])?.priceCLP).toBe(1990);
+  });
+  it("acepta reposición con solo SKU y cantidad positiva", () => {
+    const parsed = parseProductCsv("sku,stock\nPROD-1,7\n", cats);
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.rows).toEqual([
+      { row: 2, kind: "restock", sku: "PROD-1", quantity: 7 },
+    ]);
+    expect(
+      parseProductCsv("sku,stock\nPROD-1,0\n", cats).issues.length,
+    ).toBeGreaterThan(0);
+    expect(
+      parseProductCsv("sku,stock\nPROD-1,7\nPROD-1,2\n", cats).issues.some(
+        (issue) => issue.message.includes("repetido"),
+      ),
+    ).toBe(true);
   });
   it("acepta comillas, comas, saltos de línea y comillas escapadas", () => {
     const r = parseProductCsv(
@@ -53,7 +74,7 @@ describe("CSV de productos", () => {
       cats,
     );
     expect(r.issues).toEqual([]);
-    expect(r.rows[0]?.product.description).toBe('Una "caja"\ncoreana');
+    expect(productAt(r.rows[0])?.description).toBe('Una "caja"\ncoreana');
   });
   it.each(["-1", "1.5", "1e3", "2.000", "", "2147483648"])(
     "rechaza número inválido %s",
