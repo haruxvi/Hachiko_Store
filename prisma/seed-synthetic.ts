@@ -64,42 +64,42 @@ function pickWeighted(weights: readonly number[], total?: number): number {
 
 // ── Catálogo sintético (con costCLP para analítica de márgenes) ───────────
 type Cat = 'snacks' | 'skincare' | 'papeleria' | 'kpop' | 'bebestibles' | 'sopas';
-interface P { sku: string; slug: string; name: string; cat: Cat; price: number; cost: number; weight: number }
+interface P { sku: string; kr: string; slug: string; name: string; cat: Cat; price: number; cost: number; weight: number }
 const CATALOG: P[] = [
-  { sku: 'SYN-001', slug: 'syn-pepero-choco', name: 'Pepero Chocolate', cat: 'snacks', price: 1990, cost: 1200, weight: 60 },
-  { sku: 'SYN-002', slug: 'syn-pepero-almendra', name: 'Pepero Almendra', cat: 'snacks', price: 2190, cost: 1300, weight: 60 },
-  { sku: 'SYN-003', slug: 'syn-choco-pie', name: 'Choco Pie (caja)', cat: 'snacks', price: 3990, cost: 2500, weight: 300 },
-  { sku: 'SYN-004', slug: 'syn-ramen-shin', name: 'Ramen Shin Picante', cat: 'snacks', price: 1490, cost: 850, weight: 120 },
-  { sku: 'SYN-005', slug: 'syn-ramen-buldak', name: 'Ramen Buldak 2x', cat: 'snacks', price: 2990, cost: 1800, weight: 280 },
-  { sku: 'SYN-006', slug: 'syn-banana-milk', name: 'Banana Milk', cat: 'snacks', price: 1690, cost: 1000, weight: 240 },
-  { sku: 'SYN-007', slug: 'syn-honey-butter-chips', name: 'Honey Butter Chips', cat: 'snacks', price: 2490, cost: 1500, weight: 60 },
-  { sku: 'SYN-008', slug: 'syn-gummy-tape', name: 'Gomitas Cinta', cat: 'snacks', price: 1290, cost: 700, weight: 40 },
-  { sku: 'SYN-010', slug: 'syn-sheet-mask-aloe', name: 'Mascarilla Aloe', cat: 'skincare', price: 1990, cost: 900, weight: 30 },
-  { sku: 'SYN-011', slug: 'syn-sheet-mask-snail', name: 'Mascarilla Caracol', cat: 'skincare', price: 2490, cost: 1100, weight: 30 },
-  { sku: 'SYN-012', slug: 'syn-toner-verde', name: 'Tónico Té Verde', cat: 'skincare', price: 8990, cost: 5200, weight: 200 },
-  { sku: 'SYN-013', slug: 'syn-serum-vitc', name: 'Serum Vitamina C', cat: 'skincare', price: 12990, cost: 7500, weight: 80 },
-  { sku: 'SYN-014', slug: 'syn-crema-snail', name: 'Crema Caracol', cat: 'skincare', price: 14990, cost: 8800, weight: 120 },
-  { sku: 'SYN-015', slug: 'syn-protector-solar', name: 'Protector Solar SPF50', cat: 'skincare', price: 9990, cost: 5800, weight: 100 },
-  { sku: 'SYN-016', slug: 'syn-lip-tint', name: 'Lip Tint Coreano', cat: 'skincare', price: 6990, cost: 3900, weight: 20 },
-  { sku: 'SYN-020', slug: 'syn-cuaderno-molang', name: 'Cuaderno Molang', cat: 'papeleria', price: 4990, cost: 2600, weight: 200 },
-  { sku: 'SYN-021', slug: 'syn-set-lapices', name: 'Set Lápices Pastel', cat: 'papeleria', price: 3490, cost: 1800, weight: 150 },
-  { sku: 'SYN-022', slug: 'syn-stickers-kawaii', name: 'Stickers Kawaii', cat: 'papeleria', price: 1990, cost: 900, weight: 30 },
-  { sku: 'SYN-023', slug: 'syn-washi-tape', name: 'Washi Tape x3', cat: 'papeleria', price: 2990, cost: 1500, weight: 90 },
-  { sku: 'SYN-030', slug: 'syn-album-newjeans', name: 'Álbum NewJeans', cat: 'kpop', price: 19990, cost: 13000, weight: 350 },
-  { sku: 'SYN-031', slug: 'syn-album-bts', name: 'Álbum BTS', cat: 'kpop', price: 21990, cost: 14500, weight: 350 },
-  { sku: 'SYN-032', slug: 'syn-photocard-set', name: 'Set Photocards', cat: 'kpop', price: 5990, cost: 3000, weight: 40 },
-  { sku: 'SYN-033', slug: 'syn-lightstick', name: 'Lightstick Oficial', cat: 'kpop', price: 39990, cost: 27000, weight: 500 },
-  { sku: 'SYN-034', slug: 'syn-poster-set', name: 'Set de Pósters', cat: 'kpop', price: 4990, cost: 2400, weight: 120 },
+  { sku: 'SYN-001', kr: '빼빼로 초코', slug: 'syn-pepero-choco', name: 'Pepero Chocolate', cat: 'snacks', price: 1990, cost: 1200, weight: 60 },
+  { sku: 'SYN-002', kr: '아몬드 빼빼로', slug: 'syn-pepero-almendra', name: 'Pepero Almendra', cat: 'snacks', price: 2190, cost: 1300, weight: 60 },
+  { sku: 'SYN-003', kr: '초코파이', slug: 'syn-choco-pie', name: 'Choco Pie (caja)', cat: 'snacks', price: 3990, cost: 2500, weight: 300 },
+  { sku: 'SYN-004', kr: '신라면', slug: 'syn-ramen-shin', name: 'Ramen Shin Picante', cat: 'snacks', price: 1490, cost: 850, weight: 120 },
+  { sku: 'SYN-005', kr: '불닭볶음면', slug: 'syn-ramen-buldak', name: 'Ramen Buldak 2x', cat: 'snacks', price: 2990, cost: 1800, weight: 280 },
+  { sku: 'SYN-006', kr: '바나나맛 우유', slug: 'syn-banana-milk', name: 'Banana Milk', cat: 'snacks', price: 1690, cost: 1000, weight: 240 },
+  { sku: 'SYN-007', kr: '허니버터칩', slug: 'syn-honey-butter-chips', name: 'Honey Butter Chips', cat: 'snacks', price: 2490, cost: 1500, weight: 60 },
+  { sku: 'SYN-008', kr: '테이프 젤리', slug: 'syn-gummy-tape', name: 'Gomitas Cinta', cat: 'snacks', price: 1290, cost: 700, weight: 40 },
+  { sku: 'SYN-010', kr: '알로에 마스크팩', slug: 'syn-sheet-mask-aloe', name: 'Mascarilla Aloe', cat: 'skincare', price: 1990, cost: 900, weight: 30 },
+  { sku: 'SYN-011', kr: '달팽이 마스크팩', slug: 'syn-sheet-mask-snail', name: 'Mascarilla Caracol', cat: 'skincare', price: 2490, cost: 1100, weight: 30 },
+  { sku: 'SYN-012', kr: '녹차 토너', slug: 'syn-toner-verde', name: 'Tónico Té Verde', cat: 'skincare', price: 8990, cost: 5200, weight: 200 },
+  { sku: 'SYN-013', kr: '비타민C 세럼', slug: 'syn-serum-vitc', name: 'Serum Vitamina C', cat: 'skincare', price: 12990, cost: 7500, weight: 80 },
+  { sku: 'SYN-014', kr: '달팽이 크림', slug: 'syn-crema-snail', name: 'Crema Caracol', cat: 'skincare', price: 14990, cost: 8800, weight: 120 },
+  { sku: 'SYN-015', kr: '선크림', slug: 'syn-protector-solar', name: 'Protector Solar SPF50', cat: 'skincare', price: 9990, cost: 5800, weight: 100 },
+  { sku: 'SYN-016', kr: '립 틴트', slug: 'syn-lip-tint', name: 'Lip Tint Coreano', cat: 'skincare', price: 6990, cost: 3900, weight: 20 },
+  { sku: 'SYN-020', kr: '몰랑 노트', slug: 'syn-cuaderno-molang', name: 'Cuaderno Molang', cat: 'papeleria', price: 4990, cost: 2600, weight: 200 },
+  { sku: 'SYN-021', kr: '파스텔 연필', slug: 'syn-set-lapices', name: 'Set Lápices Pastel', cat: 'papeleria', price: 3490, cost: 1800, weight: 150 },
+  { sku: 'SYN-022', kr: '스티커', slug: 'syn-stickers-kawaii', name: 'Stickers Kawaii', cat: 'papeleria', price: 1990, cost: 900, weight: 30 },
+  { sku: 'SYN-023', kr: '마스킹 테이프', slug: 'syn-washi-tape', name: 'Washi Tape x3', cat: 'papeleria', price: 2990, cost: 1500, weight: 90 },
+  { sku: 'SYN-030', kr: '뉴진스 앨범', slug: 'syn-album-newjeans', name: 'Álbum NewJeans', cat: 'kpop', price: 19990, cost: 13000, weight: 350 },
+  { sku: 'SYN-031', kr: '방탄소년단 앨범', slug: 'syn-album-bts', name: 'Álbum BTS', cat: 'kpop', price: 21990, cost: 14500, weight: 350 },
+  { sku: 'SYN-032', kr: '포토카드', slug: 'syn-photocard-set', name: 'Set Photocards', cat: 'kpop', price: 5990, cost: 3000, weight: 40 },
+  { sku: 'SYN-033', kr: '응원봉', slug: 'syn-lightstick', name: 'Lightstick Oficial', cat: 'kpop', price: 39990, cost: 27000, weight: 500 },
+  { sku: 'SYN-034', kr: '포스터', slug: 'syn-poster-set', name: 'Set de Pósters', cat: 'kpop', price: 4990, cost: 2400, weight: 120 },
   // Bebestibles (índices 24-27)
-  { sku: 'SYN-040', slug: 'syn-milkis', name: 'Milkis Soda', cat: 'bebestibles', price: 1490, cost: 800, weight: 250 },
-  { sku: 'SYN-041', slug: 'syn-aloe-drink', name: 'Bebida Aloe Vera', cat: 'bebestibles', price: 1690, cost: 950, weight: 500 },
-  { sku: 'SYN-042', slug: 'syn-sikhye', name: 'Sikhye (bebida de arroz)', cat: 'bebestibles', price: 1990, cost: 1150, weight: 240 },
-  { sku: 'SYN-043', slug: 'syn-yogurt-bebible', name: 'Yogurt Bebible Coreano', cat: 'bebestibles', price: 1290, cost: 700, weight: 150 },
+  { sku: 'SYN-040', kr: '밀키스', slug: 'syn-milkis', name: 'Milkis Soda', cat: 'bebestibles', price: 1490, cost: 800, weight: 250 },
+  { sku: 'SYN-041', kr: '알로에 음료', slug: 'syn-aloe-drink', name: 'Bebida Aloe Vera', cat: 'bebestibles', price: 1690, cost: 950, weight: 500 },
+  { sku: 'SYN-042', kr: '식혜', slug: 'syn-sikhye', name: 'Sikhye (bebida de arroz)', cat: 'bebestibles', price: 1990, cost: 1150, weight: 240 },
+  { sku: 'SYN-043', kr: '요구르트', slug: 'syn-yogurt-bebible', name: 'Yogurt Bebible Coreano', cat: 'bebestibles', price: 1290, cost: 700, weight: 150 },
   // Sopas (índices 28-31)
-  { sku: 'SYN-050', slug: 'syn-ramyun-jin', name: 'Ramyun Jin', cat: 'sopas', price: 1590, cost: 900, weight: 120 },
-  { sku: 'SYN-051', slug: 'syn-ramyun-samyang', name: 'Ramyun Samyang', cat: 'sopas', price: 1690, cost: 950, weight: 130 },
-  { sku: 'SYN-052', slug: 'syn-udon-instant', name: 'Udon Instantáneo', cat: 'sopas', price: 2490, cost: 1500, weight: 250 },
-  { sku: 'SYN-053', slug: 'syn-kimchi-soup', name: 'Sopa de Kimchi', cat: 'sopas', price: 2990, cost: 1800, weight: 300 },
+  { sku: 'SYN-050', kr: '진라면', slug: 'syn-ramyun-jin', name: 'Ramyun Jin', cat: 'sopas', price: 1590, cost: 900, weight: 120 },
+  { sku: 'SYN-051', kr: '삼양라면', slug: 'syn-ramyun-samyang', name: 'Ramyun Samyang', cat: 'sopas', price: 1690, cost: 950, weight: 130 },
+  { sku: 'SYN-052', kr: '우동', slug: 'syn-udon-instant', name: 'Udon Instantáneo', cat: 'sopas', price: 2490, cost: 1500, weight: 250 },
+  { sku: 'SYN-053', kr: '김치찌개', slug: 'syn-kimchi-soup', name: 'Sopa de Kimchi', cat: 'sopas', price: 2990, cost: 1800, weight: 300 },
 ];
 
 // Popularidad desigual: en una tienda real unos pocos productos explican la
@@ -245,7 +245,7 @@ async function main() {
   for (let i = 0; i < CATALOG.length; i++) {
     const p = CATALOG[i]!;
     const data = {
-      sku: p.sku, slug: p.slug, name: p.name, description: `${p.name} — producto de demostración (sintético).`,
+      sku: p.sku, slug: p.slug, name: p.name, nameKorean: p.kr, description: `${p.name} — producto de demostración (sintético).`,
       priceCLP: p.price, costCLP: p.cost, weightGrams: p.weight, stock: stockStart[i]!, active: true, archivedAt: null,
       categoryId: catId[p.cat], createdAt: start,
     };

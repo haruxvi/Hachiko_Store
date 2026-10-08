@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hachiko · Pantallas de muestra</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+/* solo maquetación de la página de muestra: los componentes vienen de styles.css */
+body{font-family:var(--font-body);background:var(--surface-container);color:var(--on-surface);min-height:100vh;padding:28px 24px 64px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+.top a{color:var(--on-primary-container);font-weight:700;text-decoration:none}
+.top select{font:700 12px var(--font-body);border:1px solid var(--outline-variant);border-radius:8px;padding:8px 10px;background:var(--surface-container-lowest);color:var(--on-surface-variant);margin-left:auto}
+.row{display:flex;flex-wrap:wrap;gap:36px;justify-content:center;align-items:flex-start}
+.frame{display:flex;flex-direction:column;gap:12px;align-items:center}
+.frame .cap{font:700 13px var(--font-body);color:var(--on-surface-variant)}
+.device{width:360px;height:760px;border-radius:40px;background:var(--surface);overflow:hidden;position:relative;box-shadow:var(--elev-5);border:8px solid var(--inverse-surface);display:flex;flex-direction:column}
+.status{height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:700 12px var(--font-body);color:var(--on-surface)}
+.scroll{flex:1;overflow:hidden;position:relative}
+.pad{padding:0 16px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:24px 16px 12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;padding:0 16px}
+/* 1 · inicio */
+.hero{padding:8px 20px 44px;position:relative;border-radius:0 0 var(--shape-xl) var(--shape-xl)}
+.hero .hello{display:flex;align-items:center;justify-content:space-between}
+.hero .search{position:absolute;left:16px;right:16px;bottom:-28px;background:var(--surface-container-lowest);box-shadow:var(--elev-2)}
+.track{display:flex;gap:4px;margin-top:12px}.track i{flex:1;height:4px;border-radius:999px;background:var(--surface-container-highest)}.track i.on{background:var(--primary)}
+/* 2 · detalle */
+.pdp-img{height:320px;position:relative;background:var(--paper-dots) 0 0/16px 16px,linear-gradient(150deg,var(--secondary-container) 0%,var(--primary-container) 75%)}
+.pdp-img .kr{position:absolute;left:24px;bottom:44px;font:700 96px/1 var(--font-hangul);color:rgb(var(--shadow-ink)/.14);letter-spacing:-.04em}
+.pdp-img .bar{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between}
+.pdp-img .bar .icon-btn{background:color-mix(in srgb,var(--surface) 85%,transparent);color:var(--on-surface)}
+.pdp-sheet{position:absolute;top:288px;left:0;right:0;bottom:0;border-radius:var(--shape-xl) var(--shape-xl) 0 0;background:var(--surface);padding:8px 20px 0;box-shadow:0 -8px 24px rgb(var(--shadow-ink)/.08)}
+.pdp-cta{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 20px;background:var(--surface-container-low);border-top:1px solid var(--outline-variant);display:flex;gap:12px;align-items:center}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--outline);border-radius:999px;height:48px}
+.stepper .icon-btn{width:44px;height:44px}.stepper b{min-width:24px;text-align:center;font:700 16px var(--font-body)}
+.mini{width:120px}.mini .ph{border-radius:var(--shape-md)}
+/* 3 · vendedor */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
+.stat{border-radius:var(--shape-lg);padding:16px}
+.stat .big{font:700 34px/1 var(--font-display);margin-top:8px;font-variant-numeric:tabular-nums}
+.fab-float{position:absolute;right:16px;bottom:16px}
+@media (prefers-reduced-motion: no-preference){.stamp-in{animation:stamp 560ms var(--ease-spring) 300ms both}}
+@keyframes stamp{0%{opacity:0;transform:rotate(-11deg) scale(1.6)}100%{opacity:1;transform:rotate(-11deg) scale(1)}}
+</style>
+</head>
+<body>
+<!-- SPRITE copiado de icons.html -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-4h4v4"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8M7.5 5.5l9 5"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 12H5"/><path d="m11 5-7 7 7 7"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+  <symbol id="i-minus-line" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 6-2.5 8-2.5 8h17S18 15 18 9"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-more-v" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M7 8v8M10 8v8M13 8v8M17 8v8"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5L20 16M20 20v-4h-4"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-paw" viewBox="0 0 24 24"><ellipse cx="7" cy="9" rx="1.8" ry="2.3"/><ellipse cx="17" cy="9" rx="1.8" ry="2.3"/><ellipse cx="9.6" cy="5.2" rx="1.6" ry="2"/><ellipse cx="14.4" cy="5.2" rx="1.6" ry="2"/><path d="M12 11.5c-3 0-5.5 3.2-5.5 5.6 0 1.8 1.6 2.4 3 2.1 1-.2 1.6-.6 2.5-.6s1.5.4 2.5.6c1.4.3 3-.3 3-2.1 0-2.4-2.5-5.6-5.5-5.6z"/></symbol>
+</svg>
+<div class="top">
+  <a href="index.html">← Volver a la guía</a>
+  <span class="body-m muted">Pantallas estáticas armadas solo con componentes del sistema. Sirven para decidir el tema, no son el diseño final de cada pantalla.</span>
+  <select id="themeSel"><option value="system">Tema del sistema</option><option value="light">Claro</option><option value="dark">Noche</option></select>
+</div>
+
+<div class="row">
+  <!-- ===== 1 · Primera vista: inicio del cliente ===== -->
+  <div class="frame"><div class="device">
+    <div class="status paper"><span>9:41</span><span>●●● 5G</span></div>
+    <div class="scroll">
+      <div class="hero paper">
+        <div class="hello">
+          <div><div class="hangul body-m" style="opacity:.7">하치코</div><div class="headline-l" style="margin-top:2px">Hola, Sofía</div></div>
+          <span class="icon-btn badge-host" style="color:var(--on-secondary)"><svg class="ico"><use href="#i-bell"/></svg><span class="badge badge--dot"></span></span>
+        </div>
+        <p class="body-l" style="margin-top:6px;opacity:.85;max-width:24ch">Llegó la temporada de ramen picante.</p>
+        <div class="search"><svg class="ico"><use href="#i-search"/></svg><span class="q">Buscar ramen, mascarillas…</span><span class="icon-btn"><svg class="ico"><use href="#i-scan"/></svg></span></div>
+      </div>
+
+      <div class="pad" style="margin-top:44px">
+        <div class="card card--outlined" style="display:flex;gap:12px;align-items:center;padding:14px 16px">
+          <span class="lead" style="width:40px;height:40px;border-radius:999px;display:grid;place-items:center;background:var(--tertiary-container);color:var(--on-tertiary-container)"><svg class="ico"><use href="#i-truck"/></svg></span>
+          <div style="flex:1"><div class="title-s">Tu pedido #1042 va en camino</div><div class="body-s muted">Starken · llega el viernes</div><div class="track"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+          <svg class="ico muted"><use href="#i-chevron-right"/></svg>
+        </div>
+      </div>
+
+      <div class="sec-h"><span class="title-l">Para tu antojo de hoy</span><span class="btn btn--text" style="min-height:40px">Ver todo</span></div>
+      <div class="grid2">
+        <div class="product"><div class="ph"><span class="ph-kr">불닭</span><span class="add icon-btn icon-btn--filled"><svg class="ico"><use href="#i-plus"/></svg></span></div><div class="nm">Ramen Buldak 2x</div><div class="pr">$2.990</div></div>
+        <div class="product"><div class="ph" style="background:var(--paper-dots) 0 0/12px 12px,linear-gradient(140deg,var(--tertiary-container),var(--secondary-container))"><span class="ph-kr">달팽이</span><span class="chip" style="position:absolute;top:8px;left:8px;background:var(--error-container);color:var(--on-error-container);border:0;height:24px;padding:0 8px;font-size:12px">Quedan 4</span><span class="add icon-btn icon-btn--filled"><svg class="ico"><use href="#i-plus"/></svg></span></div><div class="nm">Crema Caracol</div><div class="pr">$14.990</div></div>
+      </div>
+    </div>
+    <div class="navbar" style="flex:none">
+      <span class="ni is-selected"><span class="pill"><svg class="ico"><use href="#i-home"/></svg></span>Inicio</span>
+      <span class="ni"><span class="pill"><svg class="ico"><use href="#i-search"/></svg></span>Buscar</span>
+      <span class="ni"><span class="pill badge-host"><svg class="ico"><use href="#i-bag"/></svg><span class="badge" style="top:-2px;right:8px">3</span></span>Carrito</span>
+      <span class="ni"><span class="pill"><svg class="ico"><use href="#i-user"/></svg></span>Cuenta</span>
+    </div>
+  </div><div class="cap">1 · Inicio del cliente</div></div>
+
+  <!-- ===== 2 · Detalle: producto ===== -->
+  <div class="frame"><div class="device">
+    <div class="status" style="position:absolute;top:0;left:0;right:0;z-index:2"><span>9:41</span><span>●●● 5G</span></div>
+    <div class="scroll">
+      <div class="pdp-img"><span class="kr">불닭</span>
+        <div class="bar" style="top:32px"><span class="icon-btn"><svg class="ico"><use href="#i-back"/></svg></span><span style="display:flex;gap:8px"><span class="icon-btn"><svg class="ico"><use href="#i-share"/></svg></span><span class="icon-btn is-selected"><svg class="ico"><use href="#i-heart"/></svg></span></span></div>
+      </div>
+      <div class="pdp-sheet">
+        <div class="sheet" style="all:unset;display:block"><div class="handle" style="width:32px;height:4px;border-radius:999px;background:var(--outline);opacity:.5;margin:4px auto 14px"></div></div>
+        <div class="label-m muted">Snacks · Picante</div>
+        <div class="headline-s" style="margin-top:4px">Ramen Buldak 2x</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <span class="price title-l">$2.990</span>
+          <span class="chip chip--assist" style="height:28px;border-color:var(--outline-variant)"><svg class="ico"><use href="#i-check"/></svg>Disponible</span>
+        </div>
+        <p class="body-m muted" style="margin-top:12px">Fideos instantáneos coreanos con salsa de pollo extra picante. Paquete doble de 140 g c/u.</p>
+        <div class="sec-h" style="margin:20px 0 10px"><span class="title-m">Se compran juntos</span></div>
+        <div class="carousel" style="gap:12px">
+          <div class="product mini"><div class="ph"><span class="ph-kr" style="font-size:20px">진</span></div><div class="nm">Ramyun Jin</div><div class="pr">$1.590</div></div>
+          <div class="product mini"><div class="ph" style="background:var(--paper-dots) 0 0/12px 12px,linear-gradient(140deg,var(--info-container),var(--secondary-container))"><span class="ph-kr" style="font-size:20px">밀키스</span></div><div class="nm">Milkis Soda</div><div class="pr">$1.490</div></div>
+          <div class="product mini"><div class="ph"><span class="ph-kr" style="font-size:20px">우동</span></div><div class="nm">Udon</div><div class="pr">$2.490</div></div>
+        </div>
+      </div>
+      <div class="pdp-cta">
+        <span class="stepper"><span class="icon-btn"><svg class="ico"><use href="#i-minus"/></svg></span><b>2</b><span class="icon-btn"><svg class="ico"><use href="#i-plus"/></svg></span></span>
+        <span class="btn btn--filled btn--lg" style="flex:1">Agregar · $5.980</span>
+      </div>
+    </div>
+  </div><div class="cap">2 · Detalle de producto</div></div>
+
+  <!-- ===== 3 · Extra: Hoy del vendedor ===== -->
+  <div class="frame"><div class="device">
+    <div class="status" style="background:var(--surface)"><span>9:41</span><span>●●● 5G</span></div>
+    <div class="scroll">
+      <div class="appbar appbar--large appbar--surface" style="min-height:120px"><span class="icon-btn"><svg class="ico"><use href="#i-store"/></svg></span><span class="spacer"></span><span class="icon-btn badge-host"><svg class="ico"><use href="#i-alert"/></svg><span class="badge badge--dot"></span></span><span class="ttl" style="padding-top:8px">Hoy, jueves 8</span></div>
+      <div class="stats">
+        <div class="stat paper"><div class="label-l">Por empacar</div><div class="big">7</div><div class="body-s" style="margin-top:6px;opacity:.8">2 son retiro en tienda</div></div>
+        <div class="stat card--filled"><div class="label-l muted">Ventas de hoy</div><div class="big" style="font-size:26px;margin-top:14px">$183.510</div><div class="body-s muted" style="margin-top:6px">12 pedidos</div></div>
+      </div>
+      <div class="sec-h"><span class="title-l">Para empacar</span><span class="btn btn--text" style="min-height:40px">Ver todos</span></div>
+      <div class="pad">
+        <ul class="list">
+          <li class="li li--2"><span class="lead" style="background:var(--primary-container);color:var(--on-primary-container)"><svg class="ico"><use href="#i-package"/></svg></span><div class="txt"><div class="hl">#1051 · Vicente F.</div><div class="sup">La Florida · 3 productos</div></div><span class="trail price">$13.140</span></li>
+          <hr class="divider divider--inset">
+          <li class="li li--2"><span class="lead" style="background:var(--tertiary-container);color:var(--on-tertiary-container)"><svg class="ico"><use href="#i-store"/></svg></span><div class="txt"><div class="hl">#1050 · Javiera M.</div><div class="sup">Retiro en tienda · 1 producto</div></div><span class="trail price">$14.990</span></li>
+          <hr class="divider divider--inset">
+          <li class="li li--2"><span class="lead" style="background:var(--error-container);color:var(--on-error-container)"><svg class="ico"><use href="#i-alert"/></svg></span><div class="txt"><div class="hl">#1049 · Revisar</div><div class="sup">Marcado por el detector de fraude</div></div><span class="trail price">$239.900</span></li>
+        </ul>
+      </div>
+      <span class="fab fab--ext fab--primary fab-float"><svg class="ico"><use href="#i-scan"/></svg>Escanear</span>
+    </div>
+    <div class="navbar" style="flex:none">
+      <span class="ni is-selected"><span class="pill"><svg class="ico"><use href="#i-chart"/></svg></span>Hoy</span>
+      <span class="ni"><span class="pill badge-host"><svg class="ico"><use href="#i-package"/></svg><span class="badge" style="top:-2px;right:8px">7</span></span>Pedidos</span>
+      <span class="ni"><span class="pill"><svg class="ico"><use href="#i-list"/></svg></span>Inventario</span>
+      <span class="ni"><span class="pill"><svg class="ico"><use href="#i-menu"/></svg></span>Más</span>
+    </div>
+  </div><div class="cap">3 · Extra: "Hoy" del vendedor</div></div>
+</div>
+
+<script>
+const mq=matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(v){document.documentElement.dataset.theme=(v==='dark'||(v==='system'&&mq.matches))?'dark':'light';try{localStorage.setItem('hk-theme',v)}catch{}}
+themeSel.value=(()=>{try{return localStorage.getItem('hk-theme')||'system'}catch{return 'system'}})();
+themeSel.onchange=()=>applyTheme(themeSel.value);mq.addEventListener('change',()=>applyTheme(themeSel.value));applyTheme(themeSel.value);
+</script>
+</body>
+</html>

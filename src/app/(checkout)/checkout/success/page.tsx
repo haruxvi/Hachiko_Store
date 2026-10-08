@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSession } from '@/src/lib/auth/session';
 import { getOrderForClient } from '@/src/lib/services/order.service';
 import PaymentReturnCart from '@/src/components/storefront/PaymentReturnCart';
+import BackToApp from '@/src/components/storefront/BackToApp';
 import Shiba from '@/src/components/ui/Shiba';
 
 export const metadata = { title: 'Pedido confirmado — Hachiko' };
@@ -54,6 +55,7 @@ export default async function CheckoutSuccessPage({
   return (
     <div className="px-6 py-16 sm:px-12">
       <PaymentReturnCart paid orderId={order.id} />
+      <BackToApp orderNumber={order.orderNumber} />
       <div className="mx-auto max-w-[880px] text-center">
         {/* Shiba feliz + confeti discreto — la mascota aparece acá y en pocos lugares más */}
         <div className="relative mb-6 inline-block">

@@ -195,6 +195,37 @@ export async function getOrdersForSeller() {
   }));
 }
 
+/** Detalle de UNA orden del flujo de despacho, con los datos de etiqueta descifrados. */
+export async function getSellerOrderDetail(orderId: string) {
+  const o = await db.order.findFirst({
+    where: { id: orderId, paymentStatus: 'PAID' },
+    include: { items: { select: { productName: true, quantity: true, unitPriceCLP: true, product: { select: { sku: true } } } } },
+  });
+  if (!o) return null;
+  return {
+    id: o.id,
+    orderNumber: o.orderNumber,
+    status: o.status,
+    totalCLP: o.totalCLP,
+    subtotalCLP: o.subtotalCLP,
+    shippingCLP: o.shippingCLP,
+    shippingMethod: o.shippingMethod,
+    trackingNumber: o.trackingNumber,
+    createdAt: o.createdAt,
+    paidAt: o.paidAt,
+    shippedAt: o.shippedAt,
+    items: o.items.map((i) => ({ name: i.productName, sku: i.product.sku, quantity: i.quantity, unitPriceCLP: i.unitPriceCLP })),
+    recipientName: decrypt(o.shippingFullName),
+    shippingStreet: o.shippingStreet ? decrypt(o.shippingStreet) : null,
+    shippingNumber: o.shippingNumber ? decrypt(o.shippingNumber) : null,
+    shippingApartment: o.shippingApartment ? decrypt(o.shippingApartment) : null,
+    shippingCommune: o.shippingCommune,
+    shippingRegion: o.shippingRegion,
+    shippingPhone: decrypt(o.shippingPhone),
+    shippingNotes: o.shippingNotes,
+  };
+}
+
 export async function markOrderShipped(
   orderId: string,
   trackingNumber: string | null,
