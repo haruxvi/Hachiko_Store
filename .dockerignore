@@ -18,3 +18,6 @@ ml/__pycache__
 playwright-report
 test-results
 .vercel
+
+# App nativa (Expo): no es parte de la imagen web
+mobile

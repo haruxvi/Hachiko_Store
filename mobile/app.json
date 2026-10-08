@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Hachiko",
+    "slug": "hachiko",
+    "version": "1.0.0",
+    "scheme": "hachiko",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#FEF7E4",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "cl.hachiko.app"
+    },
+    "android": {
+      "package": "cl.hachiko.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FBE7A0",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": true,
+      "permissions": ["android.permission.CAMERA"],
+      "blockedPermissions": ["android.permission.RECORD_AUDIO"]
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://hachiko-store.vercel.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-image",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#FEF7E4",
+          "dark": { "backgroundColor": "#241B15" }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Hachiko usa la cámara solo para escanear el código de los productos del inventario.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ]
+  }
+}

@@ -163,7 +163,9 @@ export const CheckoutSchema = z
   });
 
 export const TrackingSchema = z.object({
-  orderId: z.string().cuid(),
+  // cuid (pedidos reales) o uuid (datos de demostración): se acepta cualquier id
+  // acotado; la orden se busca por id con consulta parametrizada.
+  orderId: z.string().min(1).max(64).regex(/^[A-Za-z0-9-]+$/),
   // Opcional: el retiro en tienda no tiene número de seguimiento
   trackingNumber: z.string().max(100).optional(),
 });
