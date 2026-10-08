@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { secureDelete, secureGet, secureSet } from './secure';
 
@@ -7,8 +8,13 @@ import { secureDelete, secureGet, secureSet } from './secure';
 //   llavero y reintenta. Varias peticiones a la vez comparten la misma renovación.
 // - Los errores llegan como ApiError con un mensaje pensado para el usuario.
 
-export const API_URL: string =
+const configured: string =
   process.env.EXPO_PUBLIC_API_URL ?? (Constants.expoConfig?.extra?.['apiUrl'] as string | undefined) ?? 'https://hachiko-store.vercel.app';
+
+// En desarrollo, el emulador de Android ve el "localhost" de tu PC como 10.0.2.2
+// (el Docker local solo escucha en 127.0.0.1, así que no se expone a la red).
+export const API_URL: string =
+  __DEV__ && Platform.OS === 'android' ? configured.replace(/\/\/(localhost|127\.0\.0\.1)(?=[:/]|$)/, '//10.0.2.2') : configured;
 
 /** Origen del sitio web (para el pago y para enlaces). */
 export const SITE_URL = API_URL;

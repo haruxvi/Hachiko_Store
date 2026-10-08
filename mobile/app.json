@@ -19,8 +19,13 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": true,
-      "permissions": ["android.permission.CAMERA"],
-      "blockedPermissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -46,7 +51,9 @@
           "imageWidth": 160,
           "resizeMode": "contain",
           "backgroundColor": "#FEF7E4",
-          "dark": { "backgroundColor": "#241B15" }
+          "dark": {
+            "backgroundColor": "#241B15"
+          }
         }
       ],
       [
@@ -55,7 +62,8 @@
           "cameraPermission": "Hachiko usa la cámara solo para escanear el código de los productos del inventario.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ]
   }
 }

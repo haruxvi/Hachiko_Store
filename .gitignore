@@ -52,3 +52,7 @@ next-env.d.ts
 
 # Este proyecto usa pnpm; nunca commitear el lockfile de npm
 package-lock.json
+
+# Claves de firma de la app Android: NUNCA al repositorio
+*.jks
+*.keystore

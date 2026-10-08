@@ -1,0 +1,130 @@
+# Instalador Android (APK) de la app (mobile/), construido en GitHub, sin
+# servicios externos.
+#
+# - Cada push a la rama app-nativa (que toque mobile/) genera un APK de prueba,
+#   descargable como "artifact" de la corrida (Actions → la corrida → Artifacts).
+# - Un tag app-vX.Y.Z (p. ej. app-v1.0.0) publica un Release con el APK firmado
+#   con la clave de Hachiko. Sin la clave en los secrets, el release NO se publica.
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64   el archivo .jks en base64
+#   ANDROID_KEYSTORE_PASSWORD contraseña del almacén
+#   ANDROID_KEY_ALIAS         alias de la clave (p. ej. hachiko)
+#   ANDROID_KEY_PASSWORD      contraseña de la clave
+name: App Android (APK)
+
+on:
+  push:
+    branches: [app-nativa]
+    paths: ['mobile/**', '.github/workflows/android-apk.yml']
+    tags: ['app-v*']
+  workflow_dispatch: {}
+
+# Solo puede crear releases (subir el APK); no modifica código.
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      # La app instalada habla con la web publicada (HTTPS). Se puede cambiar con
+      # la variable de repositorio APP_API_URL (p. ej. un preview de Vercel).
+      EXPO_PUBLIC_API_URL: ${{ vars.APP_API_URL || 'https://hachiko-store.vercel.app' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Versión
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/app-v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/app-v}"
+          else
+            VERSION="0.0.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # versionCode debe crecer en cada instalación: el número de corrida siempre crece.
+          node -e '
+            const fs=require("fs");const a=JSON.parse(fs.readFileSync("app.json","utf8"));
+            a.expo.version=process.argv[1];a.expo.android.versionCode=Number(process.argv[2]);
+            fs.writeFileSync("app.json",JSON.stringify(a,null,2));' "$VERSION" "$GITHUB_RUN_NUMBER"
+
+      - name: Generar proyecto Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Clave de firma
+        id: sign
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/hachiko-release.jks"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=APK sin firma propia::Faltan los secrets de la clave: el APK queda firmado con la clave de pruebas (sirve para probar, no para publicar)."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compilar APK
+        working-directory: mobile/android
+        env:
+          # Gradle lee ORG_GRADLE_PROJECT_* como propiedades del proyecto (plugin withReleaseSigning).
+          ORG_GRADLE_PROJECT_HACHIKO_UPLOAD_STORE_FILE: ${{ steps.sign.outputs.signed == 'true' && format('{0}/hachiko-release.jks', runner.temp) || '' }}
+          ORG_GRADLE_PROJECT_HACHIKO_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_HACHIKO_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_HACHIKO_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ "${{ steps.sign.outputs.signed }}" != "true" ]; then unset ORG_GRADLE_PROJECT_HACHIKO_UPLOAD_STORE_FILE; fi
+          # Teléfonos actuales (arm64) + emulador de Android Studio (x86_64): APK más liviano.
+          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,x86_64
+
+      - name: Nombre del instalador
+        id: apk
+        run: |
+          SUFFIX=$([ "${{ steps.sign.outputs.signed }}" = "true" ] && echo "" || echo "-pruebas")
+          NAME="hachiko-${{ steps.ver.outputs.version }}${SUFFIX}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "path=$RUNNER_TEMP/$NAME" >> "$GITHUB_OUTPUT"
+          rm -f "$RUNNER_TEMP/hachiko-release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 30
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ steps.sign.outputs.signed }}" != "true" ]; then
+            echo "::error title=No se publica::Un release necesita la clave de firma propia (secrets ANDROID_*)."
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" "${{ steps.apk.outputs.path }}" \
+            --title "Hachiko para Android ${{ steps.ver.outputs.version }}" \
+            --notes "Descarga **${{ steps.apk.outputs.name }}** en tu Android y ábrelo para instalar (acepta instalar desde fuentes desconocidas). Las versiones siguientes se instalan encima sin perder la sesión."

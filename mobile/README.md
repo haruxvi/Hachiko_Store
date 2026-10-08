@@ -46,6 +46,37 @@ El diseño sale del sistema de diseño en [`design-system/`](design-system/READM
 
 Para instalar paquetes usa siempre `npx expo install <paquete>`, que elige versiones compatibles con el SDK 57.
 
+## Probar en el emulador de Android Studio (con tu Docker local)
+
+1. Abre un emulador en Android Studio (Device Manager → ▶).
+2. Levanta la API local y la app:
+   ```bash
+   docker compose up -d
+   ```
+   ```bash
+   cd mobile && npx expo start
+   ```
+3. En la terminal de Expo presiona `a`: instala Expo Go en el emulador y abre la app.
+
+En el emulador, la app cambia sola `localhost` por `10.0.2.2`, que es como el emulador ve tu PC. Tu Docker sigue escuchando solo en `127.0.0.1`, sin exponerse a la red.
+
+## Instalador APK (GitHub Actions)
+
+El workflow está en `.github/workflows/android-apk.yml`:
+
+- **Cada push a `app-nativa`** que toque `mobile/` genera un APK de prueba. Lo descargas en Actions → la corrida → **Artifacts**.
+- **Un tag `app-v1.0.0`** (o cualquier `app-vX.Y.Z`) publica un **Release** con el APK firmado:
+  ```bash
+  git tag app-v1.0.0
+  ```
+  ```bash
+  git push origin app-v1.0.0
+  ```
+
+El APK instalado se conecta a la web publicada. Antes de hacer merge a `master`, puedes apuntarlo a otra URL con la variable de repositorio `APP_API_URL`.
+
+Para firmar, se necesitan 4 secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` y `ANDROID_KEY_PASSWORD`. Los firma el plugin `plugins/withReleaseSigning.js`. Guarda el archivo `.jks` en un lugar seguro y fuera del repo: si se pierde, las versiones nuevas no se pueden instalar encima de las anteriores.
+
 ## Verificación
 
 ```bash
