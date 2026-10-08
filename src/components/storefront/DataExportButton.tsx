@@ -25,7 +25,7 @@ export default function DataExportButton() {
     <button
       onClick={handleExport}
       disabled={loading}
-      className="text-sm bg-gray-900 text-white font-medium px-4 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50"
+      className="btn-primary btn-sm min-h-11 disabled:opacity-50"
     >
       {loading ? 'Generando…' : 'Descargar mis datos'}
     </button>

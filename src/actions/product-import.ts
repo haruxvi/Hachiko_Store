@@ -4,6 +4,9 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/src/lib/auth/session";
 import { db } from "@/src/lib/db";
+import { rateLimit } from "@/src/lib/rate-limit";
+import { writeAudit } from "@/src/lib/services/audit.service";
+import { assertSafeCsv, assertSafeXlsx, UnsafeUploadError } from "@/src/lib/upload-guard";
 import {
   MAX_CSV_BYTES,
   parseProductCsv,
@@ -104,14 +107,40 @@ export async function importProductsFile(file: File, commit = false) {
       ok: false as const,
       issues: [{ row: 0, message: "El archivo supera 2 MB." }],
     };
+  // Abrir un Excel cuesta CPU y memoria: se limita por vendedor para que nadie
+  // pueda saturar el servidor subiendo archivos en bucle.
+  const limited = await rateLimit(`product-import:${session.sub}`, 30, 10 * 60 * 1000);
+  if (!limited.allowed)
+    return {
+      ok: false as const,
+      issues: [{ row: 0, message: `Demasiados archivos seguidos. Espera ${Math.ceil(limited.retryAfterSeconds / 60)} min y vuelve a intentarlo.` }],
+    };
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     let csv: string;
     let xlsxRows: number[] | undefined;
     let recoveredIdentifiers = 0;
-    if (file.name.toLowerCase().endsWith(".csv"))
+    const name = file.name.toLowerCase();
+    // Revisión de seguridad ANTES de que cualquier librería abra el archivo.
+    // El archivo jamás se guarda ni se ejecuta: solo se leen valores de celdas.
+    try {
+      if (name.endsWith(".csv")) assertSafeCsv(bytes);
+      else if (name.endsWith(".xlsx")) assertSafeXlsx(bytes);
+    } catch (error) {
+      if (error instanceof UnsafeUploadError) {
+        await writeAudit({
+          actorId: session.sub,
+          actorRole: "SELLER",
+          action: "UPLOAD_REJECTED",
+          targetType: "ProductImport",
+          metadata: { reason: error.reason, size: file.size, extension: name.split(".").pop()?.slice(0, 10) },
+        }).catch(() => undefined);
+      }
+      throw error;
+    }
+    if (name.endsWith(".csv"))
       csv = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    else if (file.name.toLowerCase().endsWith(".xlsx")) {
+    else if (name.endsWith(".xlsx")) {
       const { productXlsxToCsv } = await import("@/src/lib/product-xlsx");
       const converted = await productXlsxToCsv(bytes);
       csv = converted.csv;

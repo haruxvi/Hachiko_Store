@@ -1,22 +1,32 @@
 /**
  * Dataset SINTÉTICO para el subsistema de análisis de datos y ML (Fase 0).
  *
- * Genera ~24 meses de historia comercial coherente en Neon, con estacionalidad
- * realista (18 de septiembre, Navidad, CyberDay), tendencia de crecimiento,
- * afinidad de canasta ("se compran juntos"), geografía chilena, movimientos de
- * inventario y bitácora temporal de estados de pedido. Es el combustible de
- * todos los modelos de las fases siguientes.
+ * Genera ~24 meses de historia comercial coherente, hasta HOY, con:
+ *   - estacionalidad chilena (Fiestas Patrias, Navidad, CyberDay) y crecimiento;
+ *   - clientes realistas: la mayoría compra 1–2 veces y unos pocos son fieles
+ *     (cola larga); nadie compra antes de registrarse, y los clientes se
+ *     "enfrían" si pasa tiempo sin comprar;
+ *   - popularidad desigual de productos (unos pocos venden mucho: Pareto);
+ *   - horarios en hora de Chile, con picos a mediodía y en la noche;
+ *   - envío con la regla REAL de la tienda (src/lib/shipping.ts: tarifa plana,
+ *     gratis sobre el umbral, retiro sin costo);
+ *   - cancelaciones después de pagar marcadas como REEMBOLSADAS, y pagos que
+ *     nunca se completaron marcados como fallidos;
+ *   - afinidad de canasta ("se compran juntos"), geografía chilena, movimientos
+ *     de inventario y bitácora de estados.
  *
- * Se escribe a Neon con el cliente Prisma (misma conexión del .env), igual que
- * prisma/seed.ts. Los datos van marcados como sintéticos:
+ * Se escribe con el cliente Prisma (misma conexión del .env). Todo va marcado:
  *   - usuarios con email  @seed.hachiko.test
  *   - productos con SKU   SYN-###
- * Re-ejecutar el script BORRA primero todo lo sintético anterior y regenera,
- * sin tocar datos reales. Ejecutar con:  pnpm db:seed:synthetic
+ * Re-ejecutar BORRA lo sintético anterior y regenera hasta la fecha de hoy, sin
+ * tocar datos reales. Ejecutar con:  pnpm db:seed:synthetic
+ * Después: pnpm db:seed:security, pnpm db:seed:analytics y reentrenar /ml.
  */
-import { PrismaClient, type Prisma, type OrderStatus } from '@prisma/client';
+import { PrismaClient, type Prisma, type OrderStatus, type PaymentStatus, type ShippingMethod } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { encrypt } from '../src/lib/crypto/pii';
+import { calculateShipping } from '../src/lib/shipping';
+import { storeLocalToUtc } from '../src/lib/store-time';
 
 // Carga masiva: usa la conexión DIRECTA (no pooled) para evitar límites del
 // pooler serverless de Neon en inserciones grandes.
@@ -28,9 +38,11 @@ const db = new PrismaClient({
 const USER_MARK = '@seed.hachiko.test';
 const SKU_PREFIX = 'SYN-';
 const MONTHS = 24;
-const N_CUSTOMERS = 250;
-const BASE_ORDERS_PER_DAY = 8; // media; se multiplica por estacionalidad/tendencia
-const RNG_SEED = 20260820;
+const BASE_ORDERS_PER_DAY = 4; // media al inicio; se multiplica por estacionalidad/tendencia
+const NEW_CUSTOMER_SHARE = 0.45; // de cada pedido, probabilidad de que sea de alguien nuevo
+const GUEST_SHARE = 0.12; // de los clientes nuevos, cuántos compran como invitado
+const BROWSERS_SHARE = 0.18; // cuentas creadas que nunca compran (sobre el total de compradores)
+const RNG_SEED = 20261008;
 
 // ── PRNG determinista (mulberry32) para que el dataset sea reproducible ───
 let _s = RNG_SEED >>> 0;
@@ -44,6 +56,11 @@ function rnd(): number {
 const randInt = (min: number, max: number) => Math.floor(rnd() * (max - min + 1)) + min;
 const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rnd() * arr.length)]!;
 const id = () => randomUUID();
+function pickWeighted(weights: readonly number[], total?: number): number {
+  let t = rnd() * (total ?? weights.reduce((a, w) => a + w, 0));
+  for (let i = 0; i < weights.length; i++) if ((t -= weights[i]!) <= 0) return i;
+  return weights.length - 1;
+}
 
 // ── Catálogo sintético (con costCLP para analítica de márgenes) ───────────
 type Cat = 'snacks' | 'skincare' | 'papeleria' | 'kpop' | 'bebestibles' | 'sopas';
@@ -84,6 +101,17 @@ const CATALOG: P[] = [
   { sku: 'SYN-052', slug: 'syn-udon-instant', name: 'Udon Instantáneo', cat: 'sopas', price: 2490, cost: 1500, weight: 250 },
   { sku: 'SYN-053', slug: 'syn-kimchi-soup', name: 'Sopa de Kimchi', cat: 'sopas', price: 2990, cost: 1800, weight: 300 },
 ];
+
+// Popularidad desigual: en una tienda real unos pocos productos explican la
+// mayor parte de las ventas. Peso ∝ 1/rango^1.6 sobre un orden fijo (sembrado).
+const POPULARITY: number[] = (() => {
+  const order = CATALOG.map((_, i) => i).sort(() => rnd() - 0.5);
+  const w = new Array<number>(CATALOG.length);
+  order.forEach((idx, rank) => (w[idx] = 1 / Math.pow(rank + 1, 1.6)));
+  return w;
+})();
+const POPULARITY_TOTAL = POPULARITY.reduce((a, w) => a + w, 0);
+
 // Combos que tienden a comprarse juntos (índices del catálogo) — para que el
 // recomendador market-basket tenga señal real.
 const COMBOS: number[][] = [
@@ -92,7 +120,7 @@ const COMBOS: number[][] = [
   [8, 9], // dos mascarillas
   [11, 12, 14], // rutina skincare
   [19, 21], // álbum + photocards
-  [22, 23], // lightstick + photocards
+  [22, 21], // lightstick + photocards
   [15, 16], // cuaderno + lápices
   [28, 24], // ramyun jin + milkis (sopa + bebida)
   [29, 25], // samyang + aloe
@@ -101,29 +129,26 @@ const COMBOS: number[][] = [
   [26, 30], // sikhye + udon
 ];
 
-// ── Geografía chilena (peso, envío base, factor de plazo) ─────────────────
-interface Region { region: string; communes: string[]; ship: number; lag: number; w: number }
+// ── Geografía chilena (peso, días extra de courier) ───────────────────────
+interface Region { region: string; communes: string[]; lag: number; w: number }
 const REGIONS: Region[] = [
-  { region: 'Región Metropolitana', communes: ['Santiago', 'Providencia', 'Ñuñoa', 'Maipú', 'La Florida', 'Puente Alto', 'Las Condes', 'Recoleta'], ship: 3000, lag: 0, w: 55 },
-  { region: 'Valparaíso', communes: ['Valparaíso', 'Viña del Mar', 'Quilpué'], ship: 3500, lag: 1, w: 12 },
-  { region: 'Biobío', communes: ['Concepción', 'Talcahuano'], ship: 4500, lag: 2, w: 9 },
-  { region: 'Coquimbo', communes: ['La Serena', 'Coquimbo'], ship: 4500, lag: 2, w: 6 },
-  { region: 'Araucanía', communes: ['Temuco', 'Padre Las Casas'], ship: 5000, lag: 3, w: 6 },
-  { region: 'Los Lagos', communes: ['Puerto Montt', 'Osorno'], ship: 6000, lag: 4, w: 5 },
-  { region: 'Antofagasta', communes: ['Antofagasta', 'Calama'], ship: 6500, lag: 4, w: 4 },
-  { region: 'Maule', communes: ['Talca', 'Curicó'], ship: 4200, lag: 2, w: 3 },
+  { region: 'Región Metropolitana', communes: ['Santiago', 'Providencia', 'Ñuñoa', 'Maipú', 'La Florida', 'Puente Alto', 'Las Condes', 'Recoleta'], lag: 0, w: 58 },
+  { region: 'Valparaíso', communes: ['Valparaíso', 'Viña del Mar', 'Quilpué'], lag: 1, w: 12 },
+  { region: 'Biobío', communes: ['Concepción', 'Talcahuano'], lag: 2, w: 8 },
+  { region: 'Coquimbo', communes: ['La Serena', 'Coquimbo'], lag: 2, w: 6 },
+  { region: 'Araucanía', communes: ['Temuco', 'Padre Las Casas'], lag: 3, w: 5 },
+  { region: 'Los Lagos', communes: ['Puerto Montt', 'Osorno'], lag: 4, w: 4 },
+  { region: 'Antofagasta', communes: ['Antofagasta', 'Calama'], lag: 4, w: 4 },
+  { region: 'Maule', communes: ['Talca', 'Curicó'], lag: 2, w: 3 },
 ];
-const REGION_TOTAL_W = REGIONS.reduce((a, r) => a + r.w, 0);
-function pickRegion(): Region {
-  let t = rnd() * REGION_TOTAL_W;
-  for (const r of REGIONS) { if ((t -= r.w) <= 0) return r; }
-  return REGIONS[0]!;
-}
+// Dentro de una región no todas las comunas pesan igual (las primeras, más).
+const COMMUNE_W = (n: number) => Array.from({ length: n }, (_, i) => 1 / (i + 1) ** 0.6);
 
-// ── Estacionalidad: multiplicador de demanda por fecha ────────────────────
-function seasonMultiplier(d: Date): number {
-  const m = d.getMonth(); // 0=ene
-  const day = d.getDate();
+// ── Hora del pedido (hora de Chile): mediodía y noche, poco de madrugada ──
+const HOUR_W = [0.6, 0.3, 0.15, 0.08, 0.08, 0.12, 0.3, 0.6, 1, 1.4, 1.8, 2.2, 2.6, 2.6, 2.3, 2, 2, 2.2, 2.6, 3, 3.3, 3.2, 2.6, 1.4];
+
+// ── Estacionalidad: multiplicador de demanda por fecha (calendario de Chile) ──
+function seasonMultiplier(m: number, day: number, weekday: number): number {
   let s = 1;
   // Fiestas patrias: rampa fuerte hacia el 18 de septiembre
   if (m === 8) s *= day <= 18 ? 1 + (day / 18) * 1.9 : 2.9 - ((day - 18) / 12) * 1.6;
@@ -136,15 +161,14 @@ function seasonMultiplier(d: Date): number {
   if (m === 1 && day >= 10 && day <= 14) s *= 1.4;
   if (m === 4 && day >= 5 && day <= 11) s *= 1.4;
   // Semana: jue–sáb un poco más altos
-  const wd = d.getDay();
-  s *= wd === 4 || wd === 5 || wd === 6 ? 1.15 : wd === 0 ? 0.85 : 1;
+  s *= weekday === 4 || weekday === 5 || weekday === 6 ? 1.15 : weekday === 0 ? 0.85 : 1;
   return s;
 }
 
 interface Names { first: string[]; last: string[] }
 const NAMES: Names = {
-  first: ['Sofía', 'Martín', 'Valentina', 'Benjamín', 'Isidora', 'Vicente', 'Antonia', 'Matías', 'Florencia', 'Joaquín', 'Catalina', 'Diego', 'Javiera', 'Tomás', 'Emilia', 'Agustín'],
-  last: ['González', 'Muñoz', 'Rojas', 'Díaz', 'Pérez', 'Soto', 'Contreras', 'Silva', 'Martínez', 'Sepúlveda', 'Morales', 'Rodríguez', 'López', 'Fuentes', 'Araya'],
+  first: ['Sofía', 'Martín', 'Valentina', 'Benjamín', 'Isidora', 'Vicente', 'Antonia', 'Matías', 'Florencia', 'Joaquín', 'Catalina', 'Diego', 'Javiera', 'Tomás', 'Emilia', 'Agustín', 'Fernanda', 'Camila', 'Ignacio', 'Constanza'],
+  last: ['González', 'Muñoz', 'Rojas', 'Díaz', 'Pérez', 'Soto', 'Contreras', 'Silva', 'Martínez', 'Sepúlveda', 'Morales', 'Rodríguez', 'López', 'Fuentes', 'Araya', 'Espinoza', 'Valenzuela', 'Tapia'],
 };
 
 // ── Limpieza de lo sintético anterior (idempotencia; no toca datos reales) ─
@@ -164,7 +188,9 @@ async function wipeSynthetic() {
   await db.address.deleteMany({ where: uf });
   const synthUsers = await db.user.findMany({ where: { email: { endsWith: USER_MARK } }, select: { id: true } });
   if (synthUsers.length) {
-    await db.customerSegment.deleteMany({ where: { userId: { in: synthUsers.map((u) => u.id) } } });
+    const ids = synthUsers.map((u) => u.id);
+    await db.customerSegment.deleteMany({ where: { userId: { in: ids } } });
+    await db.riskScore.deleteMany({ where: { subjectId: { in: ids } } });
   }
   await db.product.deleteMany({ where: { sku: { startsWith: SKU_PREFIX } } });
   await db.user.deleteMany({ where: { email: { endsWith: USER_MARK } } });
@@ -174,13 +200,18 @@ async function insertChunked<T>(rows: T[], fn: (chunk: T[]) => Promise<unknown>,
   for (let i = 0; i < rows.length; i += size) await fn(rows.slice(i, i + size));
 }
 
+// ── Clientes ───────────────────────────────────────────────────────────────
+interface Customer { id: string; createdAt: Date; loyalty: number; lastOrderAt: number | null }
+
 async function main() {
   console.log('Limpiando datos sintéticos previos…');
   await wipeSynthetic();
 
   const now = new Date();
-  const start = new Date(now);
-  start.setMonth(start.getMonth() - MONTHS);
+  // Día 0 = hoy hace MONTHS meses, en el calendario de Chile.
+  const todayCl = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(now).split('-').map(Number);
+  const startCal = new Date(Date.UTC(todayCl[0]!, todayCl[1]! - 1 - MONTHS, todayCl[2]!));
+  const start = storeLocalToUtc(startCal.getUTCFullYear(), startCal.getUTCMonth(), startCal.getUTCDate());
 
   // ── Categorías (reutiliza/crea, igual que el seed real) ──
   const catDefs: { slug: Cat; name: string; order: number }[] = [
@@ -199,7 +230,10 @@ async function main() {
 
   // ── Productos sintéticos ──
   const prodId: string[] = CATALOG.map(() => id());
-  const stockStart: number[] = CATALOG.map((p) => (p.price > 15000 ? 40 : p.price > 5000 ? 120 : 400));
+  const stockStart: number[] = CATALOG.map((p, i) => {
+    const base = p.price > 15000 ? 30 : p.price > 5000 ? 80 : 200;
+    return Math.round(base * (0.6 + (POPULARITY[i]! / POPULARITY_TOTAL) * 12));
+  });
   await insertChunked(
     CATALOG.map((p, i) => ({
       id: prodId[i]!, sku: p.sku, slug: p.slug, name: p.name, description: `${p.name} — producto de demostración (sintético).`,
@@ -209,125 +243,198 @@ async function main() {
     (c) => db.product.createMany({ data: c }),
   );
 
-  // ── Clientes sintéticos ──
-  const userId: string[] = [];
+  // ── Pedidos, día por día (calendario de Chile) ──
+  const customers: Customer[] = [];
   const userRows: Prisma.UserCreateManyInput[] = [];
-  for (let i = 0; i < N_CUSTOMERS; i++) {
-    const uid = id();
-    userId.push(uid);
-    const created = new Date(start.getTime() + rnd() * (now.getTime() - start.getTime()) * 0.6);
-    userRows.push({
-      id: uid, email: `cliente${i + 1}${USER_MARK}`, passwordHash: 'SYNTHETIC_NO_LOGIN',
-      firstName: pick(NAMES.first), lastName: pick(NAMES.last), role: 'CLIENT',
-      consentEssential: true, consentMarketing: rnd() < 0.55, consentVersion: 'synthetic',
-      consentAt: created, createdAt: created,
-    });
-  }
-  await insertChunked(userRows, (c) => db.user.createMany({ data: c }));
-
-  // ── Generación de pedidos con estacionalidad ──
   const orderRows: Prisma.OrderCreateManyInput[] = [];
   const itemRows: Prisma.OrderItemCreateManyInput[] = [];
   const historyRows: Prisma.OrderStatusHistoryCreateManyInput[] = [];
   const saleEvents: { productId: string; qty: number; date: Date; orderId: string }[] = [];
 
-  const totalDays = Math.round((now.getTime() - start.getTime()) / 86400000);
-  let orderCounter = 0;
+  const newCustomer = (orderAt: Date, guest: boolean): Customer => {
+    // La mayoría crea la cuenta al comprar; algunos la tenían de antes.
+    const earlier = !guest && rnd() < 0.3 ? randInt(1, 60) * 86_400_000 : randInt(2, 40) * 60_000;
+    const createdAt = new Date(Math.max(start.getTime(), orderAt.getTime() - earlier));
+    const c: Customer = {
+      id: id(), createdAt,
+      // Fidelidad con cola larga: la mayoría ~0, unos pocos muy fieles. Invitados no vuelven.
+      loyalty: guest ? 0 : Math.pow(rnd(), 3) * 6,
+      lastOrderAt: null,
+    };
+    userRows.push({
+      id: c.id, email: `cliente${userRows.length + 1}${USER_MARK}`, passwordHash: 'SYNTHETIC_NO_LOGIN',
+      firstName: pick(NAMES.first), lastName: pick(NAMES.last), role: 'CLIENT', isGuest: guest,
+      consentEssential: true, consentMarketing: !guest && rnd() < 0.45, consentVersion: 'synthetic',
+      consentAt: createdAt, createdAt,
+    });
+    if (!guest) customers.push(c);
+    return c;
+  };
 
-  for (let dayIdx = 0; dayIdx < totalDays; dayIdx++) {
-    const dayStart = new Date(start.getTime() + dayIdx * 86400000);
+  // Elige un cliente que vuelve: según su fidelidad y cuánto hace que no compra
+  // (se enfría con el tiempo: a los ~4 meses sin comprar, casi no vuelve).
+  const returning = (at: number): Customer | null => {
+    let total = 0;
+    const w = customers.map((c) => {
+      if (c.createdAt.getTime() > at || c.lastOrderAt === null) return 0;
+      const days = (at - c.lastOrderAt) / 86_400_000;
+      const v = days < 3 ? 0 : c.loyalty * Math.exp(-days / 120);
+      total += v;
+      return v;
+    });
+    return total > 0 ? customers[pickWeighted(w, total)]! : null;
+  };
+
+  const totalDays = Math.round((now.getTime() - start.getTime()) / 86_400_000);
+  for (let dayIdx = 0; dayIdx <= totalDays; dayIdx++) {
+    const cal = new Date(startCal.getTime() + dayIdx * 86_400_000);
+    const [y, m, d, wd] = [cal.getUTCFullYear(), cal.getUTCMonth(), cal.getUTCDate(), cal.getUTCDay()];
     const trend = 1 + (dayIdx / totalDays) * 0.6; // crecimiento del negocio en el tiempo
-    const lambda = BASE_ORDERS_PER_DAY * seasonMultiplier(dayStart) * trend * (0.7 + rnd() * 0.6);
+    const lambda = BASE_ORDERS_PER_DAY * seasonMultiplier(m, d, wd) * trend * (0.7 + rnd() * 0.6);
     const nOrders = Math.max(0, Math.round(lambda));
 
     for (let k = 0; k < nOrders; k++) {
-      const oid = id();
-      orderCounter++;
-      const created = new Date(dayStart.getTime() + randInt(9, 22) * 3600000 + randInt(0, 59) * 60000);
+      const created = storeLocalToUtc(y, m, d, pickWeighted(HOUR_W), randInt(0, 59));
+      if (created > now) continue;
 
-      // Canasta: 35% usa un combo, resto aleatorio; 1–4 líneas
+      const back = rnd() >= NEW_CUSTOMER_SHARE ? returning(created.getTime()) : null;
+      const customer = back ?? newCustomer(created, rnd() < GUEST_SHARE);
+      customer.lastOrderAt = created.getTime();
+
+      // Canasta: 35% usa un combo; el resto, productos según popularidad; 1–3 líneas
+      const oid = id();
       const idxs = new Set<number>();
       if (rnd() < 0.35) pick(COMBOS).forEach((i) => idxs.add(i));
       const extra = randInt(0, 2);
-      for (let e = 0; e < extra || idxs.size === 0; e++) idxs.add(randInt(0, CATALOG.length - 1));
+      for (let e = 0; e < extra || idxs.size === 0; e++) idxs.add(pickWeighted(POPULARITY, POPULARITY_TOTAL));
 
       let subtotal = 0;
-      const uid = pick(userId);
-      const lineItems: Prisma.OrderItemCreateManyInput[] = [];
       for (const i of idxs) {
         const p = CATALOG[i]!;
-        const qty = p.price > 15000 ? randInt(1, 2) : randInt(1, 4);
+        const qty = p.price > 15000 ? 1 : p.price > 5000 ? randInt(1, 2) : randInt(1, 4);
         subtotal += p.price * qty;
-        lineItems.push({ id: id(), orderId: oid, productId: prodId[i]!, quantity: qty, unitPriceCLP: p.price, productName: p.name });
+        itemRows.push({ id: id(), orderId: oid, productId: prodId[i]!, quantity: qty, unitPriceCLP: p.price, productName: p.name });
         saleEvents.push({ productId: prodId[i]!, qty, date: created, orderId: oid });
       }
 
-      // Envío: 20% retiro en tienda, resto courier con región
+      // Envío con la regla real de la tienda: 20% retira en Recoleta.
       const isPickup = rnd() < 0.2;
-      const reg = pickRegion();
-      const method = isPickup ? 'PICKUP' : rnd() < 0.6 ? 'STARKEN' : 'CORREOS_CHILE';
-      const shipping = isPickup ? 0 : reg.ship;
-      const commune = isPickup ? null : pick(reg.communes);
+      const method: ShippingMethod = isPickup ? 'PICKUP' : rnd() < 0.6 ? 'STARKEN' : 'CORREOS_CHILE';
+      const shipping = calculateShipping(subtotal, method);
+      const reg = isPickup ? null : REGIONS[pickWeighted(REGIONS.map((r) => r.w))]!;
+      const commune = reg ? reg.communes[pickWeighted(COMMUNE_W(reg.communes.length))]! : null;
 
       // Desenlace del pedido + línea de tiempo de estados
-      const ageDays = (now.getTime() - created.getTime()) / 86400000;
+      const ageH = (now.getTime() - created.getTime()) / 3_600_000;
       const roll = rnd();
       let status: OrderStatus = 'DELIVERED';
-      let paymentStatus: 'PAID' | 'UNPAID' | 'FAILED' = 'PAID';
+      let paymentStatus: PaymentStatus = 'PAID';
       let paidAt: Date | null = null;
       let shippedAt: Date | null = null;
       let deliveredAt: Date | null = null;
-
       const transitions: { from: OrderStatus | null; to: OrderStatus; at: Date }[] = [{ from: null, to: 'PENDING', at: created }];
+      const push = (from: OrderStatus, to: OrderStatus, at: Date) => {
+        if (at <= now) transitions.push({ from, to, at });
+      };
 
       if (roll < 0.04) {
-        // Abandonado sin pago
-        status = 'PENDING'; paymentStatus = 'UNPAID';
-      } else {
-        paidAt = new Date(created.getTime() + randInt(1, 240) * 60000);
-        transitions.push({ from: 'PENDING', to: 'PAID', at: paidAt });
-        if (roll < 0.10) {
-          // Cancelado tras pagar (se reembolsa)
-          status = 'CANCELLED'; paymentStatus = 'PAID';
-          transitions.push({ from: 'PAID', to: 'CANCELLED', at: new Date(paidAt.getTime() + randInt(1, 48) * 3600000) });
+        // Nunca pagó: si ya pasó un día, el pago se da por fallido y se cancela.
+        if (ageH < 24) {
+          status = 'PENDING'; paymentStatus = 'UNPAID';
         } else {
-          const prepAt = new Date(paidAt.getTime() + randInt(2, 30) * 3600000);
-          transitions.push({ from: 'PAID', to: 'PREPARING', at: prepAt });
-          shippedAt = new Date(prepAt.getTime() + randInt(4, 30) * 3600000);
-          const courierLag = (method === 'CORREOS_CHILE' ? 3 : method === 'STARKEN' ? 2 : 0) + reg.lag;
-          const delAt = new Date(shippedAt.getTime() + (courierLag + randInt(0, 2)) * 86400000);
+          status = 'CANCELLED'; paymentStatus = 'FAILED';
+          push('PENDING', 'CANCELLED', new Date(created.getTime() + 24 * 3_600_000));
+        }
+      } else {
+        paidAt = new Date(created.getTime() + randInt(1, 30) * 60_000);
+        push('PENDING', 'PAID', paidAt);
+        const prepAt = new Date(paidAt.getTime() + randInt(2, 20) * 3_600_000);
+        const readyAt = new Date(prepAt.getTime() + randInt(3, 24) * 3_600_000);
+        const lag = isPickup ? randInt(0, 3) : (method === 'CORREOS_CHILE' ? 3 : 2) + reg!.lag + randInt(0, 2);
+        const doneAt = new Date(readyAt.getTime() + lag * 86_400_000 + randInt(1, 8) * 3_600_000);
 
-          if (ageDays < 2) {
-            status = 'PREPARING'; shippedAt = null;
-          } else if (delAt > now) {
-            status = 'SHIPPED';
-            transitions.push({ from: 'PREPARING', to: 'SHIPPED', at: shippedAt });
-          } else {
-            status = 'DELIVERED'; deliveredAt = delAt;
-            transitions.push({ from: 'PREPARING', to: 'SHIPPED', at: shippedAt });
-            transitions.push({ from: 'SHIPPED', to: 'DELIVERED', at: deliveredAt });
-          }
+        if (roll < 0.065) {
+          // Cancelado después de pagar → se reembolsa
+          status = 'CANCELLED'; paymentStatus = 'REFUNDED';
+          push('PAID', 'CANCELLED', new Date(paidAt.getTime() + randInt(1, 48) * 3_600_000));
+        } else if (prepAt > now) {
+          status = 'PAID';
+        } else if (readyAt > now) {
+          status = 'PREPARING'; push('PAID', 'PREPARING', prepAt);
+        } else if (doneAt > now) {
+          status = 'SHIPPED'; shippedAt = readyAt;
+          push('PAID', 'PREPARING', prepAt); push('PREPARING', 'SHIPPED', readyAt);
+        } else {
+          status = 'DELIVERED'; shippedAt = readyAt; deliveredAt = doneAt;
+          push('PAID', 'PREPARING', prepAt); push('PREPARING', 'SHIPPED', readyAt); push('SHIPPED', 'DELIVERED', doneAt);
         }
       }
 
       const fullName = `${pick(NAMES.first)} ${pick(NAMES.last)}`;
       orderRows.push({
-        id: oid, userId: uid, subtotalCLP: subtotal, shippingCLP: shipping, totalCLP: subtotal + shipping,
-        status, paymentStatus, paymentProvider: paymentStatus === 'PAID' ? (rnd() < 0.6 ? 'transbank' : 'mercadopago') : null,
+        id: oid, userId: customer.id, subtotalCLP: subtotal, shippingCLP: shipping, totalCLP: subtotal + shipping,
+        status, paymentStatus,
+        paymentProvider: paidAt ? (rnd() < 0.6 ? 'transbank' : 'mercadopago') : null,
         paidAt, shippedAt, deliveredAt, shippingMethod: method,
         // PII cifrada con AES-256-GCM, igual que el checkout real (createOrder),
         // para que la vista del vendedor pueda descifrarla sin romperse.
         shippingFullName: encrypt(fullName), shippingPhone: encrypt(`+5695${randInt(1000000, 9999999)}`),
         shippingStreet: isPickup ? null : encrypt(`Calle ${pick(NAMES.last)}`), shippingNumber: isPickup ? null : encrypt(String(randInt(100, 9999))),
-        shippingCommune: commune, shippingRegion: isPickup ? null : reg.region,
+        shippingCommune: commune, shippingRegion: reg?.region ?? null,
         shippingNotes: '[SYNTHETIC]', createdAt: created,
       });
-      itemRows.push(...lineItems);
       for (const t of transitions) historyRows.push({ id: id(), orderId: oid, fromStatus: t.from, toStatus: t.to, actorId: 'seed', note: '[SYNTHETIC]', createdAt: t.at });
     }
   }
 
+  // Pedidos sospechosos inyectados (como los ataques del seed de seguridad), para
+  // que el detector de fraude tenga casos que mostrar: invitado o cuenta recién
+  // creada, de madrugada, muchas unidades de lo más caro, pagado y sin despachar.
+  const SUSPICIOUS = [
+    { items: [[22, 4], [20, 3]], hour: 3, ago: 1 },
+    { items: [[22, 3], [19, 3], [12, 4]], hour: 4, ago: 2 },
+    { items: [[13, 6], [11, 5]], hour: 2, ago: 0 },
+  ] as const;
+  for (const s of SUSPICIOUS) {
+    const when = new Date(now.getTime() - s.ago * 86_400_000);
+    const cal = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(when).split('-').map(Number);
+    let created = storeLocalToUtc(cal[0]!, cal[1]! - 1, cal[2]!, s.hour, randInt(0, 59));
+    if (created > now) created = new Date(now.getTime() - 3_600_000);
+    const customer = newCustomer(created, true);
+    const oid = id();
+    let subtotal = 0;
+    for (const [i, qty] of s.items) {
+      const p = CATALOG[i]!;
+      subtotal += p.price * qty;
+      itemRows.push({ id: id(), orderId: oid, productId: prodId[i]!, quantity: qty, unitPriceCLP: p.price, productName: p.name });
+      saleEvents.push({ productId: prodId[i]!, qty, date: created, orderId: oid });
+    }
+    const paidAt = new Date(created.getTime() + 3 * 60_000);
+    orderRows.push({
+      id: oid, userId: customer.id, subtotalCLP: subtotal, shippingCLP: 0, totalCLP: subtotal,
+      status: 'PAID', paymentStatus: 'PAID', paymentProvider: 'mercadopago', paidAt, shippingMethod: 'PICKUP',
+      shippingFullName: encrypt(`${pick(NAMES.first)} ${pick(NAMES.last)}`), shippingPhone: encrypt(`+5695${randInt(1000000, 9999999)}`),
+      shippingNotes: '[SYNTHETIC]', createdAt: created,
+    });
+    historyRows.push({ id: id(), orderId: oid, fromStatus: null, toStatus: 'PENDING', actorId: 'seed', note: '[SYNTHETIC]', createdAt: created });
+    historyRows.push({ id: id(), orderId: oid, fromStatus: 'PENDING', toStatus: 'PAID', actorId: 'seed', note: '[SYNTHETIC]', createdAt: paidAt });
+  }
+
+  // Cuentas que se registraron y nunca compraron (mirones).
+  const buyers = userRows.length;
+  for (let i = 0; i < Math.round(buyers * BROWSERS_SHARE); i++) {
+    const createdAt = new Date(start.getTime() + rnd() * (now.getTime() - start.getTime()));
+    userRows.push({
+      id: id(), email: `cliente${userRows.length + 1}${USER_MARK}`, passwordHash: 'SYNTHETIC_NO_LOGIN',
+      firstName: pick(NAMES.first), lastName: pick(NAMES.last), role: 'CLIENT',
+      consentEssential: true, consentMarketing: rnd() < 0.4, consentVersion: 'synthetic',
+      consentAt: createdAt, createdAt,
+    });
+  }
+
   // ── Inventario: INITIAL_LOAD + SALE (cronológico) + RESTOCK + mermas ──
+  // Solo descuentan stock los pedidos que se pagaron y no se cancelaron.
+  const soldOrders = new Set(orderRows.filter((o) => o.paymentStatus === 'PAID').map((o) => o.id));
   const movementRows: Prisma.StockMovementCreateManyInput[] = [];
   const stock: number[] = [...stockStart];
   CATALOG.forEach((_, i) => {
@@ -336,13 +443,14 @@ async function main() {
   const idxOf = new Map(prodId.map((pid, i) => [pid, i]));
   saleEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
   for (const ev of saleEvents) {
+    if (!soldOrders.has(ev.orderId)) continue;
     const i = idxOf.get(ev.productId)!;
-    if (stock[i]! < ev.qty + 3) {
-      const target = stockStart[i]!;
-      const add = target - stock[i]!;
+    // Reposición cuando queda poco (punto de pedido ~15% del stock objetivo).
+    if (stock[i]! < Math.max(ev.qty + 2, stockStart[i]! * 0.15)) {
+      const add = stockStart[i]! - stock[i]!;
       if (add > 0) {
-        movementRows.push({ id: id(), productId: ev.productId, type: 'IN', reason: 'RESTOCK', quantity: add, previousStock: stock[i]!, resultingStock: target, createdAt: new Date(ev.date.getTime() - 3600000) });
-        stock[i] = target;
+        movementRows.push({ id: id(), productId: ev.productId, type: 'IN', reason: 'RESTOCK', quantity: add, previousStock: stock[i]!, resultingStock: stockStart[i]!, createdAt: new Date(ev.date.getTime() - 3_600_000) });
+        stock[i] = stockStart[i]!;
       }
     }
     const prev = stock[i]!;
@@ -362,7 +470,8 @@ async function main() {
     }
   }
 
-  console.log(`Insertando ${orderRows.length} pedidos, ${itemRows.length} ítems, ${movementRows.length} movimientos, ${historyRows.length} transiciones…`);
+  console.log(`Insertando ${userRows.length} clientes, ${orderRows.length} pedidos, ${itemRows.length} ítems, ${movementRows.length} movimientos…`);
+  await insertChunked(userRows, (c) => db.user.createMany({ data: c }));
   await insertChunked(orderRows, (c) => db.order.createMany({ data: c }));
   await insertChunked(itemRows, (c) => db.orderItem.createMany({ data: c }));
   await insertChunked(historyRows, (c) => db.orderStatusHistory.createMany({ data: c }));
@@ -373,10 +482,15 @@ async function main() {
     await db.product.update({ where: { id: prodId[i]! }, data: { stock: Math.max(0, stock[i]!) } });
   }
 
+  const perCustomer = new Map<string, number>();
+  for (const o of orderRows) if (o.paymentStatus === 'PAID') perCustomer.set(o.userId, (perCustomer.get(o.userId) ?? 0) + 1);
+  const counts = [...perCustomer.values()];
+  const repeat = counts.filter((c) => c >= 2).length;
   console.log('\nDataset sintético listo:');
-  console.log(`  clientes:   ${userId.length}`);
+  console.log(`  cuentas:    ${userRows.length} (${counts.length} con compras, ${(100 * repeat / Math.max(1, counts.length)).toFixed(0)}% volvió a comprar)`);
+  console.log(`  compras por cliente: promedio ${(counts.reduce((a, c) => a + c, 0) / Math.max(1, counts.length)).toFixed(2)}, máximo ${Math.max(0, ...counts)}`);
   console.log(`  productos:  ${CATALOG.length}`);
-  console.log(`  pedidos:    ${orderRows.length}  (~${MONTHS} meses con estacionalidad)`);
+  console.log(`  pedidos:    ${orderRows.length}  (~${MONTHS} meses con estacionalidad, hasta hoy)`);
   console.log('  Marcado como sintético — re-ejecuta el script para regenerar sin duplicar.\n');
 }
 

@@ -92,11 +92,11 @@ export default async function ProductoPage({ params }: Props) {
 
       {/* Breadcrumb */}
       <div className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-taupe">
-        <Link href="/" className="hover:text-rust">
+        <Link href="/" className="hover:text-rust-ink">
           Inicio
         </Link>
         <Icon name="chevronR" size={12} />
-        <Link href={`/catalogo?categoria=${product.category.slug}`} className="hover:text-rust">
+        <Link href={`/catalogo?categoria=${product.category.slug}`} className="hover:text-rust-ink">
           {product.category.name}
         </Link>
         <Icon name="chevronR" size={12} />
@@ -128,7 +128,7 @@ export default async function ProductoPage({ params }: Props) {
             <span className="price-mono">SKU · {product.sku}</span>
             <span>·</span>
             {product.stock > 0 ? (
-              <span className="flex items-center gap-1.5 text-mint-deep">
+              <span className="flex items-center gap-1.5 text-mint-ink">
                 <span className="h-1.5 w-1.5 rounded-full bg-mint-deep" />
                 {product.stock <= product.lowStockThreshold
                   ? `Quedan ${product.stock} en bodega`
@@ -184,7 +184,7 @@ export default async function ProductoPage({ params }: Props) {
             </AccordionRow>
             <AccordionRow title="Cambios y devoluciones">
               30 días para cambios en producto cerrado. Si llegó dañado, te respondemos en 24 hrs.{' '}
-              <Link href="/legal/devoluciones" className="text-rust hover:underline">
+              <Link href="/legal/devoluciones" className="text-rust-ink hover:underline">
                 Ver política completa →
               </Link>
             </AccordionRow>

@@ -59,7 +59,7 @@ export default function StockAdjustPanel({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-[13px] font-medium text-rust transition hover:text-rust-dark hover:underline"
+        className="text-[13px] font-medium text-rust-ink transition hover:text-rust-ink hover:underline"
       >
         Ajustar
       </button>

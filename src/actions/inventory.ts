@@ -14,6 +14,7 @@ import {
   createCategory,
   updateCategory,
   archiveCategory,
+  restoreCategory,
 } from '@/src/lib/services/catalog.service';
 
 // Identificador de la BD: la mayoría son cuid, pero el catálogo sintético se
@@ -279,11 +280,36 @@ export async function archiveCategoryAction(
     return { ok: false, error: 'Sin permisos' };
   }
 
+  const id = idSchema.safeParse(categoryId);
+  if (!id.success) return { ok: false, error: 'Categoría inválida' };
+
   try {
-    await archiveCategory(categoryId);
+    await archiveCategory(id.data);
     revalidatePath('/trastienda/categorias');
+    revalidatePath('/catalogo');
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al archivar categoría' };
+    // No se muestra el error crudo de la base de datos al usuario.
+    return { ok: false, error: friendlyDbError(e, 'No se pudo archivar la categoría') };
+  }
+}
+
+export async function restoreCategoryAction(
+  categoryId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'SELLER') {
+    return { ok: false, error: 'Sin permisos' };
+  }
+  const id = idSchema.safeParse(categoryId);
+  if (!id.success) return { ok: false, error: 'Categoría inválida' };
+
+  try {
+    await restoreCategory(id.data);
+    revalidatePath('/trastienda/categorias');
+    revalidatePath('/catalogo');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: friendlyDbError(e, 'No se pudo restaurar la categoría') };
   }
 }

@@ -12,8 +12,9 @@ pnpm exec tsx prisma/seed.ts || echo "   (seed base: los datos ya existian, se c
 
 echo "==> [3/4] Verificando dataset sintetico (operacion + analitica)..."
 HAS_SYNTH=$(node scripts/has-synthetic.cjs 2>/dev/null || echo error)
-if [ "$HAS_SYNTH" = "no" ]; then
-  echo "    Generando ~24 meses de datos sinteticos (la primera vez tarda 1-3 min)..."
+if [ "$HAS_SYNTH" = "no" ] || [ "$HAS_SYNTH" = "stale" ]; then
+  [ "$HAS_SYNTH" = "stale" ] && echo "    Los datos sinteticos quedaron con fechas viejas: se regeneran hasta hoy."
+  echo "    Generando ~24 meses de datos sinteticos (tarda 1-3 min)..."
   pnpm exec tsx prisma/seed-synthetic.ts || echo "    (seed sintetico fallo, se continua)"
   pnpm exec tsx prisma/seed-security-events.ts || echo "    (seed seguridad omitido)"
   pnpm exec tsx prisma/seed-analytics-events.ts || echo "    (seed analitica omitido)"

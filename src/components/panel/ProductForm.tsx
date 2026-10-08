@@ -136,7 +136,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
   return (
     <form method="post" onSubmit={handleSubmit} className="max-w-2xl space-y-5">
       {error && (
-        <div className="rounded-input border border-rust/30 bg-rust/[0.08] px-4 py-3 text-sm text-[#b06a2c]">
+        <div className="rounded-input border border-rust/30 bg-rust/[0.08] px-4 py-3 text-sm text-rust-ink">
           {error}
         </div>
       )}
@@ -204,7 +204,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-input border border-dashed border-taupe/50 bg-cream/40 text-taupe transition hover:border-rust hover:text-rust disabled:opacity-60"
+            className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-input border border-dashed border-taupe/50 bg-cream/40 text-taupe transition hover:border-rust hover:text-rust-ink disabled:opacity-60"
           >
             {uploading ? (
               <span className="text-xs font-medium">Subiendo…</span>

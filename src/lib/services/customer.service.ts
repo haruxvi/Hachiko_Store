@@ -153,7 +153,8 @@ export async function saveDefaultShippingAddress(userId: string, input: SavedAdd
 export async function getAccountSummary(userId: string) {
   const paid = { userId, paymentStatus: 'PAID' as const };
   const [orderCount, lastOrder] = await Promise.all([
-    db.order.count({ where: paid }),
+    // "Llevas N compras": las canceladas (reembolsadas) no cuentan como compra.
+    db.order.count({ where: { ...paid, status: { not: 'CANCELLED' } } }),
     db.order.findFirst({
       where: paid,
       orderBy: { createdAt: 'desc' },

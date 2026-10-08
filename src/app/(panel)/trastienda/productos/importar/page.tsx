@@ -15,7 +15,7 @@ export default async function ImportarProductosPage() {
     <div className="max-w-5xl space-y-6">
       <Link
         href="/trastienda/productos"
-        className="text-sm text-taupe hover:text-rust"
+        className="text-sm text-taupe hover:text-rust-ink"
       >
         ← Volver a productos
       </Link>

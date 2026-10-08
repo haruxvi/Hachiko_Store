@@ -6,6 +6,7 @@ import {
   getIncidentAnalytics,
   getConversionAnalytics,
   getExpectedProfit,
+  CONVERSION_WINDOW_DAYS,
 } from '@/src/lib/services/intelligence.service';
 import { Eyebrow, Stat, clp, num, pct } from '@/src/components/panel/intelligence-ui';
 import PrintButton from '@/src/components/panel/PrintButton';
@@ -36,17 +37,17 @@ export default async function ReportePage() {
       </header>
 
       <section className="space-y-3">
-        <Eyebrow>Negocio · últimos 12 meses</Eyebrow>
+        <Eyebrow>Negocio · últimos 12 meses cerrados</Eyebrow>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Stat label="Ingresos" value={clp(m.totals.revenue)} />
+          <Stat label="Ventas de productos" value={clp(m.totals.revenue)} hint="sin envío ni canceladas" />
           <Stat label="Margen" value={clp(m.totals.margin)} hint={pct(m.totals.marginPct)} accent />
           <Stat label="Órdenes" value={num(m.totals.orders)} />
-          <Stat label="Conversión" value={pct(conv.overallConversion)} />
+          <Stat label="Conversión" value={pct(conv.overallConversion)} hint={`últimos ${CONVERSION_WINDOW_DAYS} días`} />
         </div>
       </section>
 
       <section className="space-y-3">
-        <Eyebrow>Proyección · próximo mes</Eyebrow>
+        <Eyebrow>Proyección · mes en curso</Eyebrow>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <Stat label="Ganancia esperada" value={clp(profit.expectedProfit)} accent hint={`margen ${pct(profit.marginPct)}`} />
           <Stat label="Ingresos esperados" value={clp(profit.expectedRevenue)} />
@@ -70,10 +71,10 @@ export default async function ReportePage() {
         <section className="card-hs shadow-soft p-6">
           <Eyebrow>Acciones sugeridas</Eyebrow>
           <ul className="mt-4 space-y-2.5 text-sm text-soot">
-            <li className="flex justify-between"><span>Reposición urgente</span><span className="price-mono text-rust-dark">{num(restock.urgent)} productos</span></li>
+            <li className="flex justify-between"><span>Reposición urgente</span><span className="price-mono text-rust-ink">{num(restock.urgent)} productos</span></li>
             <li className="flex justify-between"><span>Carritos recuperables</span><span className="price-mono">{num(conv.recoverable)}</span></li>
             <li className="flex justify-between"><span>Órdenes a revisar (fraude)</span><span className="price-mono">{num(fraud.flagged)}</span></li>
-            <li className="flex justify-between"><span>Cuentas bajo ataque</span><span className="price-mono text-alert">{num(acc.flagged)}</span></li>
+            <li className="flex justify-between"><span>Cuentas atacadas o comprometidas</span><span className="price-mono text-alert">{num(acc.underAttack)}</span></li>
           </ul>
         </section>
       </div>
@@ -84,7 +85,7 @@ export default async function ReportePage() {
           <Stat label="Incidentes abiertos" value={num(inc.open)} />
           <Stat label="MTTR" value={inc.mttrHours != null ? `${inc.mttrHours.toFixed(0)} h` : '—'} />
           <Stat label="Afectan datos pers." value={num(inc.affectsPersonalData)} />
-          <Stat label="Cuentas en riesgo" value={num(acc.flagged)} accent />
+          <Stat label="Cuentas en riesgo" value={num(acc.underAttack)} hint={`${num(acc.compromised)} posiblemente comprometidas`} accent />
         </div>
       </section>
 

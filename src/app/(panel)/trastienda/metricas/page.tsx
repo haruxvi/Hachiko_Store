@@ -13,7 +13,7 @@ export const revalidate = 60;
 
 const clp = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Math.round(n));
 const clpShort = (n: number) => n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${Math.round(n)}`;
-const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const pct = (n: number | null) => (n === null ? 'sin costo' : `${(n * 100).toFixed(1)}%`);
 const num = (n: number) => n.toLocaleString('es-CL');
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 // Períodos guardados a medianoche UTC: leer en UTC para no correr el mes en Chile.
@@ -57,7 +57,7 @@ export default async function MetricasPage() {
               key={i}
               className={`flex items-center gap-2.5 rounded-chip border px-4 py-2.5 text-sm ${
                 a.level === 'critical' ? 'border-alert/30 bg-alert/[0.08] text-alert'
-                : a.level === 'warning' ? 'border-rust/30 bg-rust/[0.10] text-[#b06a2c]'
+                : a.level === 'warning' ? 'border-rust/30 bg-rust/[0.10] text-rust-ink'
                 : 'border-sand bg-cream text-taupe'
               }`}
             >
@@ -68,12 +68,15 @@ export default async function MetricasPage() {
         </section>
       )}
 
-      {/* Tarjetas — últimos 12 meses */}
+      {/* Tarjetas — últimos 12 meses cerrados. Los desgloses de abajo usan la misma ventana. */}
       <section className="space-y-3">
-        <Eyebrow>Últimos doce meses</Eyebrow>
+        <Eyebrow>
+          Últimos 12 meses cerrados
+          {d.windowStart && d.windowEnd && ` · ${monthLabel(d.windowStart)} a ${monthLabel(d.windowEnd)}`}
+        </Eyebrow>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Stat label="Ingresos" value={clp(d.totals.revenue)} />
-          <Stat label="Margen" value={clp(d.totals.margin)} hint={`${pct(d.totals.marginPct)} sobre ingresos`} accent />
+          <Stat label="Ventas de productos" value={clp(d.totals.revenue)} hint="Sin envío ni órdenes canceladas" />
+          <Stat label="Margen" value={clp(d.totals.margin)} hint={`${pct(d.totals.marginPct)} sobre lo vendido con costo conocido`} accent />
           <Stat label="Órdenes" value={num(d.totals.orders)} />
           <Stat label="Ticket promedio" value={clp(d.totals.aov)} />
         </div>
@@ -87,19 +90,19 @@ export default async function MetricasPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="card-hs shadow-soft p-6">
-          <Eyebrow>Margen por categoría</Eyebrow>
+          <Eyebrow>Margen por categoría · 12 meses</Eyebrow>
           <div className="mt-5"><CategoryBars rows={d.categories} /></div>
         </section>
 
         <section className="card-hs shadow-soft p-6">
-          <Eyebrow>Ventas por comuna</Eyebrow>
+          <Eyebrow>Ventas por comuna · 12 meses</Eyebrow>
           <div className="mt-5"><CommuneBars rows={d.communes.slice(0, 10)} /></div>
         </section>
       </div>
 
       {/* Clasificación ABC */}
       <section className="card-hs shadow-soft p-6">
-        <Eyebrow>Clasificación ABC de productos</Eyebrow>
+        <Eyebrow>Clasificación ABC de productos · 12 meses</Eyebrow>
         <p className="mt-1.5 text-[13px] text-taupe">
           Regla de Pareto por ingresos — <span className="text-soot">A</span> concentra ~80%,
           {' '}<span className="text-soot">B</span> el siguiente ~15%,
@@ -111,11 +114,14 @@ export default async function MetricasPage() {
       {anomalies.hasData && (
         <section className="card-hs shadow-soft p-6">
           <Eyebrow>Anomalías de ventas</Eyebrow>
-          <p className="mt-1.5 text-[13px] text-taupe">Días cuyos ingresos se desvían mucho de lo normal (z-score ≥ 2,5) — picos o caídas a investigar.</p>
+          <p className="mt-1.5 text-[13px] text-taupe">
+            Días de los últimos 6 meses que se salen mucho de lo normal para ese día de la semana (z-score ≥ 2,5).
+            No incluye fechas que ya se sabe que venden más: Fiestas Patrias, Navidad, CyberDay.
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {anomalies.anomalies.map((a, i) => (
-              <span key={i} className={`chip-hs ${a.deviation > 0 ? 'border-transparent bg-mint text-[#4e7a5e]' : 'border-transparent bg-alert/[0.12] text-alert'}`}>
-                {new Date(a.date).toLocaleDateString('es-CL')} · {clp(a.revenue)} {a.deviation > 0 ? '▲' : '▼'}
+              <span key={i} className={`chip-hs ${a.deviation > 0 ? 'border-transparent bg-mint text-[#3F664D]' : 'border-transparent bg-alert/[0.12] text-alert'}`}>
+                {new Date(a.date).toLocaleDateString('es-CL', { timeZone: 'UTC' })} · {clp(a.revenue)} (normal {clp(a.expected)}) {a.deviation > 0 ? '▲' : '▼'}
               </span>
             ))}
           </div>
@@ -133,7 +139,7 @@ function Stat({ label, value, hint, accent }: { label: string; value: string; hi
   return (
     <div className="card-hs shadow-soft p-5">
       <p className="text-[13px] text-taupe">{label}</p>
-      <p className={`price-mono mt-1.5 text-[25px] leading-none ${accent ? 'text-rust-dark' : 'text-soot'}`}>{value}</p>
+      <p className={`price-mono mt-1.5 text-[25px] leading-none ${accent ? 'text-rust-ink' : 'text-soot'}`}>{value}</p>
       {hint && <p className="mt-2 text-xs text-taupe">{hint}</p>}
     </div>
   );
@@ -181,7 +187,7 @@ function CategoryBars({ rows }: { rows: CategoryRow[] }) {
             <span className="font-semibold capitalize text-soot">{r.category}</span>
             <span className="text-taupe">
               <span className="price-mono text-soot">{clp(r.revenue)}</span>
-              {'  ·  margen '}<span className="text-rust-dark">{pct(r.marginPct)}</span>
+              {'  ·  margen '}<span className="text-rust-ink">{pct(r.marginPct)}</span>
             </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-chip bg-sand">
@@ -212,7 +218,7 @@ function CommuneBars({ rows }: { rows: CommuneRow[] }) {
 
 function AbcTable({ rows }: { rows: ProductRow[] }) {
   const badge = (c: 'A' | 'B' | 'C') =>
-    c === 'A' ? 'bg-mint text-[#4e7a5e]' : c === 'B' ? 'bg-rust/[0.16] text-[#b06a2c]' : 'bg-sand text-taupe';
+    c === 'A' ? 'bg-mint text-[#3F664D]' : c === 'B' ? 'bg-rust/[0.16] text-rust-ink' : 'bg-sand text-taupe';
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -234,7 +240,7 @@ function AbcTable({ rows }: { rows: ProductRow[] }) {
               <td className="py-2.5 pr-3 text-soot">{p.name}</td>
               <td className="price-mono py-2.5 pr-3 text-right text-soot">{clp(p.revenue)}</td>
               <td className="price-mono py-2.5 pr-3 text-right text-taupe">{num(p.units)}</td>
-              <td className="py-2.5 text-right text-rust-dark">{pct(p.marginPct)}</td>
+              <td className="py-2.5 text-right text-rust-ink">{pct(p.marginPct)}</td>
             </tr>
           ))}
         </tbody>

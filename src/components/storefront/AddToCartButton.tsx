@@ -12,7 +12,7 @@ export default function AddToCartButton({ product }: Props) {
   return (
     <button
       onClick={() => addItem({ ...product, quantity: 1 })}
-      className="bg-rose-500 text-white font-semibold py-3 px-8 rounded-full hover:bg-rose-600 transition-colors w-full sm:w-auto"
+      className="bg-rust text-soot font-semibold py-3 px-8 rounded-full hover:bg-rust transition-colors w-full sm:w-auto"
     >
       Agregar al carrito
     </button>

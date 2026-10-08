@@ -30,7 +30,7 @@ export default function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg px-4 py-4 leading-relaxed">
+      <div className="bg-mint border border-mint-deep/40 text-mint-ink text-sm rounded-lg px-4 py-4 leading-relaxed">
         Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.
         Revisa también tu carpeta de spam. El enlace es válido por 60 minutos.
       </div>
@@ -40,27 +40,27 @@ export default function ForgotPasswordForm() {
   return (
     <form method="post" onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        <div className="bg-alert/[0.08] border border-alert/30 text-alert text-sm rounded-lg px-4 py-3">
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <label htmlFor="email" className="block text-sm font-medium text-soot mb-1">Email</label>
         <input
           id="email"
           name="email"
           type="email"
           required
           autoComplete="email"
-          className="w-full border rounded-lg px-3 py-2 text-sm"
+          className="input-hs !py-2.5 !text-sm"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-rose-600 text-white text-sm py-2.5 rounded-lg hover:bg-rose-700 disabled:opacity-50"
+        className="btn-primary w-full disabled:opacity-50"
       >
         {loading ? 'Enviando…' : 'Enviar enlace de recuperación'}
       </button>

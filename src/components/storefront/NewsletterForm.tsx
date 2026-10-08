@@ -54,7 +54,7 @@ export default function NewsletterForm() {
         .
       </p>
       {state.status === 'error' && (
-        <p role="alert" className="mt-2 text-xs text-[#b06a2c]">
+        <p role="alert" className="mt-2 text-xs text-rust-ink">
           {state.message}
         </p>
       )}

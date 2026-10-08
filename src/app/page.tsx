@@ -38,7 +38,7 @@ export default async function HomePage() {
             <div className="lg:pt-12">
               <h1 className="mb-6 font-display text-4xl font-bold leading-[1.08] tracking-[-0.02em] text-soot sm:text-5xl lg:text-6xl">
                 Snacks, skincare y papelería traídos directo de{' '}
-                <span className="editorial text-rust">Seúl</span>.
+                <span className="editorial text-rust-ink">Seúl</span>.
               </h1>
               <p className="mb-9 max-w-[440px] text-[17px] font-normal leading-[1.7] text-taupe">
                 Cosas que extrañábamos y queríamos probar. Llegan en cantidades chicas a una bodega
@@ -142,7 +142,7 @@ export default async function HomePage() {
               <span className="ph-label">foto editorial · bodega en Recoleta</span>
             </Reveal>
             <Reveal delay={120}>
-              <div className="editorial mb-3.5 text-sm text-rust">Quiénes somos</div>
+              <div className="editorial mb-3.5 text-sm text-rust-ink">Quiénes somos</div>
               <h2 className="mb-6 font-display text-3xl font-bold leading-tight tracking-[-0.02em] text-soot lg:text-[34px]">
                 Hachiko nace en Recoleta, en 2026.
               </h2>

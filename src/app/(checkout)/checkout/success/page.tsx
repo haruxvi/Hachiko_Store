@@ -64,7 +64,7 @@ export default async function CheckoutSuccessPage({
           <span className="absolute -left-2.5 bottom-8 h-1.5 w-1.5 rounded-full bg-sand" />
         </div>
 
-        <div className="hangul mb-2 text-sm text-rust">주문 완료 · 감사합니다</div>
+        <div className="hangul mb-2 text-sm text-rust-ink">주문 완료 · 감사합니다</div>
         <h1 className="mb-2 font-display text-3xl font-bold tracking-[-0.02em] text-soot sm:text-[44px] sm:leading-tight">
           Listo. Lo estamos empacando.
         </h1>
@@ -110,7 +110,7 @@ export default async function CheckoutSuccessPage({
 
         <p className="mt-6 text-[13px] text-taupe">
           ¿Algo no calza? Escríbenos a{' '}
-          <a href="mailto:hachiko.store.contacto@gmail.com" className="text-rust hover:underline">
+          <a href="mailto:hachiko.store.contacto@gmail.com" className="text-rust-ink hover:underline">
             hachiko.store.contacto@gmail.com
           </a>{' '}
           — respondemos en horario de barrio (10:00–19:00).

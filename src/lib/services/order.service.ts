@@ -201,9 +201,17 @@ export async function markOrderShipped(
   actorId: string,
   actorRole: 'SELLER'
 ) {
-  const order = await db.order.update({
-    where: { id: orderId },
+  // Solo una orden pagada y aún sin despachar pasa a SHIPPED. La condición va en
+  // el mismo UPDATE: dos clics (o dos pestañas) no la despachan dos veces ni
+  // mandan dos correos, y una orden cancelada no puede marcarse como enviada.
+  const { count } = await db.order.updateMany({
+    where: { id: orderId, paymentStatus: 'PAID', status: { in: ['PAID', 'PREPARING'] } },
     data: { status: 'SHIPPED', trackingNumber, shippedAt: new Date() },
+  });
+  if (count === 0) throw new Error('Esta orden ya fue despachada o no está lista para despacharse.');
+
+  const order = await db.order.findUniqueOrThrow({
+    where: { id: orderId },
     include: { user: { select: { email: true } } },
   });
 

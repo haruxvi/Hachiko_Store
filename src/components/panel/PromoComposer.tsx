@@ -153,14 +153,14 @@ export default function PromoComposer({
         </div>
 
         {touched && firstError && (
-          <p role="alert" className="rounded-input border border-rust/30 bg-rust/[0.08] px-4 py-2.5 text-sm text-[#b06a2c]">
+          <p role="alert" className="rounded-input border border-rust/30 bg-rust/[0.08] px-4 py-2.5 text-sm text-rust-ink">
             {firstError}
           </p>
         )}
         {result && (
           <p
             role="status"
-            className={`rounded-input border px-4 py-2.5 text-sm ${result.ok ? 'border-mint-deep/30 bg-mint/40 text-[#4e7a5e]' : 'border-rust/30 bg-rust/[0.08] text-[#b06a2c]'}`}
+            className={`rounded-input border px-4 py-2.5 text-sm ${result.ok ? 'border-mint-deep/30 bg-mint/40 text-[#3F664D]' : 'border-rust/30 bg-rust/[0.08] text-rust-ink'}`}
           >
             {result.message}
           </p>

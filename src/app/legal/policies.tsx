@@ -43,7 +43,7 @@ export const ORDER: PolicySlug[] = [
 ];
 
 const mailto = (
-  <a href="mailto:hachiko.store.contacto@gmail.com" className="font-medium text-rust hover:underline">
+  <a href="mailto:hachiko.store.contacto@gmail.com" className="font-medium text-rust-ink hover:underline">
     hachiko.store.contacto@gmail.com
   </a>
 );
@@ -292,7 +292,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
               <>
                 Usamos únicamente cookies esenciales para el funcionamiento del sitio: mantener tu
                 sesión iniciada y tu carrito de compras. Más detalle en la{' '}
-                <Link href="/legal/cookies" className="font-medium text-rust hover:underline">
+                <Link href="/legal/cookies" className="font-medium text-rust-ink hover:underline">
                   Política de Cookies
                 </Link>
                 . Si modificamos esta política publicaremos la nueva versión en esta página con su
@@ -499,7 +499,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 Cuando tu pedido es despachado te enviamos un correo con el número de seguimiento de
                 Starken para que puedas revisar el estado del envío. También puedes ver el estado de
                 tus pedidos en{' '}
-                <Link href="/pedidos" className="font-medium text-rust hover:underline">
+                <Link href="/pedidos" className="font-medium text-rust-ink hover:underline">
                   Mi cuenta → Mis pedidos
                 </Link>
                 .
@@ -518,7 +518,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 Si tu pedido se retrasa más de lo informado, llega dañado o no lo recibes, escríbenos a{' '}
                 {mailto} indicando tu número de pedido y te ayudamos a resolverlo. Revisa también
                 nuestra{' '}
-                <Link href="/legal/devoluciones" className="font-medium text-rust hover:underline">
+                <Link href="/legal/devoluciones" className="font-medium text-rust-ink hover:underline">
                   política de cambios y devoluciones
                 </Link>
                 .
@@ -619,7 +619,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
             content: (
               <>
                 Los plazos, costos y cobertura de envío se detallan en la política de{' '}
-                <Link href="/legal/despacho" className="font-medium text-rust hover:underline">
+                <Link href="/legal/despacho" className="font-medium text-rust-ink hover:underline">
                   Envíos a Chile
                 </Link>
                 .
@@ -637,7 +637,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
               <>
                 Tus derechos de retracto, cambio y garantía legal se rigen por la Ley N° 19.496 y se
                 detallan en la política de{' '}
-                <Link href="/legal/devoluciones" className="font-medium text-rust hover:underline">
+                <Link href="/legal/devoluciones" className="font-medium text-rust-ink hover:underline">
                   Cambios y devoluciones
                 </Link>
                 .
@@ -654,7 +654,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
             content: (
               <>
                 El tratamiento de tus datos se rige por nuestra{' '}
-                <Link href="/legal/privacidad" className="font-medium text-rust hover:underline">
+                <Link href="/legal/privacidad" className="font-medium text-rust-ink hover:underline">
                   Política de Privacidad
                 </Link>
                 , elaborada conforme a la Ley N° 21.719. Los contenidos del sitio (textos, imágenes,
@@ -784,7 +784,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
             content: (
               <>
                 El tratamiento de datos asociado se describe en nuestra{' '}
-                <Link href="/legal/privacidad" className="font-medium text-rust hover:underline">
+                <Link href="/legal/privacidad" className="font-medium text-rust-ink hover:underline">
                   Política de Privacidad
                 </Link>
                 . Ante cualquier duda, escríbenos a {mailto}.

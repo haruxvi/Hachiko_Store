@@ -16,7 +16,14 @@ import { randomUUID, randomInt } from 'node:crypto';
 const db = new PrismaClient({ datasourceUrl: process.env['DIRECT_URL'] ?? process.env['DATABASE_URL'] });
 
 const USER_MARK = '@seed.hachiko.test';
-const N_SESSIONS = 3500;
+// Ventana del embudo (la misma que muestra el panel de Conversión).
+const WINDOW_DAYS = 30;
+// Probabilidades por etapa, en línea con un e-commerce real (~2–3% de las
+// visitas que ven un producto terminan comprando).
+const P_CART = 0.09; // vio un producto → agregó al carrito
+const P_CHECKOUT = 0.5; // carrito → inició el checkout
+const P_ABANDON = 0.45; // checkout → lo abandonó
+const CONVERSION = P_CART * P_CHECKOUT * (1 - P_ABANDON);
 // Búsquedas sin resultado = demanda insatisfecha (productos que no tienes).
 const MISSES = ['matcha', 'labubu', 'hello kitty', 'stanley cup', 'ramune', 'mochi', 'funko', 'airpods', 'sanrio', 'jellycat'];
 
@@ -43,10 +50,18 @@ async function main() {
   const uids = users.map((u) => u.id);
   const rows: Prisma.AnalyticsEventCreateManyInput[] = [];
 
-  for (let s = 0; s < N_SESSIONS; s++) {
+  // Cuántas visitas hacen falta para explicar los pedidos de la ventana con una
+  // conversión realista: así el embudo cuadra con las ventas de la tienda.
+  const orders = await db.order.count({
+    where: { createdAt: { gte: new Date(Date.now() - WINDOW_DAYS * 86400000) }, user: { email: { endsWith: USER_MARK } } },
+  });
+  const nSessions = Math.max(1500, Math.round(orders / CONVERSION));
+
+  for (let s = 0; s < nSessions; s++) {
     const sid = randomUUID();
-    const uid = rnd() < 0.6 && uids.length ? pick(uids) : null;
-    const t0 = daysAgo(randInt(0, 120));
+    // La mayoría navega sin iniciar sesión.
+    const uid = rnd() < 0.3 && uids.length ? pick(uids) : null;
+    const t0 = daysAgo(randInt(0, WINDOW_DAYS - 1));
     let t = t0.getTime();
     const step = () => new Date((t += randInt(20, 240) * 1000));
     const base = { sessionId: sid, userId: uid, metadata: SYN };
@@ -73,12 +88,12 @@ async function main() {
     }
 
     // Embudo: carrito → checkout → abandono/compra
-    if (rnd() < 0.32) {
+    if (rnd() < P_CART) {
       const p = pick([...seen]);
       rows.push({ ...base, type: 'ADD_TO_CART', productId: p, createdAt: step() });
-      if (rnd() < 0.55) {
+      if (rnd() < P_CHECKOUT) {
         rows.push({ ...base, type: 'CHECKOUT_START', createdAt: step() });
-        if (rnd() < 0.4) {
+        if (rnd() < P_ABANDON) {
           rows.push({ ...base, type: 'CHECKOUT_ABANDON', createdAt: step() });
         }
       } else if (rnd() < 0.3) {
@@ -90,7 +105,7 @@ async function main() {
   for (let i = 0; i < rows.length; i += 500) {
     await db.analyticsEvent.createMany({ data: rows.slice(i, i + 500) });
   }
-  console.log(`AnalyticsEvent: ${rows.length} eventos en ${N_SESSIONS} sesiones.`);
+  console.log(`AnalyticsEvent: ${rows.length} eventos en ${nSessions} sesiones (${WINDOW_DAYS} días, conversión esperada ${(CONVERSION * 100).toFixed(1)}%).`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => db.$disconnect());

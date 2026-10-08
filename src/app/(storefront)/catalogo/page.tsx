@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getProducts, getCategories, type ProductSort } from '@/src/lib/services/catalog.service';
 import ProductCardHs from '@/src/components/storefront/ProductCardHs';
 import Icon from '@/src/components/ui/Icon';
+import { pageWindow, parsePage } from '@/src/lib/panel-list';
 
 export const metadata: Metadata = {
   title: 'Catálogo — Hachiko',
@@ -17,8 +18,13 @@ interface Props {
     pagina?: string;
     orden?: string;
     stock?: string;
+    mostrar?: string;
   }>;
 }
+
+// Múltiplos de 12: la grilla tiene 2, 3 o 4 columnas y así la última fila queda completa.
+const PAGE_SIZES = [12, 24, 48, 96] as const;
+const DEFAULT_PAGE_SIZE = 24;
 
 const VALID_SORTS: ProductSort[] = ['recent', 'price-asc', 'price-desc'];
 
@@ -35,13 +41,13 @@ function FilterCheck({ label, checked, href }: { label: string; checked: boolean
       href={href} 
       className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors ${
         checked 
-          ? 'border-rust bg-rust/10 text-rust font-semibold' 
+          ? 'border-rust bg-rust/10 text-rust-ink font-semibold' 
           : 'border-sand bg-snow text-soot hover:border-taupe'
       }`}
     >
       <span
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-          checked ? 'border-rust bg-rust text-snow' : 'border-sand bg-snow'
+          checked ? 'border-rust bg-rust text-soot' : 'border-sand bg-snow'
         }`}
       >
         {checked && <Icon name="check" size={10} stroke={2.5} />}
@@ -53,7 +59,12 @@ function FilterCheck({ label, checked, href }: { label: string; checked: boolean
 
 export default async function CatalogoPage({ searchParams }: Props) {
   const params = await searchParams;
-  const page = Number(params.pagina ?? 1);
+  const page = parsePage(params.pagina);
+  const perPage = (PAGE_SIZES as readonly number[]).includes(Number(params.mostrar))
+    ? Number(params.mostrar)
+    : DEFAULT_PAGE_SIZE;
+  // Solo se lleva en la URL si no es el valor por defecto.
+  const mostrar = perPage !== DEFAULT_PAGE_SIZE ? String(perPage) : undefined;
   const sort = VALID_SORTS.includes(params.orden as ProductSort)
     ? (params.orden as ProductSort)
     : 'recent';
@@ -66,7 +77,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
       sort,
       inStockOnly,
       page,
-      limit: 24,
+      limit: perPage,
     }),
     getCategories(),
   ]);
@@ -80,6 +91,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
       q: params.q,
       orden: params.orden,
       stock: params.stock,
+      mostrar,
       ...overrides,
     };
     for (const [k, v] of Object.entries(merged)) {
@@ -102,13 +114,13 @@ export default async function CatalogoPage({ searchParams }: Props) {
       {/* Breadcrumb + título */}
       <section className="pb-4 pt-6 sm:pt-10">
         <div className="mb-4 flex items-center gap-1.5 text-[13px] text-taupe">
-          <Link href="/" className="hover:text-rust">
+          <Link href="/" className="hover:text-rust-ink">
             Inicio
           </Link>
           <Icon name="chevronR" size={12} />
           {activeCategory ? (
             <>
-              <Link href="/catalogo" className="hover:text-rust">
+              <Link href="/catalogo" className="hover:text-rust-ink">
                 Catálogo
               </Link>
               <Icon name="chevronR" size={12} />
@@ -133,23 +145,39 @@ export default async function CatalogoPage({ searchParams }: Props) {
           </div>
 
           {/* Formulario Ordenar */}
-          <form method="get" action="/catalogo" className="flex items-center gap-2">
+          {/* Ordenar y Mostrar: un solo formulario, se cambia la vista sin perder los filtros. */}
+          <form method="get" action="/catalogo" className="flex flex-wrap items-center gap-2">
             {params.categoria && <input type="hidden" name="categoria" value={params.categoria} />}
             {params.q && <input type="hidden" name="q" value={params.q} />}
             {params.stock && <input type="hidden" name="stock" value={params.stock} />}
-            <span className="text-[13px] text-taupe shrink-0">Ordenar</span>
-            <select
-              name="orden"
-              defaultValue={sort}
-              aria-label="Ordenar por"
-              className="rounded-chip border border-sand bg-snow px-3 py-2 text-[13px] font-medium text-soot focus:border-rust focus:outline-none"
-            >
-              {VALID_SORTS.map((s) => (
-                <option key={s} value={s}>
-                  {SORT_LABELS[s]}
-                </option>
-              ))}
-            </select>
+            <label className="flex items-center gap-2">
+              <span className="text-[13px] text-taupe shrink-0">Ordenar</span>
+              <select
+                name="orden"
+                defaultValue={sort}
+                className="rounded-chip border border-sand bg-snow px-3 py-2 text-[13px] font-medium text-soot focus:border-rust focus:outline-none"
+              >
+                {VALID_SORTS.map((s) => (
+                  <option key={s} value={s}>
+                    {SORT_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-[13px] text-taupe shrink-0">Mostrar</span>
+              <select
+                name="mostrar"
+                defaultValue={String(perPage)}
+                className="rounded-chip border border-sand bg-snow px-3 py-2 text-[13px] font-medium text-soot focus:border-rust focus:outline-none"
+              >
+                {PAGE_SIZES.map((n) => (
+                  <option key={n} value={n}>
+                    {n} por página
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="submit" className="btn-outline btn-sm shrink-0">
               Aplicar
             </button>
@@ -168,6 +196,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
               {params.categoria && (
                 <input type="hidden" name="categoria" value={params.categoria} />
               )}
+              {mostrar && <input type="hidden" name="mostrar" value={mostrar} />}
               <input
                 type="search"
                 name="q"
@@ -194,7 +223,11 @@ export default async function CatalogoPage({ searchParams }: Props) {
             <span className="text-xs font-bold text-soot uppercase tracking-wider shrink-0 mr-1">
               Categoría:
             </span>
-            <FilterCheck label="Todo" checked={!params.categoria} href="/catalogo" />
+            <FilterCheck
+              label="Todo"
+              checked={!params.categoria}
+              href={`/catalogo${baseQuery({ categoria: undefined, pagina: undefined })}`}
+            />
             {categories.map((c) => (
               <FilterCheck
                 key={c.id}
@@ -267,17 +300,24 @@ export default async function CatalogoPage({ searchParams }: Props) {
                   <Icon name="chevronL" size={14} />
                 </Link>
               )}
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              {pageWindow(Math.min(page, totalPages), totalPages).map((n, i) =>
+                n === '…' ? (
+                  <span key={`gap-${i}`} aria-hidden="true" className="px-1 text-[13px] text-taupe">
+                    …
+                  </span>
+                ) : (
                 <Link
                   key={n}
                   href={`/catalogo${baseQuery({ pagina: String(n) })}`}
+                  aria-current={n === page ? 'page' : undefined}
                   className={`btn-sm min-w-9 justify-center rounded-chip text-center font-medium ${
                     n === page ? 'bg-soot text-snow' : 'text-taupe hover:bg-soot/5'
                   } inline-flex items-center px-3 py-2 text-[13px]`}
                 >
                   {n}
                 </Link>
-              ))}
+                ),
+              )}
               {page < totalPages && (
                 <Link
                   href={`/catalogo${baseQuery({ pagina: String(page + 1) })}`}

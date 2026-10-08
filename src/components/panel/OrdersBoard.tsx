@@ -28,6 +28,7 @@ export interface SellerOrder {
 function OrderStatus({ status }: { status: string }) {
   const map: Record<string, { dot: string; label: string }> = {
     PAID: { dot: 'bg-rust', label: 'Para empacar' },
+    PREPARING: { dot: 'bg-tan-mid', label: 'Preparando' },
     SHIPPED: { dot: 'bg-sky-deep', label: 'Enviado' },
     DELIVERED: { dot: 'bg-mint-deep', label: 'Entregado' },
   };
@@ -109,9 +110,9 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
                       isSelected ? 'bg-rust/10' : 'bg-snow hover:bg-cream/60'
                     }`}
                   >
-                    <td className="px-4 py-4 align-middle">
+                    <td className="whitespace-nowrap px-4 py-4 align-middle">
                       <span
-                        className={`price-mono text-[15px] ${isSelected ? 'text-rust' : 'text-soot'}`}
+                        className={`price-mono text-[15px] ${isSelected ? 'text-rust-ink' : 'text-soot'}`}
                       >
                         # {o.orderNumber}
                       </span>
@@ -129,7 +130,7 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
                     <td className="price-mono px-4 py-4 text-right align-middle text-[15px] text-soot">
                       {itemCount}
                     </td>
-                    <td className="price-mono px-4 py-4 text-right align-middle text-[15px] text-soot">
+                    <td className="price-mono whitespace-nowrap px-4 py-4 text-right align-middle text-[15px] text-soot">
                       {formatCLP(o.totalCLP)}
                     </td>
                     <td className="px-4 py-4 align-middle">
@@ -156,7 +157,7 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
         <aside ref={detailRef} className="flex flex-col rounded-2xl border border-sand bg-snow px-7 py-8">
           <div className="mb-1.5 flex items-start justify-between">
             <div>
-              <div className="price-mono text-sm text-rust"># {selected.orderNumber}</div>
+              <div className="price-mono text-sm text-rust-ink"># {selected.orderNumber}</div>
               <h2 className="mt-1.5 font-display text-2xl font-medium leading-tight tracking-[-0.015em] text-soot">
                 {selected.isPickup ? 'Preparar para ' : 'Despachar a '}
                 {selected.recipientName.split(' ')[0]}
@@ -218,7 +219,7 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
           </div>
 
           {/* Tracking + CTA */}
-          {selected.status === 'PAID' && (
+          {(selected.status === 'PAID' || selected.status === 'PREPARING') && (
             <div className="mt-auto pt-6">
               <ShipOrderForm
                 key={selected.id}

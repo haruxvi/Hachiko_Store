@@ -15,6 +15,7 @@
  */
 import { PrismaClient, type Prisma } from '@prisma/client';
 import { randomInt } from 'node:crypto';
+import { CATEGORY_LABELS } from '../src/components/panel/security-labels';
 
 const db = new PrismaClient({ datasourceUrl: process.env['DIRECT_URL'] ?? process.env['DATABASE_URL'] });
 
@@ -84,6 +85,19 @@ async function main() {
     }
   }
 
+  // 4) Cuenta comprometida: después de la fuerza bruta, el atacante ENTRA
+  //    (login exitoso desde su IP). Es el caso que el detector marca como crítico.
+  for (const uid of victims.slice(0, 2)) {
+    const lastFail = rows.filter((r) => r.actorId === uid && r.action === 'LOGIN_FAILED').at(-1);
+    if (!lastFail) continue;
+    rows.push({
+      actorId: uid, actorRole: 'CLIENT', action: 'LOGIN',
+      targetType: 'User', targetId: uid, ip: lastFail.ip, userAgent: UA_BOT,
+      createdAt: new Date(new Date(lastFail.createdAt!).getTime() + randInt(2, 30) * 60000),
+      metadata: { synthetic: true, pattern: 'account_takeover' } as Prisma.InputJsonValue,
+    });
+  }
+
   for (let i = 0; i < rows.length; i += 500) {
     await db.auditLog.createMany({ data: rows.slice(i, i + 500) });
   }
@@ -114,7 +128,7 @@ async function seedIncidents() {
     const cat = pick(cats);
     const sev = pick(sevs);
     incidents.push({
-      title: `Incidente sintético #${i + 1} — ${cat}`,
+      title: `Incidente de demostración #${i + 1} — ${CATEGORY_LABELS[cat]}`,
       description: 'Incidente de demostración generado para la analítica de seguridad (sintético).',
       category: cat, severity: sev,
       status: resolved ? pick(resolvedStates) : pick(openStates),

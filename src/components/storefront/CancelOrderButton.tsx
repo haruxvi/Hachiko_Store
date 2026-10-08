@@ -26,11 +26,11 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
       <button
         onClick={handle}
         disabled={loading}
-        className="text-xs text-gray-400 hover:text-red-500 underline disabled:opacity-50"
+        className="text-xs text-taupe hover:text-alert underline disabled:opacity-50"
       >
         {loading ? 'Cancelando…' : 'Cancelar pedido'}
       </button>
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-alert">{error}</span>}
     </span>
   );
 }

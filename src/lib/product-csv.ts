@@ -1,4 +1,5 @@
 import { ProductSchema } from "@/src/lib/validation/schemas";
+import { looksLikeFormula } from "@/src/lib/formula-guard";
 
 export const MAX_CSV_BYTES = 2 * 1024 * 1024;
 export const MAX_CSV_ROWS = 1000;
@@ -19,6 +20,8 @@ export const CSV_HEADERS = [
   "destacado",
 ];
 const REQUIRED = CSV_HEADERS.slice(2, 8);
+const FREE_TEXT = ["sku", "slug", "nombre", "descripcion", "categoria", "nombre_coreano"];
+const LOCAL_IMAGE = /^\/(?!\/)[A-Za-z0-9/_.-]+\.(?:png|jpe?g|webp|avif|gif)$/i;
 export type CsvCategory = { id: string; name: string; slug: string };
 export type CsvIssue = { row: number; message: string };
 export type CsvProduct = ReturnType<typeof ProductSchema.parse>;
@@ -152,6 +155,14 @@ export function parseProductCsv(
       headers.map((h, i) => [h, cells[i] ?? ""]),
     );
     const value = (key: string) => values[key] ?? "";
+    // Textos que una planilla ejecutaría como fórmula si estos datos se abren
+    // después en Excel (p. ej. =HYPERLINK(...)): se rechazan.
+    for (const key of FREE_TEXT)
+      if (value(key) && looksLikeFormula(value(key)))
+        issues.push({
+          row,
+          message: `${key}: no puede empezar con =, +, @ ni parecer una fórmula de Excel.`,
+        });
     const integer = (key: string, fallback?: number) => {
       if (!value(key) && fallback !== undefined) return fallback;
       if (!/^\d+$/.test(value(key)) || Number(value(key)) > 2147483647) {
@@ -217,12 +228,16 @@ export function parseProductCsv(
           .split("|")
           .map((s) => s.trim())
       : [];
+    // Rutas locales: solo archivos de imagen de la carpeta pública. Antes se
+    // aceptaba cualquier ruta, y una "foto" como /api/... habría hecho que cada
+    // visitante llamara a esa dirección del sitio al ver el producto.
     if (
+      images.length > 10 ||
       images.some((s) => {
-        if (/^\/(?!\/)/.test(s) && !/[\\\s]/.test(s)) return false;
+        if (s.startsWith("/")) return !LOCAL_IMAGE.test(s) || s.includes("..");
         try {
           const u = new URL(s);
-          return u.protocol !== "https:" || !!u.username || !!u.password;
+          return u.protocol !== "https:" || !!u.username || !!u.password || s.length > 500;
         } catch {
           return true;
         }
@@ -231,7 +246,7 @@ export function parseProductCsv(
       issues.push({
         row,
         message:
-          "imagenes: usa URLs HTTPS o rutas locales que empiecen por /; separa varias con |.",
+          "imagenes: usa hasta 10 URLs HTTPS o rutas de imagen locales (/carpeta/foto.jpg); separa varias con |.",
       });
     const automatic = automaticIdentifiers(
       value("nombre"),

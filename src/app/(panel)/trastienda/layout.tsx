@@ -10,10 +10,10 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex min-h-screen bg-cream">
+    <div className="flex min-h-screen flex-col bg-cream lg:flex-row">
       <SessionKeepAlive />
       <PanelSidebar email={session.email} />
-      <main className="min-w-0 flex-1 p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
     </div>
   );
 }

@@ -53,7 +53,7 @@ export default function ProductCardHs({ product }: { product: ProductCardData })
         <div className="mb-2 text-[15px] font-semibold leading-snug text-soot">{product.name}</div>
         <div className="flex items-baseline justify-between">
           <span className="price-mono text-sm text-soot">{formatCLP(product.priceCLP)}</span>
-          {low && <span className="text-[11px] font-semibold text-rust">Quedan pocas</span>}
+          {low && <span className="text-[11px] font-semibold text-rust-ink">Quedan pocas</span>}
         </div>
       </div>
     </Link>

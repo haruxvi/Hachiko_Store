@@ -16,17 +16,20 @@ const config: Config = {
         snow: '#FFFFFF', // superficies elevadas
         sand: '#F0E2C6', // bordes sutiles, separadores
         tan: { DEFAULT: '#F3BE8B', mid: '#ED9F5C', soft: '#FBE6BC' },
-        rust: { DEFAULT: '#EC9C4A', dark: '#DE8C3D' }, // CTAs primarios — naranja Shiba brillante
+        // CTAs primarios — naranja Shiba brillante. Es color de RELLENO: el texto
+        // encima va en soot (5.8:1). Para texto naranja se usa `ink` (≥4.5:1 en
+        // cream/snow/butter, WCAG AA); rust y rust-dark como texto no se leían (~2:1).
+        rust: { DEFAULT: '#EC9C4A', dark: '#DE8C3D', ink: '#94501C' },
         soot: '#3D2F25', // texto principal — marrón cálido, NO negro
-        // texto secundario. `deep` es el mismo tono más oscuro para texto chico:
-        // DEFAULT da 2,8:1 sobre cream (no cumple WCAG AA, que exige 4,5:1);
-        // deep da 5,1:1 sobre cream y 5,5:1 sobre snow.
-        taupe: { DEFAULT: '#A8907A', deep: '#7A6552' },
+        // Texto secundario. Antes era #A8907A (2,8:1 sobre cream: no cumplía WCAG
+        // AA, que exige 4,5:1). Ahora 5,5:1 sobre cream, 5,8:1 sobre snow y 4,7:1
+        // sobre butter (barra lateral). `deep`, para lo que debe destacar más.
+        taupe: { DEFAULT: '#76614F', deep: '#5E4B3C' },
         blush: '#F9D7CE', // decorativo — un solo uso por vista
         petal: '#F0A48F', // SOLO ilustración (lengua / orejas internas)
-        mint: { DEFAULT: '#D8ECDC', deep: '#86B596' },
-        sky: { DEFAULT: '#D6EEF5', deep: '#7DA8C7' },
-        alert: '#C75E5E',
+        mint: { DEFAULT: '#D8ECDC', deep: '#86B596', ink: '#3F664D' }, // deep = relleno; ink = texto (5,3:1)
+        sky: { DEFAULT: '#D6EEF5', deep: '#7DA8C7', ink: '#335F73' },
+        alert: '#A94242', // antes #C75E5E (3,8:1); ahora 5,5:1 sobre cream
       },
       fontFamily: {
         display: ['var(--font-display)', 'Hiragino Maru Gothic ProN', 'system-ui', 'sans-serif'],

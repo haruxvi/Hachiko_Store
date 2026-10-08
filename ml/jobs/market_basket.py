@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from itertools import combinations
 
-from ml.db import execute, execute_many, read_sql
+from ml.db import SALE_SQL, read_sql, replace_rows
 from ml.model_run import model_run
 
 MIN_COOCCUR = 5   # co-ocurrencias mínimas para considerar una regla
@@ -30,11 +30,13 @@ INSERT_SQL = (
 
 def main() -> None:
     with model_run("market_basket", "1.0.0", notes="Fase 2 — reglas de asociación") as run:
+        # Solo productos que siguen a la venta: no tiene sentido recomendar uno archivado.
         df = read_sql(
-            '''SELECT oi."orderId" AS order_id, oi."productId" AS product_id
+            f'''SELECT oi."orderId" AS order_id, oi."productId" AS product_id
                FROM "OrderItem" oi
                JOIN "Order" o ON o.id = oi."orderId"
-               WHERE o."paymentStatus" = 'PAID' '''
+               JOIN "Product" p ON p.id = oi."productId"
+               WHERE {SALE_SQL} AND p.active = true AND p."archivedAt" IS NULL'''
         )
         run.set_rows_in(len(df))
         baskets = df.groupby("order_id")["product_id"].apply(lambda s: sorted(set(s)))
@@ -71,8 +73,7 @@ def main() -> None:
                 rows.append({"id": f"rec_{run.id[:8]}_{seq}", "a": a, "b": b,
                              "st": "BASKET", "score": lift, "run": run.id})
 
-        execute('DELETE FROM "ProductRecommendation" WHERE strategy = \'BASKET\'')
-        execute_many(INSERT_SQL, rows)
+        replace_rows('DELETE FROM "ProductRecommendation" WHERE strategy = \'BASKET\'', INSERT_SQL, rows)
 
         run.set_metrics({"canastas": total, "pares": len(pair_count),
                          "reglas": len(rows), "productos_con_reco": len(recos)})

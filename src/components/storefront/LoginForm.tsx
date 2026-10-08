@@ -50,27 +50,27 @@ export default function LoginForm() {
   return (
     <form method="post" onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        <div className="bg-alert/[0.08] border border-alert/30 text-alert text-sm rounded-lg px-4 py-3">
           {error}
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <label className="block text-sm font-medium text-soot mb-1">Email</label>
         <input
           name="email"
           type="email"
           required
           autoComplete="email"
           readOnly={totpRequired}
-          className="w-full border rounded-lg px-3 py-2 text-sm read-only:bg-gray-50"
+          className="input-hs !py-2.5 !text-sm read-only:bg-cream"
         />
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-          <Link href="/recuperar" className="text-xs text-rose-600 hover:underline">
+          <label className="block text-sm font-medium text-soot">Contraseña</label>
+          <Link href="/recuperar" className="text-xs text-rust-ink hover:underline">
             ¿La olvidaste?
           </Link>
         </div>
@@ -83,13 +83,13 @@ export default function LoginForm() {
             required
             autoComplete="current-password"
             readOnly={totpRequired}
-            className="w-full border rounded-lg pl-3 pr-10 py-2 text-sm read-only:bg-gray-50"
+            className="input-hs !py-2.5 !pr-10 !text-sm read-only:bg-cream"
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
             aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            className="absolute right-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="absolute right-3 text-taupe hover:text-taupe focus:outline-none"
           >
             {showPassword ? (
               /* Ícono de Ojo Abierto / Ocultar */
@@ -108,11 +108,11 @@ export default function LoginForm() {
       </div>
 
       {totpRequired && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <label className="block text-sm font-medium text-gray-800 mb-1">
+        <div className="rounded-lg border border-sky-deep/40 bg-sky p-4">
+          <label className="block text-sm font-medium text-soot mb-1">
             Código de verificación
           </label>
-          <p className="text-xs text-gray-500 mb-2">
+          <p className="text-xs text-taupe mb-2">
             Esta cuenta tiene doble factor activo. Ingresa el código de 6 dígitos de tu app de
             autenticación.
           </p>
@@ -125,7 +125,7 @@ export default function LoginForm() {
             autoFocus
             autoComplete="one-time-code"
             placeholder="000000"
-            className="w-full border rounded-lg px-3 py-2 text-sm tracking-widest text-center"
+            className="input-hs !py-2.5 !text-sm tracking-widest text-center"
           />
         </div>
       )}
@@ -133,14 +133,14 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-rose-600 text-white text-sm py-2.5 rounded-lg hover:bg-rose-700 disabled:opacity-50"
+        className="btn-primary w-full disabled:opacity-50"
       >
         {loading ? 'Ingresando...' : totpRequired ? 'Verificar código' : 'Iniciar sesión'}
       </button>
 
-      <p className="text-sm text-gray-500 text-center">
+      <p className="text-sm text-taupe text-center">
         ¿No tienes cuenta?{' '}
-        <Link href="/registro" className="text-rose-600 hover:underline">
+        <Link href="/registro" className="text-rust-ink hover:underline">
           Regístrate
         </Link>
       </p>

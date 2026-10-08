@@ -55,7 +55,7 @@
     @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-btn px-[22px] py-3.5 font-body text-[15px] font-semibold transition;
   }
   .btn-primary {
-    @apply btn bg-rust text-snow hover:bg-rust-dark active:scale-[0.98];
+    @apply btn bg-rust text-soot hover:bg-rust-dark active:scale-[0.98];
   }
   .btn-outline {
     @apply btn border border-sand bg-transparent text-soot hover:border-soot;
@@ -64,7 +64,7 @@
     @apply btn bg-transparent text-soot hover:bg-soot/5;
   }
   .btn-link {
-    @apply inline-flex items-center gap-2 p-0 font-body text-[15px] font-medium text-soot underline decoration-taupe decoration-1 underline-offset-4 transition hover:text-rust hover:decoration-rust;
+    @apply inline-flex items-center gap-2 p-0 font-body text-[15px] font-medium text-soot underline decoration-taupe decoration-1 underline-offset-4 transition hover:text-rust-ink hover:decoration-rust;
   }
   .btn-sm {
     @apply rounded-chip px-3.5 py-2 text-[13px];
@@ -85,16 +85,16 @@
     @apply inline-flex items-center gap-1.5 rounded-chip border border-sand bg-cream px-2.5 py-1.5 text-xs font-semibold tracking-[0.02em] text-taupe;
   }
   .chip-rust {
-    @apply chip-hs border-rust/30 bg-rust/[0.16] text-[#b06a2c];
+    @apply chip-hs border-rust/30 bg-rust/[0.16] text-rust-ink;
   }
   .chip-blush {
-    @apply chip-hs border-transparent bg-blush text-[#a85959];
+    @apply chip-hs border-transparent bg-blush text-[#8E3F3F];
   }
   .chip-sky {
-    @apply chip-hs border-transparent bg-sky text-[#3c7188];
+    @apply chip-hs border-transparent bg-sky text-[#335F73];
   }
   .chip-mint {
-    @apply chip-hs border-transparent bg-mint text-[#4e7a5e];
+    @apply chip-hs border-transparent bg-mint text-[#3F664D];
   }
 
   /* Placeholder de imagen — rayado sand, etiqueta mono. Honesto hasta tener foto. */

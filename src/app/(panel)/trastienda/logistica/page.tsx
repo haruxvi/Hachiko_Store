@@ -27,11 +27,14 @@ export default async function LogisticaPage() {
 
   return (
     <div className="space-y-9">
-      <PageHeader title="Logística" subtitle="Dónde vendes y cuánto cuesta llegar" updated={null} />
+      <PageHeader title="Logística" subtitle="Dónde vendes y cuánto tardan en llegar los pedidos" updated={null} />
 
       <section className="card-hs shadow-soft p-6">
-        <Eyebrow>Ventas y costo de despacho por región</Eyebrow>
-        <p className="mt-1.5 text-[13px] text-taupe">El % de envío sobre ventas muestra dónde el despacho se come el margen.</p>
+        <Eyebrow>Ventas por región · últimos 12 meses</Eyebrow>
+        <p className="mt-1.5 text-[13px] text-taupe">
+          Venta de productos y, al lado, cuánto pagaron los clientes de envío en relación a su compra. Un % alto indica
+          que el envío encarece mucho comprar desde esa región (el envío es gratis sobre $50.000).
+        </p>
         <div className="mt-5 space-y-3">
           {d.byRegion.map((r) => (
             <div key={r.region} className="flex items-center gap-3 text-sm">
@@ -40,7 +43,7 @@ export default async function LogisticaPage() {
                 <div className="h-full rounded-chip bg-rust" style={{ width: `${(r.revenue / maxRev) * 100}%` }} />
               </div>
               <span className="price-mono w-24 shrink-0 text-right text-taupe">{clp(r.revenue)}</span>
-              <span className="w-24 shrink-0 text-right text-xs text-rust-dark" title="envío como % de ventas">envío {pct(r.shipPct)}</span>
+              <span className="w-24 shrink-0 text-right text-xs text-rust-ink" title="envío pagado por los clientes, como % de lo que compraron">envío {pct(r.shipPct)}</span>
             </div>
           ))}
         </div>
@@ -48,7 +51,9 @@ export default async function LogisticaPage() {
 
       <section className="card-hs shadow-soft p-6">
         <Eyebrow>Tiempo de entrega por courier</Eyebrow>
-        <p className="mt-1.5 text-[13px] text-taupe">Días promedio desde la compra hasta la entrega. Útil para elegir transportista por zona.</p>
+        <p className="mt-1.5 text-[13px] text-taupe">
+          Días promedio desde la compra hasta la entrega (en retiro en tienda: hasta que el cliente lo retira), últimos 12 meses.
+        </p>
         <div className="mt-5 space-y-3">
           {d.byCourier.map((c) => (
             <div key={c.method} className="flex items-center gap-3 text-sm">

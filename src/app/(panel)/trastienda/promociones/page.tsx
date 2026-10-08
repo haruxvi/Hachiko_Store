@@ -26,7 +26,7 @@ export default async function PromocionesPage() {
       <PageHeader title="Promociones" subtitle="Correos para quienes aceptaron recibir novedades" />
 
       {!emailConfigured && (
-        <p className="rounded-input border border-rust/30 bg-rust/[0.08] px-4 py-3 text-sm text-[#b06a2c]">
+        <p className="rounded-input border border-rust/30 bg-rust/[0.08] px-4 py-3 text-sm text-rust-ink">
           El envío de correos no está configurado (falta <code>RESEND_API_KEY</code>). Puedes armar la
           promoción y verla, pero no enviarla.
         </p>

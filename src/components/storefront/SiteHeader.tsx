@@ -39,7 +39,7 @@ export default async function SiteHeader() {
       <ul className="hidden items-center gap-7 text-sm font-semibold lg:flex lg:ml-6">
         {categories.slice(0, 5).map((c) => (
           <li key={c.id}>
-            <Link href={`/catalogo?categoria=${c.slug}`} className="text-soot hover:text-rust">
+            <Link href={`/catalogo?categoria=${c.slug}`} className="text-soot hover:text-rust-ink">
               {c.name}
             </Link>
           </li>

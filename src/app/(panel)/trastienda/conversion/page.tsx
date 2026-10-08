@@ -1,4 +1,4 @@
-import { getConversionAnalytics } from '@/src/lib/services/intelligence.service';
+import { getConversionAnalytics, CONVERSION_WINDOW_DAYS } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
 import { PageHeader, Eyebrow, Stat, num, pct } from '@/src/components/panel/intelligence-ui';
 
@@ -27,9 +27,9 @@ export default async function ConversionPage() {
       <PageHeader title="Conversión" subtitle="Dónde se pierden las ventas en el camino" updated={null} />
 
       <section className="space-y-3">
-        <Eyebrow>Resumen</Eyebrow>
+        <Eyebrow>Últimos {CONVERSION_WINDOW_DAYS} días</Eyebrow>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          <Stat label="Conversión general" value={pct(d.overallConversion)} accent hint="de vista de producto a compra" />
+          <Stat label="Conversión general" value={pct(d.overallConversion)} accent hint="visitas que vieron un producto y terminaron comprando" />
           <Stat label="Carritos abandonados" value={num(d.abandoned)} />
           <Stat label="Recuperables (con cuenta)" value={num(d.recoverable)} hint="respetando consentimiento" />
         </div>
@@ -67,7 +67,7 @@ export default async function ConversionPage() {
             ? <p className="text-sm text-taupe">Sin búsquedas fallidas registradas.</p>
             : d.noResultSearches.map((s) => (
               <span key={s.query} className="chip-hs">
-                {s.query}<span className="price-mono ml-1.5 text-rust-dark">{s.count}</span>
+                {s.query}<span className="price-mono ml-1.5 text-rust-ink">{s.count}</span>
               </span>
             ))}
         </div>

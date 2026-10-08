@@ -21,7 +21,7 @@ export default function NotFound() {
 
         {/* Copy */}
         <div>
-          <div className="price-mono text-7xl leading-none tracking-[-0.04em] text-rust sm:text-8xl">
+          <div className="price-mono text-7xl leading-none tracking-[-0.04em] text-rust-ink sm:text-8xl">
             404
           </div>
           <h1 className="mb-4 mt-2 font-display text-3xl font-bold tracking-[-0.02em] text-soot sm:text-4xl">

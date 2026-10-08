@@ -39,7 +39,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
                   <span className="text-soot">
                     <span className="price-mono text-taupe">{clp(h.previousCLP)}</span>
                     <span className="mx-2 text-taupe">→</span>
-                    <span className={`price-mono ${up ? 'text-alert' : 'text-mint-deep'}`}>{clp(h.newCLP)} {up ? '▲' : '▼'}</span>
+                    <span className={`price-mono ${up ? 'text-alert' : 'text-mint-ink'}`}>{clp(h.newCLP)} {up ? '▲' : '▼'}</span>
                   </span>
                 </li>
               );

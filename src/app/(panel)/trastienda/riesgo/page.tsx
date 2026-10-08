@@ -1,5 +1,7 @@
-import { getFraudRisk, getAccountRisk, getIncidentAnalytics } from '@/src/lib/services/intelligence.service';
+import { getFraudRisk, getAccountRisk, getIncidentAnalytics, ACCOUNT_RISK } from '@/src/lib/services/intelligence.service';
+import type { IncidentCategory } from '@prisma/client';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
+import { CATEGORY_LABELS } from '@/src/components/panel/security-labels';
 import { PageHeader, Eyebrow, Stat, clp, num } from '@/src/components/panel/intelligence-ui';
 
 export const revalidate = 60;
@@ -25,11 +27,19 @@ export default async function RiesgoPage() {
       <PageHeader title="Riesgo" subtitle="Señales de fraude y ataques, para revisión humana" updated={d.lastUpdated ?? acc.lastUpdated} />
 
       {acc.hasData && (
-        <section className="card-hs shadow-soft border-alert/30 p-6">
-          <Eyebrow>Cuentas bajo ataque</Eyebrow>
-          <p className="mt-1.5 text-[13px] text-taupe">
-            {num(acc.flagged)} cuentas marcadas · {num(acc.stuffingIps)} IP(s) de credential stuffing detectadas.
-            Se muestra un identificador pseudónimo (sin exponer datos del cliente).
+        <section className={`card-hs shadow-soft p-6 ${acc.compromised > 0 ? 'border-alert/40' : ''}`}>
+          <Eyebrow>Cuentas en riesgo · últimos {acc.windowDays} días</Eyebrow>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Stat label="Posiblemente comprometidas" value={num(acc.compromised)} accent={acc.compromised > 0} hint="entraron desde una IP que atacaba" />
+            <Stat label="Con fuerza bruta" value={num(acc.underAttack - acc.compromised)} hint="muchos intentos fallidos sobre la cuenta" />
+            <Stat
+              label="Solo intentos masivos"
+              value={num(acc.flagged - acc.underAttack)}
+              hint={`${num(acc.stuffingIps)} IP(s) probaron muchas cuentas, sin lograr entrar`}
+            />
+          </div>
+          <p className="mt-4 text-[13px] text-taupe">
+            La tabla muestra las cuentas con riesgo medio o alto. Se usa un identificador pseudónimo (sin exponer datos del cliente).
           </p>
           <div className="mt-5 overflow-x-auto">
             <table className="w-full text-sm">
@@ -41,13 +51,20 @@ export default async function RiesgoPage() {
                 </tr>
               </thead>
               <tbody>
-                {acc.rows.slice(0, 40).map((r) => (
+                {acc.rows.filter((r) => r.score >= ACCOUNT_RISK.attacked).length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-4 text-[13px] text-taupe-deep">
+                      Ninguna cuenta con riesgo medio o alto.
+                    </td>
+                  </tr>
+                )}
+                {acc.rows.filter((r) => r.score >= ACCOUNT_RISK.attacked).slice(0, 40).map((r) => (
                   <tr key={r.ref} className="border-b border-sand/60 align-top last:border-0">
                     <td className="price-mono py-2.5 pr-3 text-soot">···{r.ref}</td>
                     <td className="py-2.5 pr-3">
                       <div className="flex flex-wrap gap-1.5">
                         {r.reasons.map((reason, i) => (
-                          <span key={i} className="chip-hs border-transparent bg-rust/[0.16] text-[#b06a2c]">{reason}</span>
+                          <span key={i} className="chip-hs border-transparent bg-rust/[0.16] text-rust-ink">{reason}</span>
                         ))}
                       </div>
                     </td>
@@ -60,13 +77,13 @@ export default async function RiesgoPage() {
         </section>
       )}
 
-      {d.hasData && (
+      {d.lastUpdated && (
       <section className="space-y-3">
-        <Eyebrow>Órdenes atípicas</Eyebrow>
+        <Eyebrow>Órdenes atípicas · por despachar</Eyebrow>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          <Stat label="Órdenes marcadas" value={num(d.flagged)} accent />
-          <Stat label="Órdenes analizadas" value={num(d.totalOrders)} />
-          <Stat label="Tasa de revisión" value={`${((d.flagged / Math.max(1, d.totalOrders)) * 100).toFixed(1)}%`} hint="Isolation Forest no supervisado" />
+          <Stat label="Para revisar" value={num(d.flagged)} accent={d.flagged > 0} />
+          <Stat label="Revisadas" value={num(d.totalOrders)} hint={`pagadas, sin despachar, de los últimos ${d.windowDays} días`} />
+          <Stat label="Historia de entrenamiento" value={num(d.trainedOn)} hint="órdenes con que aprendió el modelo (Isolation Forest)" />
         </div>
       </section>
       )}
@@ -93,11 +110,11 @@ export default async function RiesgoPage() {
                 <tr key={r.orderId} className="border-b border-sand/60 last:border-0 align-top">
                   <td className="price-mono py-2.5 pr-3 text-soot">#{r.orderNumber ?? '—'}</td>
                   <td className="price-mono py-2.5 pr-3 text-right text-soot">{clp(r.total)}</td>
-                  <td className="py-2.5 pr-3 text-taupe">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('es-CL') : '—'}</td>
+                  <td className="py-2.5 pr-3 text-taupe">{r.createdAt ? new Date(r.createdAt).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
                   <td className="py-2.5 pr-3">
                     <div className="flex flex-wrap gap-1.5">
                       {r.reasons.map((reason, i) => (
-                        <span key={i} className="chip-hs border-transparent bg-rust/[0.16] text-[#b06a2c]">{reason}</span>
+                        <span key={i} className="chip-hs border-transparent bg-rust/[0.16] text-rust-ink">{reason}</span>
                       ))}
                     </div>
                   </td>
@@ -129,7 +146,9 @@ export default async function RiesgoPage() {
                 const max = Math.max(...inc.byCategory.map((x) => x.count), 1);
                 return (
                   <div key={c.category} className="flex items-center gap-3 text-sm">
-                    <span className="w-52 shrink-0 truncate text-soot" title={c.category}>{c.category}</span>
+                    <span className="w-52 shrink-0 truncate text-soot" title={CATEGORY_LABELS[c.category as IncidentCategory] ?? c.category}>
+                      {CATEGORY_LABELS[c.category as IncidentCategory] ?? c.category}
+                    </span>
                     <div className="h-2.5 flex-1 overflow-hidden rounded-chip bg-sand">
                       <div className="h-full rounded-chip bg-tan-mid" style={{ width: `${(c.count / max) * 100}%` }} />
                     </div>

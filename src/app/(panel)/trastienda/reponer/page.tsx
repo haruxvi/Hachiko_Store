@@ -1,4 +1,4 @@
-import { getRestockSuggestions, getShrinkage, getDeadStock } from '@/src/lib/services/intelligence.service';
+import { getRestockSuggestions, getShrinkage, getDeadStock, isUrgentRestock } from '@/src/lib/services/intelligence.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
 import { PageHeader, Eyebrow, Stat, clp, num } from '@/src/components/panel/intelligence-ui';
 
@@ -28,14 +28,17 @@ export default async function ReponerPage() {
         <Eyebrow>Resumen</Eyebrow>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <Stat label="Productos a reponer" value={num(d.suggestions.length)} />
-          <Stat label="Urgentes" value={num(d.urgent)} accent hint="quiebre dentro del lead time" />
+          <Stat label="Urgentes" value={num(d.urgent)} accent hint={`se agotan en ${d.leadTime} días o menos (lo que tarda el proveedor)`} />
           <Stat label="Unidades a comprar" value={num(d.suggestions.reduce((a, s) => a + s.suggestedQty, 0))} />
         </div>
       </section>
 
       <section className="card-hs shadow-soft p-6">
         <Eyebrow>Sugerencias de compra</Eyebrow>
-        <p className="mt-1.5 text-[13px] text-taupe">Ordenadas por urgencia. El lead time asumido es de 14 días con 30 días de cobertura.</p>
+        <p className="mt-1.5 text-[13px] text-taupe">
+          Ordenadas por urgencia (menos días de stock primero). Se asume que el proveedor tarda {d.leadTime} días y
+          se compra para cubrir 30 días de venta. El stock considerado descuenta lo reservado en carritos en checkout.
+        </p>
         <div className="mt-5 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -52,11 +55,11 @@ export default async function ReponerPage() {
                 <tr key={s.productId} className="border-b border-sand/60 last:border-0">
                   <td className="py-2.5 pr-3">
                     <span className="text-soot">{s.name}</span>
-                    {s.score >= 0.5 && <span className="chip-blush ml-2">urgente</span>}
+                    {isUrgentRestock(s.daysToStockout, d.leadTime) && <span className="chip-blush ml-2">urgente</span>}
                   </td>
                   <td className="price-mono py-2.5 pr-3 text-right text-taupe">{num(s.stock)}</td>
                   <td className="price-mono py-2.5 pr-3 text-right text-soot">{s.daysToStockout != null ? `${s.daysToStockout} d` : '—'}</td>
-                  <td className="price-mono py-2.5 pr-3 text-right font-semibold text-rust-dark">+{num(s.suggestedQty)}</td>
+                  <td className="price-mono py-2.5 pr-3 text-right font-semibold text-rust-ink">+{num(s.suggestedQty)}</td>
                   <td className="max-w-xs py-2.5 text-xs text-taupe">{s.reason}</td>
                 </tr>
               ))}
@@ -70,7 +73,7 @@ export default async function ReponerPage() {
           <section className="card-hs shadow-soft p-6">
             <Eyebrow>Sobre-stock (capital inmovilizado)</Eyebrow>
             <p className="mt-1.5 text-[13px] text-taupe">
-              Productos con mucho stock y poca venta reciente — <span className="price-mono text-rust-dark">{clp(dead.totalImmobilized)}</span> inmovilizados.
+              Productos con mucho stock y poca venta reciente — <span className="price-mono text-rust-ink">{clp(dead.totalImmobilized)}</span> inmovilizados.
             </p>
             <ul className="mt-4 space-y-2 text-sm">
               {dead.items.map((it) => (

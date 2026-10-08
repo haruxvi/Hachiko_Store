@@ -29,7 +29,8 @@ export type AuditAction =
   | 'SECURITY_INCIDENT_STATUS_CHANGE'
   | 'SECURITY_INCIDENT_AUTHORITY_REPORT'
   | 'SECURITY_REPORT_EXPORTED'
-  | 'PROMO_CAMPAIGN_SENT';
+  | 'PROMO_CAMPAIGN_SENT'
+  | 'UPLOAD_REJECTED';
 
 interface AuditParams {
   actorId?: string;

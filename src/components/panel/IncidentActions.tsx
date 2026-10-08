@@ -198,7 +198,7 @@ function TabButton({
       onClick={onClick}
       className={`rounded-chip px-3.5 py-2 text-[13px] font-medium transition ${
         active
-          ? 'bg-rust text-snow'
+          ? 'bg-rust text-soot'
           : 'border border-sand text-taupe hover:border-soot hover:text-soot'
       }`}
     >

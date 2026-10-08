@@ -46,16 +46,16 @@ export const EVENT_TYPE_LABELS: Record<IncidentEventType, string> = {
 export const SEVERITY_BADGE: Record<IncidentSeverity, string> = {
   LOW: 'bg-sand text-taupe',
   MEDIUM: 'bg-tan/40 text-soot',
-  HIGH: 'bg-rust/20 text-rust-dark',
+  HIGH: 'bg-rust/20 text-rust-ink',
   CRITICAL: 'bg-alert/15 text-alert',
 };
 
 export const STATUS_BADGE: Record<IncidentStatus, string> = {
   OPEN: 'bg-alert/15 text-alert',
   INVESTIGATING: 'bg-tan/40 text-soot',
-  CONTAINED: 'bg-sky text-sky-deep',
-  RESOLVED: 'bg-mint text-mint-deep',
-  REPORTED: 'bg-rust/20 text-rust-dark',
+  CONTAINED: 'bg-sky text-sky-ink',
+  RESOLVED: 'bg-mint text-mint-ink',
+  REPORTED: 'bg-rust/20 text-rust-ink',
   CLOSED: 'bg-sand text-taupe',
 };
 

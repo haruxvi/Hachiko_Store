@@ -137,7 +137,7 @@ export default function ProductCsvImport({
           nombre ni las fotos del producto existente.
         </p>
         <details className="text-sm">
-          <summary className="cursor-pointer font-medium text-rust">
+          <summary className="cursor-pointer font-medium text-rust-ink">
             Ver columnas y categorías
           </summary>
           <div className="mt-3 space-y-3 text-taupe">
@@ -237,7 +237,7 @@ export default function ProductCsvImport({
             reposiciones. Todavía no se han guardado.
           </p>
           {recoveredIdentifiers > 0 && (
-            <p className="text-sm text-rust">
+            <p className="text-sm text-rust-ink">
               Se regeneraron identificadores de {recoveredIdentifiers} productos
               porque sus fórmulas no tenían un valor válido. Revísalos antes de
               importar.

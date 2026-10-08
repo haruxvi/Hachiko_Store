@@ -295,11 +295,11 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
 
         <p className="text-center text-xs text-taupe">
           Al pagar aceptas nuestros{' '}
-          <a href="/legal/terminos" className="underline hover:text-rust">
+          <a href="/legal/terminos" className="underline hover:text-rust-ink">
             Términos y Condiciones
           </a>{' '}
           y{' '}
-          <a href="/legal/privacidad" className="underline hover:text-rust">
+          <a href="/legal/privacidad" className="underline hover:text-rust-ink">
             Política de Privacidad
           </a>
           .

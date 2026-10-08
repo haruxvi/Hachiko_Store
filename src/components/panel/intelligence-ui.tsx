@@ -34,7 +34,7 @@ export function Stat({ label, value, hint, accent }: { label: string; value: str
   return (
     <div className="card-hs shadow-soft p-5">
       <p className="text-[13px] text-taupe">{label}</p>
-      <p className={`price-mono mt-1.5 text-[25px] leading-none ${accent ? 'text-rust-dark' : 'text-soot'}`}>{value}</p>
+      <p className={`price-mono mt-1.5 text-[25px] leading-none ${accent ? 'text-rust-ink' : 'text-soot'}`}>{value}</p>
       {hint && <p className="mt-2 text-xs text-taupe">{hint}</p>}
     </div>
   );

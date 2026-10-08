@@ -86,7 +86,7 @@ export default async function HistoricoPage({
                     <td className="px-4 py-3 align-middle">
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          m.type === 'IN' ? 'bg-mint text-mint-deep' : 'bg-alert/10 text-alert'
+                          m.type === 'IN' ? 'bg-mint text-mint-ink' : 'bg-alert/10 text-alert'
                         }`}
                       >
                         {m.type === 'IN' ? 'Entrada' : 'Salida'}
@@ -96,7 +96,7 @@ export default async function HistoricoPage({
                       {reasonLabel[m.reason] ?? m.reason}
                     </td>
                     <td className="price-mono px-4 py-3 text-right align-middle text-[15px]">
-                      <span className={m.quantity > 0 ? 'text-mint-deep' : 'text-alert'}>
+                      <span className={m.quantity > 0 ? 'text-mint-ink' : 'text-alert'}>
                         {m.quantity > 0 ? '+' : ''}
                         {m.quantity}
                       </span>

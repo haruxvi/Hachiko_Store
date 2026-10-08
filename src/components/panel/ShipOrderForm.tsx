@@ -36,7 +36,7 @@ export default function ShipOrderForm({ orderId, carrierLabel, isPickup }: Props
 
   if (done) {
     return (
-      <p className="flex items-center gap-2 text-sm font-medium text-mint-deep">
+      <p className="flex items-center gap-2 text-sm font-medium text-mint-ink">
         <Icon name="check" size={16} stroke={2} />
         {isPickup ? 'Cliente avisado: pedido listo para retiro' : 'Despacho registrado y cliente avisado'}
       </p>

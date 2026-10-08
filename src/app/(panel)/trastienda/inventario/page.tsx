@@ -1,16 +1,53 @@
 import Link from 'next/link';
 import { getSession } from '@/src/lib/auth/session';
 import { getInventoryMaster } from '@/src/lib/services/dashboard.service';
+import { getCategories } from '@/src/lib/services/catalog.service';
 import StockAdjustPanel from '@/src/components/panel/StockAdjustPanel';
+import ListToolbar from '@/src/components/panel/ListToolbar';
+import PanelPagination from '@/src/components/panel/PanelPagination';
+import {
+  parseOption,
+  parsePage,
+  parsePageSize,
+  parseQuery,
+  one,
+  DEFAULT_PAGE_SIZE,
+  type RawSearchParams,
+} from '@/src/lib/panel-list';
 
 export const revalidate = 0;
 
-export default async function InventarioPage() {
+const BASE = '/trastienda/inventario';
+const STOCK_FILTERS = ['todo', 'bajo'] as const;
+
+export default async function InventarioPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   const session = await getSession();
   if (!session || session.role !== 'SELLER') return null;
 
-  const products = await getInventoryMaster();
-  const lowCount = products.filter((p) => p.isLowStock).length;
+  const sp = await searchParams;
+  const q = parseQuery(sp['q']);
+  const stockFilter = parseOption(sp['stock'], STOCK_FILTERS, 'todo');
+  const perPage = parsePageSize(sp['mostrar']);
+  const page = parsePage(sp['pagina']);
+
+  const categories = await getCategories(false);
+  const category = categories.find((c) => c.slug === one(sp['categoria']));
+
+  const { info, lowCount, products } = await getInventoryMaster({
+    q,
+    categoryId: category?.id,
+    lowOnly: stockFilter === 'bajo',
+    page,
+    perPage,
+  });
+
+  const params = {
+    q: q || undefined,
+    categoria: category?.slug,
+    stock: stockFilter !== 'todo' ? stockFilter : undefined,
+    mostrar: perPage !== DEFAULT_PAGE_SIZE ? String(perPage) : undefined,
+  };
+  const filtered = Boolean(q || category || stockFilter !== 'todo');
 
   return (
     <div>
@@ -22,8 +59,45 @@ export default async function InventarioPage() {
           {lowCount > 0
             ? `${lowCount} ${lowCount === 1 ? 'producto necesita' : 'productos necesitan'} reposición.`
             : 'Stock al día — nada bajo el umbral.'}
+          {lowCount > 0 && stockFilter !== 'bajo' && (
+            <>
+              {' '}
+              <Link
+                href={`${BASE}?stock=bajo`}
+                className="font-body text-[13px] font-semibold not-italic text-soot underline decoration-rust decoration-2 underline-offset-4 hover:decoration-soot"
+              >
+                Ver solo esos
+              </Link>
+            </>
+          )}
         </div>
       </header>
+
+      <ListToolbar
+        basePath={BASE}
+        query={q}
+        perPage={perPage}
+        searchLabel="Buscar producto"
+        placeholder="Nombre o SKU"
+        clearable={filtered}
+        filters={[
+          {
+            name: 'categoria',
+            label: 'Categoría',
+            value: category?.slug ?? '',
+            options: [{ value: '', label: 'Todas' }, ...categories.map((c) => ({ value: c.slug, label: c.name }))],
+          },
+          {
+            name: 'stock',
+            label: 'Stock',
+            value: stockFilter,
+            options: [
+              { value: 'todo', label: 'Todo el inventario' },
+              { value: 'bajo', label: 'Solo bajo el umbral' },
+            ],
+          },
+        ]}
+      />
 
       <div className="overflow-hidden rounded-2xl border border-sand bg-snow">
         <div className="overflow-x-auto">
@@ -64,7 +138,7 @@ export default async function InventarioPage() {
                         p.available === 0
                           ? 'font-semibold text-alert'
                           : p.isLowStock
-                            ? 'font-semibold text-rust-dark'
+                            ? 'font-semibold text-rust-ink'
                             : 'text-soot'
                       }
                     >
@@ -96,9 +170,13 @@ export default async function InventarioPage() {
         </div>
 
         {products.length === 0 && (
-          <p className="px-4 py-6 text-sm text-taupe">No hay productos activos.</p>
+          <p className="px-4 py-10 text-center text-[15px] text-taupe-deep">
+            {filtered ? 'Nada coincide con la búsqueda o los filtros.' : 'No hay productos activos.'}
+          </p>
         )}
       </div>
+
+      <PanelPagination basePath={BASE} params={params} info={info} noun={['producto', 'productos']} />
     </div>
   );
 }

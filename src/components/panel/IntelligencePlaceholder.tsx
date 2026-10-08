@@ -29,7 +29,7 @@ export default function IntelligencePlaceholder({
       </header>
 
       <div className="card-hs shadow-soft flex flex-col items-center justify-center border-dashed px-6 py-16 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-tan-soft text-rust-dark">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-tan-soft text-rust-ink">
           <Icon name={icon} size={24} />
         </span>
         <span className="chip-rust mt-5">{phase}</span>

@@ -41,12 +41,12 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   if (done) {
     return (
       <div className="space-y-4">
-        <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg px-4 py-4">
+        <div className="bg-mint border border-mint-deep/40 text-mint-ink text-sm rounded-lg px-4 py-4">
           Tu contraseña fue actualizada y cerramos la sesión en todos tus dispositivos.
         </div>
         <Link
           href="/login"
-          className="block text-center bg-rose-600 text-white text-sm py-2.5 rounded-lg hover:bg-rose-700"
+          className="btn-primary w-full"
         >
           Iniciar sesión
         </Link>
@@ -57,13 +57,13 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   return (
     <form method="post" onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        <div className="bg-alert/[0.08] border border-alert/30 text-alert text-sm rounded-lg px-4 py-3">
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-soot mb-1">
           Contraseña nueva
         </label>
         <input
@@ -73,16 +73,16 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           required
           minLength={8}
           autoComplete="new-password"
-          className="w-full border rounded-lg px-3 py-2 text-sm"
+          className="input-hs !py-2.5 !text-sm"
         />
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-taupe mt-1">
           Mínimo 8 caracteres, con mayúscula, minúscula y un número. Evita números
           consecutivos o repetidos (ej. 123 o 111).
         </p>
       </div>
 
       <div>
-        <label htmlFor="confirm" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="confirm" className="block text-sm font-medium text-soot mb-1">
           Repite la contraseña
         </label>
         <input
@@ -92,14 +92,14 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           required
           minLength={8}
           autoComplete="new-password"
-          className="w-full border rounded-lg px-3 py-2 text-sm"
+          className="input-hs !py-2.5 !text-sm"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-rose-600 text-white text-sm py-2.5 rounded-lg hover:bg-rose-700 disabled:opacity-50"
+        className="btn-primary w-full disabled:opacity-50"
       >
         {loading ? 'Guardando…' : 'Guardar contraseña nueva'}
       </button>
