@@ -177,7 +177,9 @@ async function wipeSynthetic() {
   const of = { order: uf };
   const pf = { product: { sku: { startsWith: SKU_PREFIX } } };
   await db.orderStatusHistory.deleteMany({ where: of });
-  await db.stockMovement.deleteMany({ where: { OR: [of, pf] } });
+  // Movimientos sintéticos: los de pedidos sintéticos y las cargas/reposiciones
+  // simuladas (sin pedido). Las ventas REALES de un producto SYN se conservan.
+  await db.stockMovement.deleteMany({ where: { OR: [of, { ...pf, orderId: null }] } });
   await db.stockReservation.deleteMany({ where: { OR: [of, pf] } });
   await db.orderItem.deleteMany({ where: of });
   await db.stockAdjustment.deleteMany({ where: pf });
@@ -192,7 +194,9 @@ async function wipeSynthetic() {
     await db.customerSegment.deleteMany({ where: { userId: { in: ids } } });
     await db.riskScore.deleteMany({ where: { subjectId: { in: ids } } });
   }
-  await db.product.deleteMany({ where: { sku: { startsWith: SKU_PREFIX } } });
+  // Los productos SYN NO se borran: si alguien hizo una compra real de prueba con
+  // uno de ellos, borrarlo rompería ese pedido (la base lo impide y el seed se
+  // caía a la mitad). Se reutilizan y se actualizan más abajo.
   await db.user.deleteMany({ where: { email: { endsWith: USER_MARK } } });
 }
 
@@ -228,20 +232,26 @@ async function main() {
     catId[c.slug] = row.id;
   }
 
-  // ── Productos sintéticos ──
-  const prodId: string[] = CATALOG.map(() => id());
+  // ── Productos sintéticos: se reutilizan por SKU (mismo id) o se crean ──
   const stockStart: number[] = CATALOG.map((p, i) => {
     const base = p.price > 15000 ? 30 : p.price > 5000 ? 80 : 200;
     return Math.round(base * (0.6 + (POPULARITY[i]! / POPULARITY_TOTAL) * 12));
   });
-  await insertChunked(
-    CATALOG.map((p, i) => ({
-      id: prodId[i]!, sku: p.sku, slug: p.slug, name: p.name, description: `${p.name} — producto de demostración (sintético).`,
-      priceCLP: p.price, costCLP: p.cost, weightGrams: p.weight, stock: stockStart[i]!, images: [], active: true,
-      categoryId: catId[p.cat], createdAt: start,
-    })) satisfies Prisma.ProductCreateManyInput[],
-    (c) => db.product.createMany({ data: c }),
+  const existing = new Map(
+    (await db.product.findMany({ where: { sku: { in: CATALOG.map((p) => p.sku) } }, select: { id: true, sku: true } }))
+      .map((p) => [p.sku, p.id]),
   );
+  const prodId: string[] = CATALOG.map((p) => existing.get(p.sku) ?? id());
+  for (let i = 0; i < CATALOG.length; i++) {
+    const p = CATALOG[i]!;
+    const data = {
+      sku: p.sku, slug: p.slug, name: p.name, description: `${p.name} — producto de demostración (sintético).`,
+      priceCLP: p.price, costCLP: p.cost, weightGrams: p.weight, stock: stockStart[i]!, active: true, archivedAt: null,
+      categoryId: catId[p.cat], createdAt: start,
+    };
+    if (existing.has(p.sku)) await db.product.update({ where: { id: prodId[i]! }, data });
+    else await db.product.create({ data: { id: prodId[i]!, images: [], ...data } });
+  }
 
   // ── Pedidos, día por día (calendario de Chile) ──
   const customers: Customer[] = [];
