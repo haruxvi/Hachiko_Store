@@ -196,20 +196,32 @@ export default async function CatalogoPage({ searchParams }: Props) {
           
           {/* Fila de Buscador + Stock */}
           <div className="flex flex-wrap items-center gap-4 justify-between">
-            {/* Buscador */}
             <form method="get" action="/catalogo" className="flex-1 min-w-[240px] max-w-xs">
               {params.categoria && (
                 <input type="hidden" name="categoria" value={params.categoria} />
               )}
               {mostrar && <input type="hidden" name="mostrar" value={mostrar} />}
-              <input
-                type="search"
-                name="q"
-                defaultValue={params.q ?? ''}
-                placeholder="Buscar productos…"
-                aria-label="Buscar productos"
-                className="input-hs w-full text-xs"
-              />
+              {/* Al buscar se conservan el orden y el filtro de stock (valores ya validados) */}
+              {sort !== 'recent' && <input type="hidden" name="orden" value={sort} />}
+              {inStockOnly && <input type="hidden" name="stock" value="1" />}
+
+              <div className="flex items-stretch gap-2">
+                <input
+                  type="search"
+                  name="q"
+                  defaultValue={params.q ?? ''}
+                  placeholder="Buscar productos…"
+                  aria-label="Buscar productos"
+                  className="input-hs w-full text-xs"
+                />
+                <button
+                  type="submit"
+                  aria-label="Buscar"
+                  className="btn-outline btn-sm shrink-0"
+                >
+                  <Icon name="search" size={16} stroke={2} />
+                </button>
+              </div>
             </form>
 
             {/* Filtro de Stock */}
