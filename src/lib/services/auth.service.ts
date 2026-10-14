@@ -74,13 +74,23 @@ export type AuthResult =
   | { ok: true; accessToken: string; refreshToken: string; role: Role }
   | { ok: false; error: { code: string; message: string } };
 
+// El registro NO revela si el correo ya existe (anti-enumeración): responde lo
+// mismo en ambos casos y nunca inicia sesión automáticamente. Si el correo es
+// nuevo se crea la cuenta y se envía el enlace de verificación; si ya existe, se
+// avisa al dueño por correo. En los dos casos la persona entra después por el
+// login con su contraseña. `created` es para la bitácora, no para la respuesta.
 export async function registerUser(
   input: z.infer<typeof RegisterSchema>,
   ip?: string
-): Promise<AuthResult> {
+): Promise<{ created: boolean }> {
   const existing = await db.user.findUnique({ where: { email: input.email } });
   if (existing) {
-    return { ok: false, error: { code: 'EMAIL_EXISTS', message: 'El email ya está registrado' } };
+    // No se confirma la existencia al cliente: se deflecta por correo al dueño.
+    const appUrl = process.env['NEXT_PUBLIC_APP_URL'] ?? '';
+    const { sendEmail, accountExistsEmail } = await import('@/src/lib/email');
+    await sendEmail({ to: input.email, ...accountExistsEmail(`${appUrl}/login`, `${appUrl}/recuperar`) }).catch(() => undefined);
+    await writeAudit({ actorId: existing.id, action: 'REGISTER_EXISTING_EMAIL', ip }).catch(() => undefined);
+    return { created: false };
   }
 
   const argon2 = await import('argon2');
@@ -110,9 +120,7 @@ export async function registerUser(
   const { sendVerificationEmail } = await import('./account-token.service');
   await sendVerificationEmail(user.id).catch(() => undefined);
 
-  const { accessToken, refreshToken } = await issueSession(user);
-
-  return { ok: true, accessToken, refreshToken, role: user.role };
+  return { created: true };
 }
 
 // "Continuar como invitado": crea una cuenta CLIENT real con contraseña

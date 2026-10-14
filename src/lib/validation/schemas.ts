@@ -30,7 +30,7 @@ export const PasswordSchema = z
   });
 
 export const RegisterSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
   password: PasswordSchema,
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
@@ -42,7 +42,7 @@ export const RegisterSchema = z.object({
 });
 
 export const LoginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
   password: z.string().min(1),
   totpCode: z
     .string()
@@ -51,13 +51,13 @@ export const LoginSchema = z.object({
 });
 
 export const ForgotPasswordSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
 });
 
 // "Continuar como invitado": solo email + consentimiento esencial. La cuenta
 // se crea con contraseña aleatoria; se reclama después vía recuperación.
 export const GuestCheckoutSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
   consentEssential: z.literal(true, {
     error: 'Debes aceptar el tratamiento esencial de datos',
   }),

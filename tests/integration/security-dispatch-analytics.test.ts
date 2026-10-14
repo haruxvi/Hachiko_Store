@@ -6,7 +6,7 @@ import { encrypt } from '@/src/lib/crypto/pii';
 import { issueSession, rotateRefreshToken } from '@/src/lib/auth/rotate';
 import { signRefreshToken, verifyRefreshToken } from '@/src/lib/auth/jwt';
 import { generateTotpSecret } from '@/src/lib/auth/totp';
-import { loginUser } from '@/src/lib/services/auth.service';
+import { loginUser, registerUser } from '@/src/lib/services/auth.service';
 import { createOrder, markOrderDelivered, markOrderPreparing, markOrderShipped } from '@/src/lib/services/order.service';
 import { confirmPaymentAndMarkPaid } from '@/src/lib/services/payment.service';
 import { recordCheckoutOrder, sweepAbandonedCheckouts } from '@/src/lib/services/analytics.service';
@@ -211,5 +211,26 @@ describe('Embudo: checkouts abandonados', () => {
     await recordCheckoutOrder(session, noConsent.id, order.id);
     const ev = await db.analyticsEvent.findFirstOrThrow({ where: { sessionId: session } });
     expect(ev.userId).toBeNull();
+  });
+});
+
+describe('Registro anti-enumeración (Ley 21.719 / no revelar existencia)', () => {
+  it('correo nuevo: crea la cuenta y NO inicia sesión (sin tokens)', async () => {
+    const email = `nuevo${Date.now()}@test.local`;
+    const r = await registerUser(
+      { email, password: 'Hachiko-Prueba-8', firstName: 'A', lastName: 'B', consentEssential: true, consentMarketing: false, consentVersion: 'v1.0-2026' },
+    );
+    expect(r).toEqual({ created: true }); // sin accessToken/refreshToken: no auto-login
+    expect(await db.user.count({ where: { email } })).toBe(1);
+  });
+
+  it('correo existente: responde created:false, NO lanza y audita el intento (sin crear otra cuenta)', async () => {
+    const email = `existe${Date.now()}@test.local`;
+    const base = { password: 'Hachiko-Prueba-8', firstName: 'A', lastName: 'B', consentEssential: true as const, consentMarketing: false, consentVersion: 'v1.0-2026' };
+    await registerUser({ email, ...base });
+    const r = await registerUser({ email, ...base });
+    expect(r).toEqual({ created: false });
+    expect(await db.user.count({ where: { email } })).toBe(1); // no se duplicó
+    expect(await db.auditLog.count({ where: { action: 'REGISTER_EXISTING_EMAIL' } })).toBeGreaterThanOrEqual(1);
   });
 });

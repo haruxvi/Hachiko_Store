@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function RegisterForm() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,13 +30,29 @@ export default function RegisterForm() {
     const json = await res.json();
 
     if (json.ok) {
-      router.push('/');
-      router.refresh();
+      // No se inicia sesión automáticamente (anti-enumeración): se confirma y
+      // se invita a entrar por el login con la contraseña recién creada.
+      setDone(true);
       return;
     }
 
     setError(json.error?.message ?? 'Error al crear la cuenta');
     setLoading(false);
+  }
+
+  if (done) {
+    return (
+      <div className="rounded-card border border-sand bg-cream px-5 py-6 text-center">
+        <p className="font-display text-lg font-bold text-soot">¡Cuenta lista!</p>
+        <p className="mt-2 text-sm leading-relaxed text-taupe">
+          Si el correo estaba disponible, creamos tu cuenta y te enviamos un enlace para verificarla.
+          Ya puedes iniciar sesión con tu contraseña.
+        </p>
+        <Link href="/login" className="btn-primary mt-4 inline-flex justify-center">
+          Iniciar sesión
+        </Link>
+      </div>
+    );
   }
 
   return (

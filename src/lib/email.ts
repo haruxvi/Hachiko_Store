@@ -264,3 +264,22 @@ export function orderRefundedEmail(input: {
     ),
   };
 }
+
+// Se envía a quien intenta registrarse con un correo que YA tiene cuenta. Junto
+// con la respuesta genérica del endpoint, evita confirmarle a un tercero si un
+// correo está registrado (anti-enumeración), y a la vez avisa al dueño legítimo.
+export function accountExistsEmail(loginUrl: string, resetUrl: string): { subject: string; html: string } {
+  return {
+    subject: 'Ya tienes una cuenta en Hachiko',
+    html: layout(
+      'Intento de registro con tu correo',
+      `<p style="font-size:14px;line-height:1.6;">Alguien intentó crear una cuenta en Hachiko con este correo,
+         pero ya tienes una. Si fuiste tú, inicia sesión normalmente.</p>
+       ${button(loginUrl, 'Iniciar sesión')}
+       <p style="font-size:14px;line-height:1.6;">¿Olvidaste tu contraseña? Puedes
+         <a href="${resetUrl}" style="color:#e11d48;">restablecerla aquí</a>.</p>
+       <p style="font-size:13px;line-height:1.6;color:#6b7280;">Si no fuiste tú, puedes ignorar este correo:
+         no se creó ninguna cuenta nueva ni se cambió nada en la tuya.</p>`
+    ),
+  };
+}

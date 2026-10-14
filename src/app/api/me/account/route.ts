@@ -3,6 +3,7 @@ import { getSession } from '@/src/lib/auth/session';
 import { requireRole } from '@/src/lib/auth/rbac';
 import { requestAccountDeletion } from '@/src/lib/services/customer.service';
 import { DeleteAccountSchema } from '@/src/lib/validation/schemas';
+import { readJsonBody } from '@/src/lib/http-body';
 import { clearAuthCookies } from '@/src/lib/auth/session';
 
 export async function DELETE(request: NextRequest) {
@@ -11,8 +12,9 @@ export async function DELETE(request: NextRequest) {
   const roleError = requireRole(session, ['CLIENT']);
   if (roleError) return roleError;
 
-  const body = await request.json().catch(() => ({}));
-  const parsed = DeleteAccountSchema.safeParse(body);
+  const read = await readJsonBody(request);
+  if (!read.ok) return read.response;
+  const parsed = DeleteAccountSchema.safeParse(read.data);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: { code: 'VALIDATION' } }, { status: 400 });
   }

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { requestPasswordReset } from '@/src/lib/services/account-token.service';
 import { ForgotPasswordSchema } from '@/src/lib/validation/schemas';
 import { rateLimit, clientIpFrom } from '@/src/lib/rate-limit';
+import { readJsonBody } from '@/src/lib/http-body';
 
 // Límite estricto: este endpoint dispara correos
 const FORGOT_LIMIT = 5; // por IP cada 15 minutos
@@ -21,8 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const parsed = ForgotPasswordSchema.safeParse(body);
+    const read = await readJsonBody(request);
+    if (!read.ok) return read.response;
+    const parsed = ForgotPasswordSchema.safeParse(read.data);
     if (!parsed.success) {
       return NextResponse.json(
         { ok: false, error: { code: 'VALIDATION', message: 'Email inválido' } },
