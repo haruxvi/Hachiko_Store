@@ -122,6 +122,20 @@ describe('Confirmación de pago atómica', () => {
     expect((await orderOf(order.id)).paymentStatus).toBe('REFUND_PENDING');
   });
 
+  it('fail-closed: sin monto (undefined) o monto <=0 NO se confirma a ciegas', async () => {
+    const p1 = await makeProduct(5);
+    const o1 = await createOrder((await makeUser()).id, [{ productId: p1.id, quantity: 1 }], 'PICKUP', PICKUP);
+    // La pasarela no devolvió monto: no se puede verificar → reembolso, stock intacto
+    expect(await confirmPaymentAndMarkPaid(o1.id, 'WEBPAY', 'tok', undefined)).toBe('refund_pending');
+    expect(await stockOf(p1.id)).toBe(5);
+    expect((await orderOf(o1.id)).status).toBe('CANCELLED');
+
+    const p2 = await makeProduct(5);
+    const o2 = await createOrder((await makeUser()).id, [{ productId: p2.id, quantity: 1 }], 'PICKUP', PICKUP);
+    expect(await confirmPaymentAndMarkPaid(o2.id, 'MERCADOPAGO', 'pay', 0)).toBe('refund_pending');
+    expect(await stockOf(p2.id)).toBe(5);
+  });
+
   it('pago rechazado y luego aprobado (reintento en MercadoPago): queda pagado', async () => {
     const product = await makeProduct(5);
     const order = await createOrder((await makeUser()).id, [{ productId: product.id, quantity: 1 }], 'PICKUP', PICKUP);

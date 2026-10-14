@@ -86,8 +86,12 @@ export async function confirmPaymentAndMarkPaid(
       return { outcome: 'refund_pending' as const, reason: 'ORDER_CANCELLED' as RefundReason };
     }
 
-    if (paidAmount !== undefined && paidAmount !== order.totalCLP) {
-      await flagForRefund(tx, order, provider, paymentRef, 'AMOUNT_MISMATCH', { paidAmount, expected: order.totalCLP });
+    // Fail-closed: el monto SIEMPRE debe venir de la pasarela y coincidir con el
+    // total. Si llega indefinido/<=0 (respuesta anómala), no se confirma a ciegas:
+    // se marca para revisión igual que un monto distinto. El importe real se
+    // confirma contra la pasarela, nunca contra un dato del cliente.
+    if (typeof paidAmount !== 'number' || !Number.isFinite(paidAmount) || paidAmount <= 0 || paidAmount !== order.totalCLP) {
+      await flagForRefund(tx, order, provider, paymentRef, 'AMOUNT_MISMATCH', { paidAmount: paidAmount ?? null, expected: order.totalCLP });
       return { outcome: 'refund_pending' as const, reason: 'AMOUNT_MISMATCH' as RefundReason };
     }
 
