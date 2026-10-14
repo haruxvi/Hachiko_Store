@@ -10,7 +10,10 @@ aunque haya comprado hace dos semanas, y los empates se reparten al azar (dos
 clientes idénticos terminaban en segmentos distintos). El Monto sí va por
 quintiles: es continuo y no tiene un umbral natural.
 
-Privacidad (Ley 21.719): trabaja con userId, sin PII (email/teléfono).
+Privacidad (Ley 21.719): trabaja con userId, sin PII (email/teléfono), y SOLO
+segmenta a quienes aceptaron el uso comercial de sus datos (consentMarketing):
+el perfilado individual requiere consentimiento. Quien lo revoca sale del
+segmento en la siguiente corrida (la tabla se reemplaza completa).
 
 Ejecutar (desde ml/):  python -m jobs.customer_rfm
 """
@@ -68,14 +71,17 @@ def _segment(r: int, f: int) -> str:
 
 
 def main() -> None:
-    with model_run("rfm", "1.1.0", notes="Fase 2 — RFM (umbrales fijos) + KMeans") as run:
+    with model_run("rfm", "1.2.0", notes="Fase 2 — RFM (umbrales fijos) + KMeans, solo con consentimiento") as run:
         df = read_sql(
             f'''SELECT o."userId" AS user_id,
                       EXTRACT(EPOCH FROM (now() - MAX(o."createdAt"))) / 86400 AS recency,
                       COUNT(*) AS frequency,
                       SUM(o."totalCLP") AS monetary
                FROM "Order" o
+               JOIN "User" u ON u.id = o."userId"
                WHERE {SALE_SQL}
+                 AND u."consentMarketing" = true
+                 AND u."deletedAt" IS NULL
                GROUP BY 1'''
         )
         run.set_rows_in(len(df))

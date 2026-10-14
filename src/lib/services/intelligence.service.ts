@@ -667,7 +667,9 @@ export async function getProductTrends() {
 export interface ShrinkageRow { name: string; reason: string; qty: number; cost: number }
 export async function getShrinkage() {
   const rows = await db.$queryRaw<{ name: string; reason: string; qty: bigint; cost: bigint }[]>`
-    SELECT p.name, sm.reason::text AS reason, SUM(sm.quantity) AS qty, SUM(sm.quantity * COALESCE(p."costCLP", 0)) AS cost
+    -- ABS: los ajustes del panel guardan las salidas con signo negativo (delta) y
+    -- el dataset sintético antiguo con signo positivo; una merma siempre suma.
+    SELECT p.name, sm.reason::text AS reason, SUM(ABS(sm.quantity)) AS qty, SUM(ABS(sm.quantity) * COALESCE(p."costCLP", 0)) AS cost
     FROM "StockMovement" sm JOIN "Product" p ON p.id = sm."productId"
     WHERE sm.reason IN ('DAMAGED', 'EXPIRED') GROUP BY p.name, sm.reason ORDER BY cost DESC`;
   const items: ShrinkageRow[] = rows.map((r) => ({ name: r.name, reason: r.reason, qty: n(r.qty), cost: n(r.cost) }));
@@ -833,17 +835,19 @@ export async function getRepeatChurn(): Promise<RepeatChurn> {
 
 export interface Alert { level: 'critical' | 'warning' | 'info'; message: string }
 export async function getAlerts(): Promise<Alert[]> {
-  const [lowStock, urgentRestock, criticalIncidents, riskyOrders, compromised, attacked] = await Promise.all([
+  const [lowStock, urgentRestock, criticalIncidents, riskyOrders, compromised, attacked, refunds] = await Promise.all([
     db.$queryRaw<{ c: bigint }[]>`SELECT COUNT(*) AS c FROM "Product" WHERE active = true AND "archivedAt" IS NULL AND stock <= "lowStockThreshold"`,
     db.restockSuggestion.count({ where: { daysToStockout: { lte: LEAD_TIME_DAYS } } }),
     db.securityIncident.count({ where: { severity: 'CRITICAL', status: { notIn: ['RESOLVED', 'CLOSED'] } } }),
     db.riskScore.count({ where: { subjectType: 'ORDER' } }),
     db.riskScore.count({ where: { subjectType: 'USER', score: { gte: ACCOUNT_RISK.compromised } } }),
     db.riskScore.count({ where: { subjectType: 'USER', score: { gte: ACCOUNT_RISK.attacked, lt: ACCOUNT_RISK.compromised } } }),
+    db.order.count({ where: { paymentStatus: 'REFUND_PENDING' } }),
   ]);
   const alerts: Alert[] = [];
   const low = n(lowStock[0]?.c);
   const plural = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+  if (refunds > 0) alerts.push({ level: 'critical', message: `${plural(refunds, 'pago recibido que', 'pagos recibidos que')} hay que reembolsar (pedido cancelado, sin stock o monto distinto)` });
   if (criticalIncidents > 0) alerts.push({ level: 'critical', message: `${plural(criticalIncidents, 'incidente de seguridad crítico', 'incidentes de seguridad críticos')} sin resolver` });
   if (compromised > 0) alerts.push({ level: 'critical', message: `${plural(compromised, 'cuenta posiblemente comprometida', 'cuentas posiblemente comprometidas')} (acceso desde una IP atacante)` });
   if (attacked > 0) alerts.push({ level: 'warning', message: `${plural(attacked, 'cuenta', 'cuentas')} con intentos de fuerza bruta` });

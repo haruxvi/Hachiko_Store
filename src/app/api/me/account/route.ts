@@ -24,9 +24,5 @@ export async function DELETE(request: NextRequest) {
     message: 'Cuenta eliminada. Los datos serán purgados en 30 días.',
   });
 
-  for (const { name, options } of clearAuthCookies()) {
-    response.cookies.set(name, '', options);
-  }
-
-  return response;
+  return clearAuthCookies(response);
 }

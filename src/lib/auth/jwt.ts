@@ -45,13 +45,20 @@ export async function signAccessToken(payload: JWTPayload): Promise<string> {
     .encrypt(key);
 }
 
+export const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// `jti` identifica este token y `fam` el inicio de sesión del que desciende;
+// ambos se registran en la tabla RefreshToken (ver auth/refresh-store.ts).
 export async function signRefreshToken(
   payload: JWTPayload,
-  tokenVersion: number
+  tokenVersion: number,
+  jti: string,
+  familyId: string,
 ): Promise<string> {
   const key = await getKey();
-  return new EncryptJWT({ ...payload, type: 'refresh', ver: tokenVersion })
+  return new EncryptJWT({ ...payload, type: 'refresh', ver: tokenVersion, fam: familyId })
     .setProtectedHeader({ alg: KEY_ALG, enc: ENC_ALG })
+    .setJti(jti)
     .setIssuedAt()
     .setExpirationTime(REFRESH_EXPIRY)
     .encrypt(key);
@@ -77,7 +84,7 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload> {
 
 export async function verifyRefreshToken(
   token: string
-): Promise<JWTPayload & { ver: number }> {
+): Promise<JWTPayload & { ver: number; jti: string | null; fam: string | null }> {
   const key = await getKey();
   const { payload } = await jwtDecrypt(token, key, {
     keyManagementAlgorithms: [KEY_ALG],
@@ -90,5 +97,8 @@ export async function verifyRefreshToken(
     email: payload['email'] as string,
     // Tokens emitidos antes de introducir `ver` cuentan como versión 0
     ver: typeof payload['ver'] === 'number' ? payload['ver'] : 0,
+    // Tokens emitidos antes del registro de refresh tokens no traen jti/fam
+    jti: typeof payload.jti === 'string' ? payload.jti : null,
+    fam: typeof payload['fam'] === 'string' ? payload['fam'] : null,
   };
 }

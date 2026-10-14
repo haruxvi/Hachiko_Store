@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getProductBySlug, getProducts } from '@/src/lib/services/catalog.service';
 import AddToCartPanel from '@/src/components/storefront/AddToCartPanel';
+import { TrackOnMount } from '@/src/components/storefront/AnalyticsTracker';
 import ProductGallery from '@/src/components/storefront/ProductGallery';
 import ProductCardHs from '@/src/components/storefront/ProductCardHs';
 import Icon from '@/src/components/ui/Icon';
@@ -85,6 +86,7 @@ export default async function ProductoPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 pt-6 sm:px-12 sm:pt-10">
+      <TrackOnMount event={{ type: 'PRODUCT_VIEW', productId: product.id }} eventKey={product.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}

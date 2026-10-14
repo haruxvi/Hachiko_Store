@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 permissions:
   contents: read
@@ -12,6 +12,20 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # Postgres desechable para los tests de integración (concurrencia de
+    # compras y pagos). Nunca se usa Neon en CI para escribir.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: hachiko_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d hachiko_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +41,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # .npmrc tiene ignore-scripts: el postinstall (prisma generate) no corre solo
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
       - name: Type check
         run: pnpm typecheck
 
@@ -38,6 +56,14 @@ jobs:
 
       - name: Unit tests
         run: pnpm test
+
+      - name: Integration tests (Postgres real)
+        env:
+          DATABASE_URL: postgresql://test:test@127.0.0.1:55432/hachiko_test
+          DIRECT_URL: postgresql://test:test@127.0.0.1:55432/hachiko_test
+        run: |
+          pnpm exec prisma db push --skip-generate
+          pnpm test:integration
 
       - name: Build
         run: pnpm build

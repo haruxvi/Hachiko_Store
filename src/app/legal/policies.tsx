@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { CookiePreferencesButton } from '@/src/components/storefront/CookieNotice';
 
 // Contenido de las páginas legales, estructurado para el layout editorial
 // (rediseño importado desde Claude Design · proyecto Hachiko_Store).
@@ -53,7 +54,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'privacidad',
     label: 'Privacidad',
     title: 'Política de Privacidad',
-    meta: 'Versión 1.1 — vigente desde el 7 de octubre de 2026',
+    meta: 'Versión 1.2 — vigente desde el 14 de octubre de 2026',
     intro:
       'Cómo tratamos tus datos personales, conforme a la Ley N° 21.719. En resumen: pedimos lo mínimo, lo cuidamos, y puedes ejercer tus derechos cuando quieras.',
     law: 'Ley N° 21.719 · Protección de Datos Personales',
@@ -119,6 +120,25 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 consentimiento, que puedes revocar en cualquier momento con el enlace{' '}
                 <strong>&ldquo;Darme de baja&rdquo;</strong> que trae cada correo de promociones, o
                 desde tu perfil, sin afectar tu cuenta ni los correos de tus pedidos.
+              </>,
+              <>
+                <strong>Segmentación de clientes</strong> (fechas, cantidad y monto de tus compras,
+                sin correo ni teléfono): solo si aceptaste recibir promociones, para agruparte con
+                clientes de hábitos parecidos y ofrecerte promociones más pertinentes. No produce
+                decisiones automáticas con efectos sobre ti. Base de licitud: tu consentimiento; si lo
+                revocas, sales de la segmentación en la siguiente actualización (a más tardar al día
+                siguiente).
+              </>,
+              <>
+                <strong>Medición de la tienda</strong> (páginas y productos vistos, búsquedas y pasos
+                del carrito, con un identificador aleatorio que se borra al cerrar la pestaña): solo
+                si eliges &ldquo;Aceptar medición&rdquo; en el aviso de cookies. Se usa en forma
+                agregada para mejorar el catálogo y el proceso de compra. Base de licitud: tu
+                consentimiento, que puedes cambiar en la{' '}
+                <Link href="/legal/cookies" className="font-medium text-rust-ink hover:underline">
+                  Política de Cookies
+                </Link>
+                .
               </>,
             ],
           },
@@ -688,13 +708,13 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'cookies',
     label: 'Cookies',
     title: 'Política de Cookies',
-    meta: 'Última actualización: 10 de junio de 2026',
+    meta: 'Última actualización: 14 de octubre de 2026',
     intro:
-      'Usamos solo lo indispensable para que el sitio funcione. Nada de publicidad ni seguimiento de terceros.',
+      'Usamos lo indispensable para que el sitio funcione y, solo si nos dejas, una medición anónima de la tienda. Nada de publicidad ni seguimiento de terceros.',
     law: null,
     metaTitle: 'Política de Cookies — Hachiko',
     metaDescription:
-      'Qué cookies usa Hachiko. Solo usamos cookies esenciales para la sesión y el carrito.',
+      'Qué cookies usa Hachiko: esenciales para la sesión y el carrito, y una medición opcional y propia de la tienda.',
     sections: [
       {
         h: 'Qué son las cookies',
@@ -739,10 +759,32 @@ const POLICIES: Record<PolicySlug, Policy> = {
             kind: 'note',
             content: (
               <>
-                No usamos cookies de publicidad ni de seguimiento de terceros, ni elaboramos perfiles
-                con fines comerciales.
+                No usamos cookies de publicidad ni de seguimiento de terceros.
               </>
             ),
+          },
+        ],
+      },
+      {
+        h: 'Medición de la tienda (opcional)',
+        blocks: [
+          {
+            kind: 'p',
+            content: (
+              <>
+                Si eliges <strong>&ldquo;Aceptar medición&rdquo;</strong>, registramos qué páginas y
+                productos se ven, qué se busca y cuántos carritos llegan a pagarse, para saber qué
+                mejorar. No es una cookie: usamos un identificador aleatorio guardado en tu pestaña
+                (sessionStorage), que se borra al cerrarla. Los datos se quedan en Hachiko, no se
+                comparten con terceros y se analizan en forma agregada. Si eliges{' '}
+                <strong>&ldquo;Solo esenciales&rdquo;</strong> no se mide nada. Si tu navegador envía
+                la señal Global Privacy Control, la medición nunca se asocia a tu cuenta.
+              </>
+            ),
+          },
+          {
+            kind: 'p',
+            content: <CookiePreferencesButton />,
           },
         ],
       },

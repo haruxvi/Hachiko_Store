@@ -62,6 +62,7 @@ export const STATUS_BADGE: Record<IncidentStatus, string> = {
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
   LOGIN_FAILED: 'Intento de login fallido',
   ACCOUNT_LOCKED: 'Cuenta bloqueada por intentos',
+  REFRESH_TOKEN_REUSE: 'Sesión copiada detectada (token reutilizado)',
   ROLE_CHANGE: 'Cambio de rol',
   DATA_EXPORT: 'Exportación de datos (ARCO)',
   ACCOUNT_DELETE_REQUEST: 'Solicitud de eliminación',

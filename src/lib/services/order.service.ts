@@ -3,9 +3,9 @@ import { encrypt, decrypt, encryptOptional } from '@/src/lib/crypto/pii';
 import { calculateShipping } from '@/src/lib/shipping';
 import { sendEmail, orderShippedEmail } from '@/src/lib/email';
 import { writeAudit } from './audit.service';
-import { releaseReservation } from './inventory.service';
+import { activeReservations, withSerializableRetry } from './inventory.service';
 import { addMinutes } from 'date-fns';
-import type { ShippingMethod } from '@prisma/client';
+import type { OrderStatus, ShippingMethod } from '@prisma/client';
 
 const RESERVATION_TTL_MIN = Number(process.env['RESERVATION_TTL_MINUTES'] ?? 15);
 
@@ -34,103 +34,81 @@ export async function createOrder(
 ) {
   if (items.length === 0) throw new Error('El carrito está vacío');
 
-  const products = await db.product.findMany({
-    where: { id: { in: items.map((i) => i.productId) }, active: true },
-  });
-
-  if (products.length !== items.length) {
-    throw new Error('Uno o más productos no están disponibles');
-  }
-
-  let subtotalCLP = 0;
-  const orderItems: Array<{
-    productId: string;
-    quantity: number;
-    unitPriceCLP: number;
-    productName: string;
-  }> = [];
-
-  for (const item of items) {
-    const product = products.find((p) => p.id === item.productId);
-    if (!product) throw new Error(`Producto no encontrado: ${item.productId}`);
-    if (product.stock < item.quantity) {
-      throw new Error(`Stock insuficiente para: ${product.name}`);
-    }
-    subtotalCLP += product.priceCLP * item.quantity;
-    orderItems.push({
-      productId: product.id,
-      quantity: item.quantity,
-      unitPriceCLP: product.priceCLP,
-      productName: product.name,
+  // Todo (precio, stock, reservas, creación) ocurre en UNA transacción
+  // Serializable con reintentos: si dos clientes compran la última unidad a la
+  // vez, Postgres aborta a uno, el reintento ve la reserva del otro y recibe
+  // "Stock insuficiente". Leer el producto fuera de la transacción dejaba una
+  // ventana en la que el stock podía cambiar entre la lectura y la reserva.
+  const order = await withSerializableRetry(async (tx) => {
+    const products = await tx.product.findMany({
+      where: { id: { in: items.map((i) => i.productId) }, active: true, archivedAt: null },
     });
-  }
+    if (products.length !== items.length) {
+      throw new Error('Uno o más productos no están disponibles');
+    }
 
-  const shippingCLP = calculateShipping(subtotalCLP, shippingMethod);
-  const totalCLP = subtotalCLP + shippingCLP;
-
-  // Create order + reserve stock atomically
-  const order = await db.$transaction(
-    async (tx) => {
-      // Check availability with active reservations before creating order
-      const reservations = await tx.stockReservation.groupBy({
-        by: ['productId'],
-        where: {
-          productId: { in: orderItems.map((i) => i.productId) },
-          expiresAt: { gt: new Date() },
-        },
-        _sum: { quantity: true },
-      });
-      const reservedMap = new Map(reservations.map((r) => [r.productId, r._sum.quantity ?? 0]));
-
-      for (const item of orderItems) {
-        const product = products.find((p) => p.id === item.productId)!;
-        const available = product.stock - (reservedMap.get(item.productId) ?? 0);
-        if (available < item.quantity) {
-          throw new Error(`Stock insuficiente para: ${product.name}`);
-        }
+    const reservedMap = await activeReservations(tx, products.map((p) => p.id));
+    let subtotalCLP = 0;
+    const orderItems = items.map((item) => {
+      const product = products.find((p) => p.id === item.productId)!;
+      const available = product.stock - (reservedMap.get(product.id) ?? 0);
+      if (available < item.quantity) {
+        throw new Error(`Stock insuficiente para: ${product.name}`);
       }
+      subtotalCLP += product.priceCLP * item.quantity;
+      return {
+        productId: product.id,
+        quantity: item.quantity,
+        unitPriceCLP: product.priceCLP,
+        productName: product.name,
+      };
+    });
 
-      const newOrder = await tx.order.create({
-        data: {
-          userId,
-          subtotalCLP,
-          shippingCLP,
-          totalCLP,
-          shippingMethod,
-          shippingFullName: encrypt(shippingAddress.fullName),
-          shippingStreet: encryptOptional(shippingAddress.street),
-          shippingNumber: encryptOptional(shippingAddress.number),
-          shippingApartment: encryptOptional(shippingAddress.apartment),
-          shippingCommune: shippingAddress.commune ?? null,
-          shippingRegion: shippingAddress.region ?? null,
-          shippingPhone: encrypt(shippingAddress.phone),
-          shippingNotes: shippingAddress.notes,
-          items: { create: orderItems },
-        },
-        include: { items: true },
-      });
+    const shippingCLP = calculateShipping(subtotalCLP, shippingMethod);
+    const totalCLP = subtotalCLP + shippingCLP;
 
-      // Create reservations
-      await tx.stockReservation.createMany({
-        data: orderItems.map((item) => ({
-          productId: item.productId,
-          orderId: newOrder.id,
-          quantity: item.quantity,
-          expiresAt: addMinutes(new Date(), RESERVATION_TTL_MIN),
-        })),
-      });
+    const newOrder = await tx.order.create({
+      data: {
+        userId,
+        subtotalCLP,
+        shippingCLP,
+        totalCLP,
+        shippingMethod,
+        shippingFullName: encrypt(shippingAddress.fullName),
+        shippingStreet: encryptOptional(shippingAddress.street),
+        shippingNumber: encryptOptional(shippingAddress.number),
+        shippingApartment: encryptOptional(shippingAddress.apartment),
+        shippingCommune: shippingAddress.commune ?? null,
+        shippingRegion: shippingAddress.region ?? null,
+        shippingPhone: encrypt(shippingAddress.phone),
+        shippingNotes: shippingAddress.notes,
+        items: { create: orderItems },
+      },
+      include: { items: true },
+    });
 
-      return newOrder;
-    },
-    { isolationLevel: 'Serializable', maxWait: 5000, timeout: 10000 },
-  );
+    await tx.stockReservation.createMany({
+      data: orderItems.map((item) => ({
+        productId: item.productId,
+        orderId: newOrder.id,
+        quantity: item.quantity,
+        expiresAt: addMinutes(new Date(), RESERVATION_TTL_MIN),
+      })),
+    });
+
+    await tx.orderStatusHistory.create({
+      data: { orderId: newOrder.id, fromStatus: null, toStatus: 'PENDING', actorId: userId, note: 'Pedido creado' },
+    });
+
+    return newOrder;
+  });
 
   await writeAudit({
     actorId: userId,
     action: 'ORDER_CREATED',
     targetType: 'Order',
     targetId: order.id,
-    metadata: { totalCLP: totalCLP, itemCount: items.length },
+    metadata: { totalCLP: order.totalCLP, itemCount: items.length },
   });
 
   return order;
@@ -235,11 +213,19 @@ export async function markOrderShipped(
   // Solo una orden pagada y aún sin despachar pasa a SHIPPED. La condición va en
   // el mismo UPDATE: dos clics (o dos pestañas) no la despachan dos veces ni
   // mandan dos correos, y una orden cancelada no puede marcarse como enviada.
-  const { count } = await db.order.updateMany({
-    where: { id: orderId, paymentStatus: 'PAID', status: { in: ['PAID', 'PREPARING'] } },
-    data: { status: 'SHIPPED', trackingNumber, shippedAt: new Date() },
+  const shipped = await db.$transaction(async (tx) => {
+    const current = await tx.order.findUnique({ where: { id: orderId }, select: { status: true } });
+    const { count } = await tx.order.updateMany({
+      where: { id: orderId, paymentStatus: 'PAID', status: { in: ['PAID', 'PREPARING'] } },
+      data: { status: 'SHIPPED', trackingNumber, shippedAt: new Date() },
+    });
+    if (count === 0 || !current) return false;
+    await tx.orderStatusHistory.create({
+      data: { orderId, fromStatus: current.status, toStatus: 'SHIPPED', actorId, note: trackingNumber ? `Seguimiento ${trackingNumber}` : null },
+    });
+    return true;
   });
-  if (count === 0) throw new Error('Esta orden ya fue despachada o no está lista para despacharse.');
+  if (!shipped) throw new Error('Esta orden ya fue despachada o no está lista para despacharse.');
 
   const order = await db.order.findUniqueOrThrow({
     where: { id: orderId },
@@ -267,21 +253,80 @@ export async function markOrderShipped(
   return order;
 }
 
+/**
+ * Avanza un pedido pagado en el flujo de despacho. La condición de estado va en
+ * el mismo UPDATE (dos clics o dos dispositivos no lo avanzan dos veces) y la
+ * transición queda en OrderStatusHistory: de ahí salen los tiempos de
+ * preparación y de entrega por courier de la vista Logística.
+ */
+async function advanceDispatch(
+  orderId: string,
+  from: OrderStatus[],
+  to: 'PREPARING' | 'DELIVERED',
+  actorId: string,
+): Promise<boolean> {
+  return db.$transaction(async (tx) => {
+    const current = await tx.order.findUnique({ where: { id: orderId }, select: { status: true } });
+    const { count } = await tx.order.updateMany({
+      where: { id: orderId, paymentStatus: 'PAID', status: { in: from } },
+      data: { status: to, ...(to === 'DELIVERED' ? { deliveredAt: new Date() } : {}) },
+    });
+    if (count === 0 || !current) return false;
+    await tx.orderStatusHistory.create({
+      data: { orderId, fromStatus: current.status, toStatus: to, actorId },
+    });
+    await tx.auditLog.create({
+      data: { actorId, actorRole: 'SELLER', action: `ORDER_${to}`, targetType: 'Order', targetId: orderId },
+    });
+    return true;
+  });
+}
+
+/** "Lo estoy empacando": PAID → PREPARING. */
+export async function markOrderPreparing(orderId: string, actorId: string) {
+  if (!(await advanceDispatch(orderId, ['PAID'], 'PREPARING', actorId))) {
+    throw new Error('Este pedido ya no está esperando preparación.');
+  }
+}
+
+/**
+ * Entregado al cliente (courier) o retirado en tienda: SHIPPED → DELIVERED.
+ * Sale de la lista de despacho y cierra su línea de tiempo.
+ */
+export async function markOrderDelivered(orderId: string, actorId: string) {
+  if (!(await advanceDispatch(orderId, ['SHIPPED'], 'DELIVERED', actorId))) {
+    throw new Error('Solo un pedido enviado (o listo para retiro) puede marcarse como entregado.');
+  }
+}
+
+// El cliente solo puede cancelar un pedido que AÚN NO está pagado. La
+// condición va en el mismo UPDATE: si el pago se confirma en el mismo instante,
+// solo una de las dos operaciones gana (nunca "pagado y cancelado" a la vez).
+// Un pago que llegue después de cancelar no revive el pedido: queda marcado
+// para reembolso (ver payment.service). Un pedido ya pagado se gestiona como
+// devolución con la tienda, no con este botón.
 export async function cancelOrder(orderId: string, userId: string) {
-  const order = await db.order.findFirst({ where: { id: orderId, userId } });
-  if (!order) throw new Error('Orden no encontrada');
-  if (!['PENDING', 'PAID'].includes(order.status)) {
+  const cancelled = await withSerializableRetry(async (tx) => {
+    const { count } = await tx.order.updateMany({
+      where: { id: orderId, userId, status: 'PENDING', paymentStatus: { in: ['UNPAID', 'FAILED'] } },
+      data: { status: 'CANCELLED' },
+    });
+    if (count === 0) return false;
+    await tx.stockReservation.deleteMany({ where: { orderId } });
+    await tx.orderStatusHistory.create({
+      data: { orderId, fromStatus: 'PENDING', toStatus: 'CANCELLED', actorId: userId, note: 'Cancelado por el cliente' },
+    });
+    return true;
+  });
+
+  if (!cancelled) {
+    const order = await db.order.findFirst({ where: { id: orderId, userId }, select: { paymentStatus: true } });
+    if (!order) throw new Error('Orden no encontrada');
+    if (order.paymentStatus === 'PAID') {
+      throw new Error('Este pedido ya está pagado. Escríbenos para gestionar una devolución.');
+    }
     throw new Error('No se puede cancelar una orden en este estado');
   }
 
-  await db.order.update({
-    where: { id: orderId },
-    data: { status: 'CANCELLED' },
-  });
-
-  // For PENDING orders: release the reservation so stock becomes available again.
-  // For PAID orders: stock was already deducted; a manual RETURNED adjustment is needed if goods come back.
-  if (order.status === 'PENDING') {
-    await releaseReservation(orderId);
-  }
+  await writeAudit({ actorId: userId, actorRole: 'CLIENT', action: 'ORDER_CANCELLED', targetType: 'Order', targetId: orderId });
 }

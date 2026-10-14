@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/src/lib/auth/session';
 import { createOrder } from '@/src/lib/services/order.service';
 import { saveDefaultShippingAddress } from '@/src/lib/services/customer.service';
+import { recordCheckoutOrder } from '@/src/lib/services/analytics.service';
 import { CheckoutSchema } from '@/src/lib/validation/schemas';
 import type { z } from 'zod';
 
@@ -38,6 +39,12 @@ export async function checkoutAction(
         region: shippingAddress.region!,
         phone: shippingAddress.phone,
       }).catch(() => undefined);
+    }
+
+    // Embudo de conversión: vincula la sesión medida con el pedido. Nunca
+    // bloquea la compra si falla.
+    if (parsed.data.analyticsSessionId) {
+      await recordCheckoutOrder(parsed.data.analyticsSessionId, session.sub, order.id).catch(() => undefined);
     }
 
     revalidatePath('/pedidos');

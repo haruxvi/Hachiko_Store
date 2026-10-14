@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as OTPAuth from 'otpauth';
-import { generateTotpSecret, totpUri, verifyTotpCode } from '@/src/lib/auth/totp';
+import { generateTotpSecret, totpStep, totpUri, verifyTotpCode } from '@/src/lib/auth/totp';
 
 const EMAIL = 'prueba@hachiko.cl';
 
@@ -47,5 +47,29 @@ describe('TOTP (doble factor RFC 6238)', () => {
     const secretA = generateTotpSecret();
     const secretB = generateTotpSecret();
     expect(verifyTotpCode(secretB, EMAIL, currentCode(secretA))).toBe(false);
+  });
+});
+
+describe('totpStep (anti-replay)', () => {
+  it('devuelve el intervalo de 30 s del código vigente', () => {
+    const secret = generateTotpSecret();
+    const now = Date.now();
+    expect(totpStep(secret, EMAIL, currentCode(secret), now)).toBe(Math.floor(now / 30_000));
+  });
+
+  it('el código del intervalo anterior se acepta con su propio intervalo (desfase de reloj)', () => {
+    const secret = generateTotpSecret();
+    const now = Date.now();
+    const previous = new OTPAuth.TOTP({
+      issuer: 'Hachiko', label: EMAIL, algorithm: 'SHA1', digits: 6, period: 30,
+      secret: OTPAuth.Secret.fromBase32(secret),
+    }).generate({ timestamp: now - 30_000 });
+    expect(totpStep(secret, EMAIL, previous, now)).toBe(Math.floor(now / 30_000) - 1);
+  });
+
+  it('null para un código inválido', () => {
+    const secret = generateTotpSecret();
+    const wrong = currentCode(secret) === '000000' ? '111111' : '000000';
+    expect(totpStep(secret, EMAIL, wrong)).toBeNull();
   });
 });

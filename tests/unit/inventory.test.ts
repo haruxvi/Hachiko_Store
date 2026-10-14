@@ -9,9 +9,11 @@ vi.mock('@/src/lib/db', () => ({
       deleteMany: vi.fn(),
       aggregate: vi.fn(),
       findMany: vi.fn(),
+      groupBy: vi.fn(),
     },
     product: {
       findUniqueOrThrow: vi.fn(),
+      findMany: vi.fn(),
       update: vi.fn(),
     },
     stockMovement: { create: vi.fn() },
@@ -25,11 +27,12 @@ vi.mock('next/cache', () => ({ revalidateTag: vi.fn() }));
 
 import { db } from '@/src/lib/db';
 import {
-  reserveStock,
-  confirmStockDeduction,
-  releaseReservation,
+  withSerializableRetry,
+  deductStockForOrder,
   adjustStock,
   cleanExpiredReservations,
+  MAX_RETRIES,
+  type Tx,
 } from '@/src/lib/services/inventory.service';
 
 const mockDb = db as unknown as {
@@ -38,9 +41,11 @@ const mockDb = db as unknown as {
     deleteMany: ReturnType<typeof vi.fn>;
     aggregate: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
+    groupBy: ReturnType<typeof vi.fn>;
   };
   product: {
     findUniqueOrThrow: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
   stockMovement: { create: ReturnType<typeof vi.fn> };
@@ -48,12 +53,12 @@ const mockDb = db as unknown as {
   auditLog: { create: ReturnType<typeof vi.fn> };
 };
 
+const runInline = async (fn: (tx: typeof db) => Promise<unknown>) => fn(db);
+
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   // Default: $transaction calls the callback with the same db interface
-  mockDb.$transaction.mockImplementation(async (fn: (tx: typeof db) => Promise<unknown>) => {
-    return fn(db);
-  });
+  mockDb.$transaction.mockImplementation(runInline);
 });
 
 describe('InsufficientStockError', () => {
@@ -66,92 +71,74 @@ describe('InsufficientStockError', () => {
   });
 });
 
-describe('reserveStock', () => {
-  it('reserva stock si hay disponible', async () => {
-    mockDb.product.findUniqueOrThrow.mockResolvedValue({
-      id: 'prod-1',
-      stock: 10,
-      name: 'Test',
-      active: true,
-      archivedAt: null,
-    });
-    mockDb.stockReservation.aggregate.mockResolvedValue({ _sum: { quantity: 2 } });
+describe('withSerializableRetry', () => {
+  const conflict = () => Object.assign(new Error('write conflict'), { code: 'P2034' });
 
-    const upsertMock = vi.fn().mockResolvedValue({});
-    (db as unknown as { stockReservation: { upsert: typeof upsertMock } }).stockReservation.upsert =
-      upsertMock;
-
-    await expect(
-      reserveStock('order-1', [{ productId: 'prod-1', quantity: 5 }]),
-    ).resolves.not.toThrow();
+  it('reintenta cuando Postgres aborta por conflicto de serialización (P2034)', async () => {
+    mockDb.$transaction.mockRejectedValueOnce(conflict()).mockImplementationOnce(runInline);
+    await expect(withSerializableRetry(async () => 'ok')).resolves.toBe('ok');
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(2);
   });
 
-  it('falla con InsufficientStockError si no hay disponible', async () => {
-    mockDb.product.findUniqueOrThrow.mockResolvedValue({
-      id: 'prod-1',
-      stock: 3,
-      name: 'Test',
-      active: true,
-      archivedAt: null,
-    });
-    mockDb.stockReservation.aggregate.mockResolvedValue({ _sum: { quantity: 2 } });
+  it('no reintenta errores de negocio', async () => {
+    mockDb.$transaction.mockRejectedValueOnce(new Error('Stock insuficiente'));
+    await expect(withSerializableRetry(async () => 'ok')).rejects.toThrow('Stock insuficiente');
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+  });
 
-    // Available = 3 - 2 = 1, requested = 5
+  it('se rinde tras el máximo de reintentos', async () => {
+    mockDb.$transaction.mockRejectedValue(conflict());
+    await expect(withSerializableRetry(async () => 'ok')).rejects.toThrow('write conflict');
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(MAX_RETRIES);
+  });
+});
+
+describe('deductStockForOrder', () => {
+  const tx = db as unknown as Tx;
+
+  it('descuenta stock, registra el movimiento (negativo) y elimina las reservas del pedido', async () => {
+    mockDb.product.findMany.mockResolvedValue([{ id: 'prod-1', stock: 10 }]);
+    mockDb.stockReservation.groupBy.mockResolvedValue([]);
+
+    await deductStockForOrder(tx, 'order-1', [{ productId: 'prod-1', quantity: 3 }]);
+
+    expect(mockDb.product.update).toHaveBeenCalledWith({ where: { id: 'prod-1' }, data: { stock: 7 } });
+    expect(mockDb.stockMovement.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ type: 'OUT', reason: 'SALE', quantity: -3, previousStock: 10, resultingStock: 7 }),
+    });
+    expect(mockDb.stockReservation.deleteMany).toHaveBeenCalledWith({ where: { orderId: 'order-1' } });
+  });
+
+  it('funciona aunque la reserva del pedido ya haya vencido o se haya limpiado', async () => {
+    mockDb.product.findMany.mockResolvedValue([{ id: 'prod-1', stock: 2 }]);
+    mockDb.stockReservation.groupBy.mockResolvedValue([]);
     await expect(
-      reserveStock('order-1', [{ productId: 'prod-1', quantity: 5 }]),
+      deductStockForOrder(tx, 'order-1', [{ productId: 'prod-1', quantity: 2 }]),
+    ).resolves.toEqual(['prod-1']);
+  });
+
+  it('respeta las reservas vigentes de OTROS pedidos', async () => {
+    mockDb.product.findMany.mockResolvedValue([{ id: 'prod-1', stock: 3 }]);
+    mockDb.stockReservation.groupBy.mockResolvedValue([{ productId: 'prod-1', _sum: { quantity: 2 } }]);
+    await expect(
+      deductStockForOrder(tx, 'order-1', [{ productId: 'prod-1', quantity: 2 }]),
     ).rejects.toBeInstanceOf(InsufficientStockError);
   });
 
-  it('rechaza producto archivado', async () => {
-    mockDb.product.findUniqueOrThrow.mockResolvedValue({
-      id: 'prod-1',
-      stock: 10,
-      name: 'Test',
-      active: true,
-      archivedAt: new Date(),
-    });
-
+  it('valida todas las líneas antes de escribir: sin descuentos parciales', async () => {
+    mockDb.product.findMany.mockResolvedValue([
+      { id: 'prod-1', stock: 10 },
+      { id: 'prod-2', stock: 0 },
+    ]);
+    mockDb.stockReservation.groupBy.mockResolvedValue([]);
     await expect(
-      reserveStock('order-1', [{ productId: 'prod-1', quantity: 1 }]),
-    ).rejects.toThrow('no está disponible');
-  });
-});
-
-describe('confirmStockDeduction', () => {
-  it('descuenta stock real al confirmar y elimina reservas', async () => {
-    mockDb.stockReservation.findMany.mockResolvedValue([
-      { product: { id: 'prod-1', stock: 10 }, quantity: 3 },
-    ]);
-
-    await confirmStockDeduction('order-1', null);
-
-    expect(mockDb.product.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { stock: 7 },
-      }),
-    );
-    expect(mockDb.stockMovement.create).toHaveBeenCalled();
-    expect(mockDb.stockReservation.deleteMany).toHaveBeenCalledWith({ where: { orderId: 'order-1' } });
-  });
-
-  it('lanza error si no hay reservas', async () => {
-    mockDb.stockReservation.findMany.mockResolvedValue([]);
-    await expect(confirmStockDeduction('order-999', null)).rejects.toThrow('No hay reservas');
-  });
-
-  it('lanza error si resultingStock sería negativo', async () => {
-    mockDb.stockReservation.findMany.mockResolvedValue([
-      { product: { id: 'prod-1', stock: 2 }, quantity: 5 },
-    ]);
-    await expect(confirmStockDeduction('order-1', null)).rejects.toThrow('Stock negativo');
-  });
-});
-
-describe('releaseReservation', () => {
-  it('libera reserva al fallar pago', async () => {
-    mockDb.stockReservation.deleteMany.mockResolvedValue({ count: 2 });
-    await releaseReservation('order-1');
-    expect(mockDb.stockReservation.deleteMany).toHaveBeenCalledWith({ where: { orderId: 'order-1' } });
+      deductStockForOrder(tx, 'order-1', [
+        { productId: 'prod-1', quantity: 1 },
+        { productId: 'prod-2', quantity: 1 },
+      ]),
+    ).rejects.toBeInstanceOf(InsufficientStockError);
+    expect(mockDb.product.update).not.toHaveBeenCalled();
+    expect(mockDb.stockMovement.create).not.toHaveBeenCalled();
   });
 });
 

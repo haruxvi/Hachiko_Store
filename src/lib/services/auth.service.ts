@@ -1,7 +1,7 @@
 import { db } from '@/src/lib/db';
 import { decrypt } from '@/src/lib/crypto/pii';
-import { signAccessToken, signRefreshToken } from '@/src/lib/auth/jwt';
-import { verifyTotpCode } from '@/src/lib/auth/totp';
+import { issueSession } from '@/src/lib/auth/rotate';
+import { totpStep } from '@/src/lib/auth/totp';
 import { writeAudit } from './audit.service';
 import type { Role } from '@prisma/client';
 import type { RegisterSchema, LoginSchema } from '@/src/lib/validation/schemas';
@@ -26,6 +26,48 @@ async function getDummyHash(): Promise<string> {
     ...ARGON2_OPTIONS,
   });
   return dummyHash;
+}
+
+/**
+ * Suma un intento fallido de forma ATÓMICA (increment en el mismo UPDATE) y
+ * bloquea al llegar al tope. Leer el contador y luego escribirlo permitía que
+ * muchos intentos en paralelo se contaran como uno solo y esquivaran el bloqueo.
+ */
+async function registerFailedAttempt(
+  userId: string,
+  ip: string | undefined,
+  userAgent: string | undefined,
+  metadata?: Record<string, unknown>,
+) {
+  const { failedLogins } = await db.user.update({
+    where: { id: userId },
+    data: { failedLogins: { increment: 1 } },
+    select: { failedLogins: true },
+  });
+  if (failedLogins >= MAX_FAILED_LOGINS) {
+    const now = new Date();
+    const { count } = await db.user.updateMany({
+      where: { id: userId, OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }] },
+      data: { lockedUntil: new Date(now.getTime() + LOCK_DURATION_MS) },
+    });
+    if (count > 0) await writeAudit({ actorId: userId, action: 'ACCOUNT_LOCKED', ip, userAgent });
+  }
+  await writeAudit({ actorId: userId, action: 'LOGIN_FAILED', ip, userAgent, metadata });
+}
+
+/**
+ * Valida un código TOTP y lo "gasta": guarda su intervalo y rechaza cualquier
+ * código de ese intervalo o anteriores. El UPDATE condicional hace que dos
+ * usos simultáneos del mismo código no puedan pasar ambos.
+ */
+async function consumeTotpCode(userId: string, encryptedSecret: string, email: string, code: string): Promise<boolean> {
+  const step = totpStep(decrypt(encryptedSecret), email, code);
+  if (step === null) return false;
+  const { count } = await db.user.updateMany({
+    where: { id: userId, OR: [{ totpLastStep: null }, { totpLastStep: { lt: step } }] },
+    data: { totpLastStep: step },
+  });
+  return count > 0;
 }
 
 export type AuthResult =
@@ -68,11 +110,7 @@ export async function registerUser(
   const { sendVerificationEmail } = await import('./account-token.service');
   await sendVerificationEmail(user.id).catch(() => undefined);
 
-  const payload = { sub: user.id, role: user.role, email: user.email };
-  const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(payload),
-    signRefreshToken(payload, user.tokenVersion),
-  ]);
+  const { accessToken, refreshToken } = await issueSession(user);
 
   return { ok: true, accessToken, refreshToken, role: user.role };
 }
@@ -123,11 +161,7 @@ export async function registerGuest(email: string, ip?: string): Promise<AuthRes
     metadata: { guest: true },
   });
 
-  const payload = { sub: user.id, role: user.role, email: user.email };
-  const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(payload),
-    signRefreshToken(payload, user.tokenVersion),
-  ]);
+  const { accessToken, refreshToken } = await issueSession(user);
 
   return { ok: true, accessToken, refreshToken, role: user.role };
 }
@@ -157,20 +191,7 @@ export async function loginUser(
   const valid = await argon2.verify(user.passwordHash, input.password);
 
   if (!valid) {
-    const failedLogins = user.failedLogins + 1;
-    const lockedUntil =
-      failedLogins >= MAX_FAILED_LOGINS ? new Date(Date.now() + LOCK_DURATION_MS) : null;
-
-    await db.user.update({
-      where: { id: user.id },
-      data: { failedLogins, lockedUntil },
-    });
-
-    if (lockedUntil) {
-      await writeAudit({ actorId: user.id, action: 'ACCOUNT_LOCKED', ip, userAgent });
-    }
-
-    await writeAudit({ actorId: user.id, action: 'LOGIN_FAILED', ip, userAgent });
+    await registerFailedAttempt(user.id, ip, userAgent);
     return { ok: false, error: { code: 'INVALID_CREDENTIALS', message: 'Credenciales inválidas' } };
   }
 
@@ -184,29 +205,11 @@ export async function loginUser(
       };
     }
 
-    const totpValid = verifyTotpCode(decrypt(user.totpSecret), user.email, input.totpCode);
+    // Un código errado o YA USADO cuenta como intento fallido: protege contra
+    // fuerza bruta y contra la reutilización del segundo factor
+    const totpValid = await consumeTotpCode(user.id, user.totpSecret, user.email, input.totpCode);
     if (!totpValid) {
-      // Un código TOTP errado cuenta como intento fallido: protege contra fuerza bruta del segundo factor
-      const failedLogins = user.failedLogins + 1;
-      const lockedUntil =
-        failedLogins >= MAX_FAILED_LOGINS ? new Date(Date.now() + LOCK_DURATION_MS) : null;
-
-      await db.user.update({
-        where: { id: user.id },
-        data: { failedLogins, lockedUntil },
-      });
-
-      if (lockedUntil) {
-        await writeAudit({ actorId: user.id, action: 'ACCOUNT_LOCKED', ip, userAgent });
-      }
-
-      await writeAudit({
-        actorId: user.id,
-        action: 'LOGIN_FAILED',
-        ip,
-        userAgent,
-        metadata: { factor: 'TOTP' },
-      });
+      await registerFailedAttempt(user.id, ip, userAgent, { factor: 'TOTP' });
       return { ok: false, error: { code: 'INVALID_TOTP', message: 'Código de autenticación inválido' } };
     }
   }
@@ -224,11 +227,7 @@ export async function loginUser(
     userAgent,
   });
 
-  const payload = { sub: user.id, role: user.role, email: user.email };
-  const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(payload),
-    signRefreshToken(payload, user.tokenVersion),
-  ]);
+  const { accessToken, refreshToken } = await issueSession(user);
 
   return { ok: true, accessToken, refreshToken, role: user.role };
 }
@@ -276,7 +275,7 @@ export async function startTotpEnrollment(userId: string): Promise<{ uri: string
   // Se guarda cifrado pero NO habilitado: queda pendiente hasta confirmar un código válido
   await db.user.update({
     where: { id: userId },
-    data: { totpSecret: encrypt(secret), totpEnabledAt: null },
+    data: { totpSecret: encrypt(secret), totpEnabledAt: null, totpLastStep: null },
   });
 
   return { uri: totpUri(secret, user.email) };
@@ -293,7 +292,7 @@ export async function confirmTotpEnrollment(
   });
   if (!user.totpSecret || user.totpEnabledAt) return { ok: false };
 
-  if (!verifyTotpCode(decrypt(user.totpSecret), user.email, code)) {
+  if (!(await consumeTotpCode(userId, user.totpSecret, user.email, code))) {
     return { ok: false };
   }
 
@@ -317,13 +316,13 @@ export async function disableTotp(
   if (!user.totpSecret || !user.totpEnabledAt) return { ok: false };
 
   // Desactivar exige un código vigente: una sesión robada no puede bajar el 2FA sin el teléfono
-  if (!verifyTotpCode(decrypt(user.totpSecret), user.email, code)) {
+  if (!(await consumeTotpCode(userId, user.totpSecret, user.email, code))) {
     return { ok: false };
   }
 
   await db.user.update({
     where: { id: userId },
-    data: { totpSecret: null, totpEnabledAt: null },
+    data: { totpSecret: null, totpEnabledAt: null, totpLastStep: null },
   });
   await writeAudit({ actorId: userId, action: 'TOTP_DISABLED', targetType: 'User', targetId: userId, ip });
   return { ok: true };

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '@/src/components/ui/Icon';
 import ShipOrderForm from '@/src/components/panel/ShipOrderForm';
+import OrderStepButton from '@/src/components/panel/OrderStepButton';
 import { formatCLP } from '@/src/lib/format';
 
 export interface SellerOrder {
@@ -220,12 +221,26 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
 
           {/* Tracking + CTA */}
           {(selected.status === 'PAID' || selected.status === 'PREPARING') && (
-            <div className="mt-auto pt-6">
+            <div className="mt-auto flex flex-col gap-3 pt-6">
+              {selected.status === 'PAID' && (
+                <OrderStepButton key={`prep-${selected.id}`} orderId={selected.id} step="preparing" />
+              )}
               <ShipOrderForm
                 key={selected.id}
                 orderId={selected.id}
                 carrierLabel={selected.shippingMethodLabel}
                 isPickup={selected.isPickup}
+              />
+            </div>
+          )}
+          {selected.status === 'SHIPPED' && (
+            <div className="mt-auto pt-6">
+              <OrderStepButton
+                key={`deliv-${selected.id}`}
+                orderId={selected.id}
+                step="delivered"
+                variant="primary"
+                label={selected.isPickup ? 'Marcar como retirado' : 'Marcar como entregado'}
               />
             </div>
           )}

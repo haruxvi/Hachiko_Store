@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCartStore } from '@/src/lib/stores/cart';
 import { checkoutAction } from '@/src/actions/cart';
+import { analyticsSessionId, track } from '@/src/lib/analytics/client';
 import { ShippingAddressSchema, ShippingMethodSchema } from '@/src/lib/validation/schemas';
 import { SHIPPING_METHODS, calculateShipping } from '@/src/lib/shipping';
 import type { ShippingMethod } from '@prisma/client';
@@ -98,6 +100,14 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
     },
   });
 
+  // Embudo: una vez por visita al checkout, y solo si hay algo que comprar
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return;
+    checkoutTracked.current = true;
+    track({ type: 'CHECKOUT_START' });
+  }, [items.length]);
+
   const method = watch('shippingMethod') as ShippingMethod;
   const provider = watch('paymentProvider');
   const needsAddress = SHIPPING_METHODS[method]?.requiresAddress ?? true;
@@ -120,6 +130,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
       },
       paymentProvider: data.paymentProvider,
       items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+      analyticsSessionId: analyticsSessionId() ?? undefined,
     });
 
     if (!result.ok) {

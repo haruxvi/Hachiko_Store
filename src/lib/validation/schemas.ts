@@ -126,10 +126,15 @@ export const ShippingAddressSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+// Ids de la BD: cuid (lo normal) o UUID (catálogo sintético de demostración,
+// seed-synthetic usa randomUUID). Se acota largo y alfabeto; si el id no
+// existe, la consulta parametrizada simplemente no lo encuentra.
+export const DbIdSchema = z.string().min(1).max(64).regex(/^[A-Za-z0-9-]+$/, 'Identificador inválido');
+
 export const CartItemsSchema = z
   .array(
     z.object({
-      productId: z.string().cuid(),
+      productId: DbIdSchema,
       quantity: z.number().int().min(1).max(99),
     })
   )
@@ -148,6 +153,8 @@ export const CheckoutSchema = z
     shippingAddress: ShippingAddressSchema,
     paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO']),
     items: CartItemsSchema,
+    // Solo viene si la persona aceptó la medición (ver src/lib/analytics/client.ts)
+    analyticsSessionId: z.string().uuid().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.shippingMethod === 'PICKUP') return;

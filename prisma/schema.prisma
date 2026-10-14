@@ -31,6 +31,9 @@ model User {
   // totpEnabledAt null + secreto presente = enrolamiento pendiente de confirmar
   totpSecret    String?
   totpEnabledAt DateTime?
+  // Último intervalo TOTP (Date.now()/30s) aceptado: un código ya usado no
+  // sirve otra vez aunque siga dentro de su ventana de 30–90 s (anti-replay).
+  totpLastStep  Int?
 
   // Cuenta creada por "continuar como invitado": tiene contraseña aleatoria
   // imposible de adivinar; el dueño puede reclamarla vía "recuperar contraseña"
@@ -59,6 +62,25 @@ model User {
 enum Role {
   CLIENT
   SELLER
+}
+
+// Refresh tokens emitidos (solo metadatos: el token va cifrado en la cookie o
+// en el llavero del teléfono, aquí no se guarda). Cada renovación marca el
+// actual como usado y emite otro de la misma familia (= mismo inicio de
+// sesión). Si llega un token YA usado, alguien copió el token: se revoca toda
+// la familia (detección de reutilización, OWASP / RFC 6819 §5.2.2.3).
+model RefreshToken {
+  id        String    @id // jti del token
+  userId    String
+  familyId  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime? // familia revocada por reutilización detectada
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
 }
 
 // Tokens de un solo uso para flujos por correo (recuperar contraseña,
@@ -318,6 +340,10 @@ enum PaymentStatus {
   PAID
   REFUNDED
   FAILED
+  // Llegó dinero que la tienda no puede quedarse: pago de un pedido ya
+  // cancelado, monto distinto al total, o sin stock al confirmar. La orden
+  // queda CANCELLED y el vendedor debe reembolsar (aparece como alerta).
+  REFUND_PENDING
 }
 
 model OrderItem {

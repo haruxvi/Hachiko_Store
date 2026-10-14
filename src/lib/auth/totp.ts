@@ -33,6 +33,22 @@ export function verifyTotpCode(
   accountEmail: string,
   code: string
 ): boolean {
-  const delta = buildTotp(secretBase32, accountEmail).validate({ token: code, window: 1 });
-  return delta !== null;
+  return totpStep(secretBase32, accountEmail, code) !== null;
+}
+
+/**
+ * Intervalo TOTP (contador de 30 s) al que corresponde el código, o null si no
+ * es válido. Guardar el último intervalo usado permite rechazar el mismo código
+ * si alguien lo reutiliza dentro de su ventana (lo vio por encima del hombro,
+ * lo capturó un phishing en tiempo real, etc.).
+ */
+export function totpStep(
+  secretBase32: string,
+  accountEmail: string,
+  code: string,
+  now = Date.now(),
+): number | null {
+  const delta = buildTotp(secretBase32, accountEmail).validate({ token: code, window: 1, timestamp: now });
+  if (delta === null) return null;
+  return Math.floor(now / 1000 / PERIOD_SECONDS) + delta;
 }

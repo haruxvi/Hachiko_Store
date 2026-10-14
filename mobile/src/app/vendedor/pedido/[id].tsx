@@ -53,6 +53,35 @@ export default function SellerOrder() {
     }
   };
 
+  // Pasos sin datos extra: "preparando" (PAID → PREPARING) y "entregado"
+  // (SHIPPED → DELIVERED). El servidor valida el estado y evita dobles avances.
+  const step = async (path: 'prepare' | 'deliver', done: string, leave: boolean) => {
+    setBusy(true);
+    try {
+      await api(`/seller/orders/${encodeURIComponent(id)}/${path}`, { method: 'POST', body: {} });
+      tap('success');
+      snack(done);
+      void qc.invalidateQueries({ queryKey: ['seller'] });
+      if (leave) router.back();
+    } catch (e) {
+      tap('warning');
+      snack(e instanceof ApiError ? e.message : 'No se pudo actualizar el pedido.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmDelivered = () => {
+    if (!o) return;
+    const title = o.isPickup ? '¿El cliente ya lo retiró?' : '¿El pedido ya fue entregado?';
+    const go = () => void step('deliver', `#${o.orderNumber} quedó como entregado`, true);
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(title)) go();
+      return;
+    }
+    Alert.alert(title, 'Sale de la lista de despacho.', [{ text: 'Volver', style: 'cancel' }, { text: 'Sí, entregado', onPress: go }]);
+  };
+
   if (q.isError) {
     return (
       <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -67,7 +96,7 @@ export default function SellerOrder() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <TopBar title={o ? `Pedido #${o.orderNumber}` : 'Pedido'} />
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: o?.canShip ? 180 + insets.bottom : 32 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: o?.canShip ? (o.canPrepare ? 240 : 180) + insets.bottom : o?.canDeliver ? 110 + insets.bottom : 32 }}>
         {!o ? (
           <View style={{ gap: 12 }}>{[0, 1, 2].map((i) => <Skeleton key={i} width="100%" height={110} radius={shape.lg} />)}</View>
         ) : (
@@ -140,8 +169,17 @@ export default function SellerOrder() {
 
       {o?.canShip && (
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: insets.bottom + 16, gap: 12, backgroundColor: c.surfaceContainerLow, borderTopWidth: 1, borderTopColor: c.outlineVariant }}>
+          {o.canPrepare && (
+            <Button label="Marcar como preparando" icon="package" variant="outlined" block disabled={busy} onPress={() => void step('prepare', `#${o.orderNumber} quedó en preparación`, false)} />
+          )}
           {!o.isPickup && <TextField label="N° de seguimiento (opcional)" value={tracking} onChangeText={setTracking} autoCapitalize="characters" maxLength={100} />}
           <Button label={o.isPickup ? 'Marcar listo para retiro' : 'Marcar como enviado'} icon={o.isPickup ? 'store' : 'truck'} size="lg" block loading={busy} onPress={confirmShip} />
+        </View>
+      )}
+
+      {o?.canDeliver && (
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: insets.bottom + 16, backgroundColor: c.surfaceContainerLow, borderTopWidth: 1, borderTopColor: c.outlineVariant }}>
+          <Button label={o.isPickup ? 'Marcar como retirado' : 'Marcar como entregado'} icon="check" size="lg" block loading={busy} onPress={confirmDelivered} />
         </View>
       )}
     </KeyboardAvoidingView>

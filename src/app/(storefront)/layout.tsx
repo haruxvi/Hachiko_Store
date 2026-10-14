@@ -1,5 +1,6 @@
 import SiteHeader from '@/src/components/storefront/SiteHeader';
 import SiteFooter from '@/src/components/storefront/SiteFooter';
+import { PageViewTracker } from '@/src/components/storefront/AnalyticsTracker';
 
 
 export const dynamic = 'force-dynamic';
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <PageViewTracker />
       <SiteHeader />
       {/* 
         Clases añadidas a <main>:

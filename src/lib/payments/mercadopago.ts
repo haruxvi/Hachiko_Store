@@ -1,4 +1,4 @@
-import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
+import { MercadoPagoConfig, Preference, Payment, PaymentRefund } from 'mercadopago';
 import { createHmac, timingSafeEqual } from 'crypto';
 
 const client = new MercadoPagoConfig({
@@ -40,6 +40,18 @@ export async function createMpPreference(
 export async function getMpPayment(paymentId: string) {
   const payment = new Payment(client);
   return payment.get({ id: paymentId });
+}
+
+/**
+ * Reembolso total de un pago. La idempotency key hace que, si la petición se
+ * repite (reintento de red, doble clic), MercadoPago no devuelva dos veces.
+ */
+export async function refundMpPayment(paymentId: string, idempotencyKey: string): Promise<{ status: string }> {
+  const refund = await new PaymentRefund(client).total({
+    payment_id: paymentId,
+    requestOptions: { idempotencyKey },
+  });
+  return { status: String(refund.status ?? 'approved') };
 }
 
 export function verifyMpWebhookSignature(

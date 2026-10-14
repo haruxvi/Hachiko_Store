@@ -25,6 +25,8 @@ export const GET = api<{ id: string }>(async (req: NextRequest, { params }) => {
     shippingLabel: shippingLabel(order.shippingMethod),
     trackingUrl: trackingUrlFor(order.shippingMethod, order.trackingNumber),
     canShip: order.status === 'PAID' || order.status === 'PREPARING',
+    canPrepare: order.status === 'PAID',
+    canDeliver: order.status === 'SHIPPED',
     risk: risk ? { score: risk.score, reasons: Array.isArray(risk.reasons) ? (risk.reasons as string[]) : [] } : null,
   });
 });

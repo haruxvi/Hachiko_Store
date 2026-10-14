@@ -3,6 +3,8 @@ import { getOrdersForSeller } from '@/src/lib/services/order.service';
 import { shippingLabel, SHIPPING_METHODS } from '@/src/lib/shipping';
 import { formatCLP } from '@/src/lib/format';
 import OrdersBoard, { type SellerOrder } from '@/src/components/panel/OrdersBoard';
+import RefundQueue, { type RefundRow } from '@/src/components/panel/RefundQueue';
+import { getRefundQueue } from '@/src/lib/services/payment.service';
 import ListToolbar from '@/src/components/panel/ListToolbar';
 import PanelPagination from '@/src/components/panel/PanelPagination';
 import {
@@ -61,6 +63,13 @@ const STATUS_FILTERS = ['todas', 'empacar', 'enviadas'] as const;
 const DELIVERY_FILTERS = ['todas', 'domicilio', 'retiro'] as const;
 const TO_PACK = new Set(['PAID', 'PREPARING']);
 
+const PROVIDER_LABEL: Record<string, string> = { WEBPAY: 'Webpay', MERCADOPAGO: 'MercadoPago' };
+const REFUND_REASON_LABEL: Record<string, string> = {
+  ORDER_CANCELLED: 'Pagó un pedido ya cancelado',
+  OUT_OF_STOCK: 'Se agotó mientras pagaba',
+  AMOUNT_MISMATCH: 'El monto no coincidía con el total',
+};
+
 export default async function OrdenesPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   const session = await getSession();
   if (!session || session.role !== 'SELLER') return null;
@@ -72,7 +81,16 @@ export default async function OrdenesPage({ searchParams }: { searchParams: Prom
   const perPage = parsePageSize(sp['mostrar']);
   const page = parsePage(sp['pagina']);
 
-  const raw = await getOrdersForSeller();
+  const [raw, refunds] = await Promise.all([getOrdersForSeller(), getRefundQueue()]);
+  const refundRows: RefundRow[] = refunds.map((r) => ({
+    id: r.id,
+    orderNumber: r.orderNumber,
+    providerLabel: PROVIDER_LABEL[r.provider ?? ''] ?? 'la pasarela',
+    amountCLP: r.amountCLP,
+    reasonLabel: REFUND_REASON_LABEL[r.reason ?? ''] ?? 'Pago no aplicable',
+    whenLabel: whenLabel(r.createdAt),
+    canRefundViaProvider: r.canRefundViaProvider,
+  }));
 
   const orders: SellerOrder[] = raw.map((o) => ({
     id: o.id,
@@ -143,6 +161,8 @@ export default async function OrdenesPage({ searchParams }: { searchParams: Prom
           Trastienda — solo lo necesario para despachar, según Ley 21.719.
         </div>
       </header>
+
+      {refundRows.length > 0 && <RefundQueue rows={refundRows} />}
 
       {/* KPIs — solo datos reales, nada inventado */}
       <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">

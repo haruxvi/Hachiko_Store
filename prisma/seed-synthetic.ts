@@ -465,7 +465,7 @@ async function main() {
     }
     const prev = stock[i]!;
     stock[i] = prev - ev.qty;
-    movementRows.push({ id: id(), productId: ev.productId, type: 'OUT', reason: 'SALE', quantity: ev.qty, previousStock: prev, resultingStock: stock[i]!, orderId: ev.orderId, createdAt: ev.date });
+    movementRows.push({ id: id(), productId: ev.productId, type: 'OUT', reason: 'SALE', quantity: -ev.qty, previousStock: prev, resultingStock: stock[i]!, orderId: ev.orderId, createdAt: ev.date });
   }
   // Mermas ocasionales (para analítica de DAMAGED/EXPIRED)
   for (let i = 0; i < CATALOG.length; i++) {
@@ -476,7 +476,7 @@ async function main() {
       const prev = stock[i]!;
       stock[i] = prev - q;
       const when = new Date(start.getTime() + rnd() * (now.getTime() - start.getTime()));
-      movementRows.push({ id: id(), productId: prodId[i]!, type: 'OUT', reason: rnd() < 0.5 ? 'DAMAGED' : 'EXPIRED', quantity: q, previousStock: prev, resultingStock: stock[i]!, createdAt: when });
+      movementRows.push({ id: id(), productId: prodId[i]!, type: 'OUT', reason: rnd() < 0.5 ? 'DAMAGED' : 'EXPIRED', quantity: -q, previousStock: prev, resultingStock: stock[i]!, createdAt: when });
     }
   }
 

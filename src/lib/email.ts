@@ -242,3 +242,25 @@ export function orderShippedEmail(input: {
     ),
   };
 }
+
+export function orderRefundedEmail(input: {
+  orderNumber: number;
+  amountCLP: number;
+  viaProvider: boolean;
+}): { subject: string; html: string } {
+  const amount = `$${input.amountCLP.toLocaleString('es-CL')}`;
+  return {
+    subject: `Te devolvimos ${amount} del pedido #${input.orderNumber}`,
+    html: layout(
+      `Reembolso del pedido #${input.orderNumber}`,
+      `<p style="font-size:14px;line-height:1.6;">Recibimos tu pago, pero no pudimos completar este pedido
+         (se canceló o se agotó un producto mientras pagabas). Ya hicimos la devolución de
+         <strong>${amount}</strong>.</p>
+       <p style="font-size:14px;line-height:1.6;">${
+         input.viaProvider
+           ? 'Según tu banco o tarjeta, puede tardar algunos días hábiles en verse reflejada.'
+           : 'Si tienes dudas sobre cómo te llegó la devolución, respóndenos este correo.'
+       }</p>`
+    ),
+  };
+}

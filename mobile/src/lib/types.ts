@@ -79,7 +79,7 @@ export type SellerOrders = Paged<SellerOrderRow> & { counts: { empacar: number; 
 export type SellerOrderDetail = {
   id: string; orderNumber: number; status: OrderStatus; totalCLP: number; subtotalCLP: number; shippingCLP: number;
   shippingMethod: string; shippingLabel: string; isPickup: boolean; trackingNumber: string | null; trackingUrl: string | null;
-  createdAt: string; paidAt: string | null; shippedAt: string | null; canShip: boolean;
+  createdAt: string; paidAt: string | null; shippedAt: string | null; canShip: boolean; canPrepare: boolean; canDeliver: boolean;
   items: { name: string; sku: string; quantity: number; unitPriceCLP: number }[];
   recipientName: string; shippingStreet: string | null; shippingNumber: string | null; shippingApartment: string | null;
   shippingCommune: string | null; shippingRegion: string | null; shippingPhone: string; shippingNotes: string | null;

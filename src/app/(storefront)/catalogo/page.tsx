@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getProducts, getCategories, type ProductSort } from '@/src/lib/services/catalog.service';
 import ProductCardHs from '@/src/components/storefront/ProductCardHs';
+import { TrackOnMount } from '@/src/components/storefront/AnalyticsTracker';
 import Icon from '@/src/components/ui/Icon';
 import { pageWindow, parsePage } from '@/src/lib/panel-list';
 
@@ -111,6 +112,10 @@ export default async function CatalogoPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 sm:px-12">
+      {/* Búsquedas sin resultados = demanda que la tienda no cubre (vista Conversión) */}
+      {params.q?.trim() && page === 1 && (
+        <TrackOnMount event={{ type: 'SEARCH', query: params.q.trim(), results: total }} eventKey={`${params.q.trim()}|${total}`} />
+      )}
       {/* Breadcrumb + título */}
       <section className="pb-4 pt-6 sm:pt-10">
         <div className="mb-4 flex items-center gap-1.5 text-[13px] text-taupe">

@@ -42,11 +42,11 @@ No es un template genérico de e-commerce: cada decisión técnica está documen
 - CRUD de productos y categorías, con **edición de precio auditada** (cada cambio queda en un historial).
 - **Gestión de inventario con descuento de stock automático** al confirmar pago, vía sistema de reservas con TTL — sin oversell, sin race conditions.
 - Ajuste manual de stock con motivo obligatorio y trazabilidad completa (ledger inmutable).
-- Vista de órdenes para despacho con **datos mínimos** según Ley 21.719 (sin RUT, sin historial cruzado, sin medio de pago).
+- Vista de órdenes para despacho con **datos mínimos** según Ley 21.719 (sin RUT, sin historial cruzado, sin medio de pago), con el flujo completo **Para empacar → Preparando → Enviado / Listo para retiro → Entregado** (web y app), registrado en `OrderStatusHistory`.
 - **Grupo "Inteligencia"** con 10 vistas de análisis y predicción (ver más abajo).
 
 ### Seguridad y cumplimiento
-- Autenticación con Argon2id + JWT + refresh token rotativo.
+- Autenticación con Argon2id + JWT cifrado + refresh token rotativo **de un solo uso, con detección de reutilización**.
 - **2FA TOTP** (RFC 6238) compatible con Google / Microsoft Authenticator y Authy, sin SMS.
 - RBAC de dos roles (`CLIENT` / `SELLER`) con mínimo privilegio: no existe superusuario.
 - Cifrado de PII at-rest con AES-256-GCM.
@@ -129,7 +129,9 @@ Principio transversal: **el modelo sugiere, la decisión es humana** — no hay 
 
 ### Privacidad por diseño (Ley 21.719)
 
-El perfilado y las recomendaciones personalizadas operan **solo sobre usuarios con consentimiento** (`consentMarketing`); el pipeline entrena sobre datos **pseudonimizados** (nunca ve email ni teléfono); y las decisiones relevantes quedan auditables. La analítica agregada (KPIs, márgenes) no usa datos personales.
+El perfilado (segmentación RFM) y las recomendaciones personalizadas operan **solo sobre usuarios con consentimiento** (`consentMarketing`); el pipeline entrena sobre datos **pseudonimizados** (nunca ve email ni teléfono); y las decisiones relevantes quedan auditables. La analítica agregada (KPIs, márgenes) no usa datos personales.
+
+La **medición del embudo** (vista Conversión) es **opt-in**: el aviso de cookies ofrece "Aceptar medición" o "Solo esenciales" con el mismo peso. Sin cookies ni terceros: un id aleatorio en `sessionStorage` que se borra al cerrar la pestaña; la cuenta solo se asocia si la persona aceptó el uso comercial y su navegador no envía Global Privacy Control. Los checkouts sin pago tras 2 h se registran como abandonados (cron diario).
 
 ---
 
@@ -156,7 +158,11 @@ El stock **no** se descuenta al agregar al carrito (bloquearía unidades injusta
 
 ### Sin sobreventa, sin race conditions
 
-Las operaciones de stock corren dentro de transacciones con **nivel de aislamiento `Serializable`** y reintentos con backoff exponencial. Si dos clientes intentan comprar la última unidad al mismo tiempo, **uno gana y el otro recibe un error claro** — nunca se venden dos unidades inexistentes. Esto está cubierto por un test de concurrencia que lanza cinco compras paralelas sobre una sola unidad y verifica que exactamente una tenga éxito.
+Las operaciones de stock (crear el pedido y reservar, confirmar el pago, ajustes manuales) corren dentro de transacciones con **nivel de aislamiento `Serializable`** y reintentos con backoff exponencial y jitter (`withSerializableRetry`). Si dos clientes intentan comprar la última unidad al mismo tiempo, **uno gana y el otro recibe un error claro** — nunca se venden dos unidades inexistentes.
+
+**El pago y el descuento de stock son una sola transacción**: marcar el pedido como pagado, descontar el stock, registrar el movimiento, el historial de estados y la auditoría ocurren todo o nada. Si el dinero llega pero el pedido ya no se puede cumplir (se canceló, se agotó mientras el cliente pagaba, o el monto no coincide), el pedido **no** queda pagado a medias: pasa a `CANCELLED` con pago `REFUND_PENDING` y el vendedor ve una alerta crítica para reembolsar.
+
+Esto está cubierto por **tests de integración contra Postgres real** ([`tests/integration/checkout-flow.test.ts`](tests/integration/checkout-flow.test.ts)), que corren en el CI: cinco compras paralelas sobre una sola unidad (exactamente una reserva), cinco pagos tardíos simultáneos sobre dos unidades (nunca stock negativo), webhooks duplicados, cancelación y pago al mismo tiempo, pago después de cancelar y monto distinto.
 
 ### Stock físico vs. disponible
 
@@ -279,6 +285,7 @@ CRON_SECRET=           # auth de cron jobs
 pnpm dev                # desarrollo            pnpm build / pnpm start
 pnpm lint               # ESLint                pnpm typecheck   # tipos
 pnpm test               # Vitest                pnpm test:e2e    # Playwright
+pnpm test:integration   # Postgres real (ver abajo)
 pnpm audit              # auditoría de deps
 
 # Base de datos y datos de demo
@@ -291,6 +298,20 @@ pnpm db:seed:analytics  # eventos de comportamiento
 # Pipeline de ML (desde ml/)
 python -m jobs.train_all          # entrena todos los modelos
 python -m jobs.forecast_demand    # (o un job individual)
+```
+
+---
+
+### Tests de integración
+
+Prueban el flujo pedido → pago → stock contra un **Postgres real y desechable** (las transacciones `Serializable` no se pueden probar con mocks). Nunca usan Neon: si la base no es local, abortan antes de tocar nada.
+
+```bash
+docker run -d --name hachiko-test-db -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=hachiko_test -p 127.0.0.1:55432:5432 postgres:16-alpine
+$env:DATABASE_URL="postgresql://test:test@127.0.0.1:55432/hachiko_test"; $env:DIRECT_URL=$env:DATABASE_URL   # PowerShell
+pnpm exec prisma db push --skip-generate
+pnpm test:integration
+docker rm -f hachiko-test-db   # al terminar
 ```
 
 ---
@@ -337,13 +358,13 @@ La seguridad no es una capa que se agregó al final: está construida dentro de 
 
 ### Autenticación y sesiones
 - **Argon2id** (memory-hard) endurecido contra fuerza bruta por GPU.
-- **JWT de acceso corto** (15 min) + **refresh token rotativo** en cookie `httpOnly`/`secure`/`sameSite:strict`.
-- **Invalidación global** vía `tokenVersion`; **bloqueo de cuenta** tras 5 fallos en 15 min.
+- **JWT de acceso corto** (15 min) + **refresh token rotativo de un solo uso** en cookie `httpOnly`/`secure`/`sameSite:strict`. Cada renovación consume el token; si reaparece uno ya usado (token copiado), se **revoca toda esa sesión** y queda en el `AuditLog` (`REFRESH_TOKEN_REUSE`).
+- **Invalidación global** vía `tokenVersion` (también al cerrar sesión con el access ya vencido); **bloqueo de cuenta** tras 5 fallos, con contador **atómico** (los intentos en paralelo no lo esquivan).
 
 ### Doble factor (2FA) — TOTP
 - **RFC 6238**, compatible con Google/Microsoft Authenticator y Authy, sin SMS.
 - Secreto **cifrado con AES-256-GCM**; QR generado en el servidor.
-- El 2FA se pide **solo tras validar contraseña** (anti-enumeración); desactivarlo exige un código vigente. Todo queda en el `AuditLog`.
+- El 2FA se pide **solo tras validar contraseña** (anti-enumeración); **cada código sirve una sola vez** (anti-replay); desactivarlo exige un código vigente. Todo queda en el `AuditLog`.
 
 ### Control de acceso (RBAC + mínimo privilegio)
 - Dos roles: `CLIENT` (compra) y `SELLER` (opera la tienda). **No existe superusuario.**
@@ -351,15 +372,16 @@ La seguridad no es una capa que se agregó al final: está construida dentro de 
 - Verificación de rol en el **edge middleware** y de nuevo en cada route handler/server action vía `requireRole()`. Órdenes accesibles solo por su dueño (sin IDOR).
 
 ### Datos, abuso y superficie de ataque
-- **PII cifrada con AES-256-GCM**; HTTPS con **HSTS**, headers de seguridad y **CSP estricta**.
+- **PII cifrada con AES-256-GCM**; HTTPS con **HSTS**, headers de seguridad y **CSP estricta con nonce por request** (todas las páginas se generan por request para poder firmar sus scripts).
 - **Validación Zod** en todo input; **rate limiting** por IP y usuario; consultas siempre parametrizadas vía Prisma.
 
 ### Pagos
 - **Confirmación server-side obligatoria** (nunca se confía en el redirect del cliente).
 - **Webhooks con firma verificada** + **idempotencia** (un evento duplicado no descuenta stock dos veces). **Cero almacenamiento de datos de tarjeta.**
+- **Reembolsos trazables**: un pago que no se puede cumplir queda `REFUND_PENDING` con alerta crítica; desde la trastienda se devuelve por la pasarela (Webpay / MercadoPago, con bloqueo contra doble devolución) o se registra una devolución manual, y el cliente recibe un correo. Todo queda en el `AuditLog`.
 
 ### Cadena de suministro y auditoría
-- **pnpm `ignore-scripts`**, lockfile committeado, versiones exactas en auth/cripto/pagos, **Dependabot + CodeQL** (code scanning + secret scanning) activos.
+- **pnpm `ignore-scripts`**, lockfile committeado, versiones exactas en auth/cripto/pagos, **auditoría semanal de dependencias** (workflow `deps-audit`, abre un issue si hay vulnerabilidades) y **CodeQL** (code scanning + secret scanning).
 - **AuditLog inmutable** (append-only) para eventos sensibles.
 
 ### Detección con ML (Fase de inteligencia)
