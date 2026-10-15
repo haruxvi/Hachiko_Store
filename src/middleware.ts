@@ -33,7 +33,10 @@ function buildCsp(nonce: string): string {
     "frame-ancestors 'none'",
     // El checkout hace POST del token_ws directo a Transbank (prod e integración)
     "form-action 'self' webpay3g.transbank.cl webpay3gint.transbank.cl",
-    'upgrade-insecure-requests',
+    // Solo en producción (siempre HTTPS). En desarrollo el sitio se abre por HTTP
+    // desde la IP de la red local (demo en el teléfono); con esta directiva el
+    // navegador pediría los scripts por HTTPS, que ahí no existe.
+    ...(isDev ? [] : ['upgrade-insecure-requests']),
   ].join('; ');
 }
 

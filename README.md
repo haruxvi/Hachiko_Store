@@ -245,6 +245,37 @@ pnpm db:seed:analytics   # eventos de navegación/carrito (vista Conversión)
 
 Guía detallada para el equipo (qué hace cada uno, idempotencia, marcadores) en [`docs/machine-learning.md`](docs/machine-learning.md) §8.6.
 
+### 📱 Probar la app en un teléfono (demo para el equipo y la comisión)
+
+Un solo comando levanta el entorno Docker **aislado** (base propia con datos de
+prueba, **nunca toca Neon**) y abre la app lista para escanear con el teléfono.
+
+**Requisitos:** Docker Desktop abierto, Node 20+, la app **Expo Go** en el teléfono,
+y **el teléfono y el computador conectados al mismo Wi-Fi**.
+
+```bash
+node scripts/demo-lan.mjs
+```
+
+1. La primera vez tarda varios minutos (construye la imagen y carga ~24 meses de datos de prueba).
+2. Cuando aparezca el QR: en **iPhone** escanéalo con la cámara; en **Android**, con Expo Go.
+3. Entra con una cuenta de prueba:
+
+| Rol | Correo | Contraseña |
+|-----|--------|------------|
+| Vendedor | `vendedor@hachiko.local` | `Vendedor.Local2026` |
+| Cliente | `cliente@hachiko.local` | `Cliente.Local2026` |
+
+4. Para terminar, `Ctrl+C`: el Docker vuelve a quedar solo en el computador. Para apagarlo del todo: `docker compose down` (y `docker compose down -v` para borrar los datos de prueba).
+
+**Si el teléfono no conecta:** en Windows marca el Wi-Fi como red **Privada** y permite
+Docker y Node en el firewall cuando lo pregunte. Algunas redes (universidad, café)
+aíslan a los dispositivos entre sí; en ese caso conecta el computador al **hotspot del
+teléfono**. Opciones: `--ip=…` (forzar la IP), `--no-expo`, `--keep`, `--dry-run`.
+
+> ⚠️ Úsalo solo en una red de confianza: mientras está activo, cualquiera en el mismo
+> Wi-Fi puede abrir el sitio de desarrollo con las cuentas de prueba de arriba.
+
 ### Pipeline de ML (local)
 
 ```bash

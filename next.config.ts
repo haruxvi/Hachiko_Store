@@ -42,7 +42,13 @@ const nextConfig: NextConfig = {
   // recursos de desarrollo pedidos desde orígenes distintos de "localhost", y
   // Docker Desktop abre el sitio como 127.0.0.1. Sin esto, el JS no termina de
   // cargar y los formularios (login incluido) no funcionan en esa dirección.
-  allowedDevOrigins: ['127.0.0.1'],
+  // DEV_ALLOWED_ORIGINS (opcional, separado por comas) lo fija la demo en red
+  // local (scripts/demo-lan.mjs) con la IP del PC, para que un teléfono en el
+  // mismo Wi-Fi pueda abrir el sitio de desarrollo (p. ej. el checkout).
+  allowedDevOrigins: [
+    '127.0.0.1',
+    ...(process.env['DEV_ALLOWED_ORIGINS'] ?? '').split(',').map((o) => o.trim()).filter(Boolean),
+  ],
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],

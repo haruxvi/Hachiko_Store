@@ -30,19 +30,32 @@ El diseño sale del sistema de diseño en [`design-system/`](design-system/READM
 
 ## Desarrollo
 
+**En un teléfono real (lo más simple):** desde la raíz del repo, con el teléfono en el mismo Wi-Fi:
+
+```bash
+node scripts/demo-lan.mjs
+```
+
+Levanta el Docker local con datos de prueba (nunca toca Neon) y abre Expo ya apuntando a él. Detalles en el README principal ("Probar la app en un teléfono").
+
+**A mano (emulador o navegador):**
+
 1. Levanta la API local desde la raíz del repo:
    ```bash
    docker compose up -d
    ```
-2. Ya existe `mobile/.env.local` con `EXPO_PUBLIC_API_URL=http://localhost:3000`, que apunta al Docker local. Sin ese archivo, la app usa la web publicada.
+2. Crea `mobile/.env.local` (no se sube a GitHub) con la URL de la API:
+   - emulador Android: `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` (en el emulador, `localhost` es el propio emulador);
+   - navegador del PC: `EXPO_PUBLIC_API_URL=http://localhost:3000`.
+
+   Sin ese archivo, la app usa la web publicada (datos reales).
 3. Arranca la app:
    ```bash
    cd mobile
    npm install
    npx expo start
    ```
-   - Vista previa en el navegador: tecla `w`.
-   - En tu teléfono: escanea el QR con **Expo Go**. Para eso, `EXPO_PUBLIC_API_URL` tiene que apuntar a la IP de tu PC en la red local (por ejemplo `http://192.168.1.20:3000`), no a `localhost`.
+   - Emulador Android: tecla `a`. Navegador: tecla `w`.
 
 Para instalar paquetes usa siempre `npx expo install <paquete>`, que elige versiones compatibles con el SDK 57.
 
