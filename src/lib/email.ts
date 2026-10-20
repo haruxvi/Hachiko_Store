@@ -213,6 +213,8 @@ export function orderShippedEmail(input: {
   orderNumber: number;
   shippingMethod: ShippingMethod;
   trackingNumber: string | null;
+  /** Retiro en tienda: hasta cuándo se puede retirar */
+  pickupDeadline?: Date;
 }): { subject: string; html: string } {
   // Retiro en tienda: el "despacho" significa que está listo para retirar
   if (input.shippingMethod === 'PICKUP') {
@@ -221,7 +223,8 @@ export function orderShippedEmail(input: {
       html: layout(
         `Pedido #${input.orderNumber} listo para retiro`,
         `<p style="font-size:14px;line-height:1.6;">¡Tu pedido ya está listo! Puedes pasar a retirarlo en nuestra
-          tienda de Recoleta, Santiago. Trae tu nombre y este número de pedido.</p>`
+          tienda de Recoleta, Santiago. Trae tu nombre y este número de pedido.</p>
+        ${input.pickupDeadline ? `<p style="font-size:14px;line-height:1.6;">Tienes plazo hasta el <strong>${longDate(input.pickupDeadline)}</strong>. Si no alcanzas a venir, cancelamos el pedido y te devolvemos el dinero completo.</p>` : ''}`
       ),
     };
   }
@@ -281,5 +284,95 @@ export function accountExistsEmail(loginUrl: string, resetUrl: string): { subjec
        <p style="font-size:13px;line-height:1.6;color:#6b7280;">Si no fuiste tú, puedes ignorar este correo:
          no se creó ninguna cuenta nueva ni se cambió nada en la tuya.</p>`
     ),
+  };
+}
+
+// ─── Retiro en tienda ─────────────────────────────────────
+
+const longDate = (d: Date) =>
+  d.toLocaleDateString('es-CL', { timeZone: 'America/Santiago', weekday: 'long', day: 'numeric', month: 'long' });
+
+export function pickupReminderEmail(input: {
+  orderNumber: number;
+  deadline: Date;
+  lastReminder: boolean;
+}): { subject: string; html: string } {
+  return {
+    subject: input.lastReminder
+      ? `Último aviso: tu pedido #${input.orderNumber} te espera hasta el ${longDate(input.deadline)}`
+      : `Tu pedido #${input.orderNumber} te está esperando`,
+    html: layout(
+      `Pedido #${input.orderNumber} listo para retiro`,
+      `<p style="font-size:14px;line-height:1.6;">Tu pedido sigue esperándote en nuestra tienda de Recoleta, Santiago.
+         Puedes pasar a buscarlo hasta el <strong>${longDate(input.deadline)}</strong>. Trae tu nombre y este número de pedido.</p>
+       <p style="font-size:14px;line-height:1.6;">Si no alcanzas a retirarlo dentro del plazo, cancelamos el pedido y te
+         devolvemos el dinero completo por el mismo medio de pago.</p>`
+    ),
+  };
+}
+
+export function notPickedUpEmail(input: { orderNumber: number }): { subject: string; html: string } {
+  return {
+    subject: `Cancelamos tu pedido #${input.orderNumber} y te devolveremos el dinero`,
+    html: layout(
+      `Pedido #${input.orderNumber} no retirado`,
+      `<p style="font-size:14px;line-height:1.6;">Venció el plazo para retirar tu pedido en tienda, así que lo cancelamos.
+         Te devolveremos el dinero completo por el mismo medio de pago; según tu banco, puede tardar algunos días hábiles
+         en verse reflejado.</p>
+       <p style="font-size:14px;line-height:1.6;">Si fue un error o todavía lo quieres, respóndenos este correo y lo vemos.</p>`
+    ),
+  };
+}
+
+// ─── Cambios y devoluciones ───────────────────────────────
+
+const RESOLUTION_TEXT = { EXCHANGE: 'cambio del producto', REFUND: 'devolución del dinero', REPAIR: 'reparación' } as const;
+
+export function returnRequestedEmail(input: {
+  requestNumber: number;
+  orderNumber: number;
+  resolution: keyof typeof RESOLUTION_TEXT;
+}): { subject: string; html: string } {
+  return {
+    subject: `Recibimos tu solicitud #${input.requestNumber} (pedido #${input.orderNumber})`,
+    html: layout(
+      `Solicitud de ${RESOLUTION_TEXT[input.resolution]} recibida`,
+      `<p style="font-size:14px;line-height:1.6;">Recibimos tu solicitud de <strong>${RESOLUTION_TEXT[input.resolution]}</strong>
+         del pedido #${input.orderNumber}. La revisamos y te escribimos con los pasos a seguir.</p>
+       <p style="font-size:14px;line-height:1.6;">Puedes ver el estado en cualquier momento en <strong>Mis pedidos</strong>.</p>`
+    ),
+  };
+}
+
+export function returnUpdateEmail(input: {
+  requestNumber: number;
+  orderNumber: number;
+  status: 'APPROVED' | 'REJECTED' | 'RECEIVED' | 'RESOLVED';
+  resolution: keyof typeof RESOLUTION_TEXT;
+  note?: string | null;
+  refundCLP?: number | null;
+}): { subject: string; html: string } {
+  const note = input.note ? `<p style="font-size:14px;line-height:1.6;background:#fafafa;border-radius:8px;padding:12px;">${esc(input.note)}</p>` : '';
+  const what = RESOLUTION_TEXT[input.resolution];
+  const body = {
+    APPROVED: `<p style="font-size:14px;line-height:1.6;">Aprobamos tu solicitud de <strong>${what}</strong>. Estos son los pasos para entregarnos el producto:</p>${note}`,
+    REJECTED: `<p style="font-size:14px;line-height:1.6;">Revisamos tu solicitud y esta vez no corresponde. Te contamos por qué:</p>${note}
+       <p style="font-size:14px;line-height:1.6;">Si no estás de acuerdo, respóndenos este correo. También puedes acudir al SERNAC.</p>`,
+    RECEIVED: `<p style="font-size:14px;line-height:1.6;">Recibimos el producto. Ahora gestionamos el <strong>${what}</strong> y te avisamos apenas esté listo.</p>`,
+    RESOLVED:
+      input.resolution === 'REFUND'
+        ? `<p style="font-size:14px;line-height:1.6;">Te devolvimos <strong>$${(input.refundCLP ?? 0).toLocaleString('es-CL')}</strong>
+             por el mismo medio de pago. Según tu banco, puede tardar algunos días hábiles en verse reflejado.</p>${note}`
+        : `<p style="font-size:14px;line-height:1.6;">Tu <strong>${what}</strong> está listo.</p>${note}`,
+  }[input.status];
+  const title = {
+    APPROVED: 'Solicitud aprobada',
+    REJECTED: 'Solicitud no aprobada',
+    RECEIVED: 'Recibimos tu producto',
+    RESOLVED: 'Solicitud resuelta',
+  }[input.status];
+  return {
+    subject: `${title} · solicitud #${input.requestNumber} (pedido #${input.orderNumber})`,
+    html: layout(title, body),
   };
 }

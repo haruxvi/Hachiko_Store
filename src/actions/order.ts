@@ -9,6 +9,7 @@ import {
   cancelOrder,
 } from '@/src/lib/services/order.service';
 import { refundOrder } from '@/src/lib/services/payment.service';
+import { markOrderNotPickedUp } from '@/src/lib/services/pickup.service';
 import { TrackingSchema } from '@/src/lib/validation/schemas';
 import type { z } from 'zod';
 
@@ -65,6 +66,13 @@ export async function markPreparingAction(orderId: string) {
 /** SHIPPED → DELIVERED (entregado por el courier o retirado en tienda). */
 export async function markDeliveredAction(orderId: string) {
   return sellerOrderStep(orderId, markOrderDelivered);
+}
+
+/** Retiro en tienda vencido: cancela, devuelve el stock y pasa el pago a reembolso. */
+export async function markNotPickedUpAction(orderId: string) {
+  return sellerOrderStep(orderId, async (id, actorId) => {
+    await markOrderNotPickedUp(id, actorId);
+  });
 }
 
 /**

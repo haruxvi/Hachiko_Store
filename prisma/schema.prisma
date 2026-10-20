@@ -233,6 +233,7 @@ enum StockMovementReason {
   EXPIRED
   RETURNED
   INITIAL_LOAD
+  EXCHANGE // unidad nueva entregada por un cambio (devolución con resolución "cambio")
 }
 
 // Bitácora append-only de cambios de precio. Da trazabilidad (auditoría) y
@@ -278,6 +279,7 @@ model Order {
   stockMovements StockMovement[]
   reservations   StockReservation[]
   statusHistory  OrderStatusHistory[]
+  returns        ReturnRequest[]
 
   subtotalCLP Int
   shippingCLP Int
@@ -357,7 +359,74 @@ model OrderItem {
   unitPriceCLP Int
   productName  String
 
+  returnItems ReturnItem[]
+
   @@index([orderId])
+}
+
+// ─── CAMBIOS Y DEVOLUCIONES (Ley 19.496) ──────────────────
+// Solicitud del cliente sobre un pedido entregado. Dos vías legales:
+//   - RETRACTO: compra a distancia, dentro de los 10 días desde la recepción
+//     (art. 3 bis); la persona puede pedir cambio o devolución del dinero.
+//   - GARANTIA: producto con falla, dentro de los 6 meses desde la recepción
+//     (arts. 20-21, plazo de la Ley 21.398); la persona ELIGE entre cambio,
+//     reparación o devolución del dinero (triple opción).
+// La tienda revisa, recibe el producto y resuelve; cada paso queda auditado.
+model ReturnRequest {
+  id            String           @id @default(cuid())
+  requestNumber Int              @unique @default(autoincrement())
+  orderId       String
+  order         Order            @relation(fields: [orderId], references: [id])
+  userId        String
+  type          ReturnType
+  resolution    ReturnResolution // elegida por el cliente
+  reason        String // descripción del cliente (qué pasó)
+  status        ReturnStatus     @default(REQUESTED)
+  sellerNote    String? // instrucciones al aprobar o motivo al rechazar
+  restocked     Boolean          @default(false) // el producto devuelto volvió al stock
+  refundCLP     Int? // monto devuelto, si la resolución fue devolución del dinero
+  decidedById   String?
+  decidedAt     DateTime?
+  receivedAt    DateTime?
+  resolvedAt    DateTime?
+  items         ReturnItem[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+model ReturnItem {
+  id          String        @id @default(cuid())
+  returnId    String
+  request     ReturnRequest @relation(fields: [returnId], references: [id])
+  orderItemId String
+  orderItem   OrderItem     @relation(fields: [orderItemId], references: [id])
+  quantity    Int
+
+  @@index([returnId])
+  @@index([orderItemId])
+}
+
+enum ReturnType {
+  RETRACTO
+  GARANTIA
+}
+
+enum ReturnResolution {
+  EXCHANGE // cambio por el mismo producto
+  REFUND // devolución del dinero
+  REPAIR // reparación (solo garantía)
+}
+
+enum ReturnStatus {
+  REQUESTED // enviada por el cliente, por revisar
+  APPROVED // aceptada: el cliente debe entregar el producto
+  RECEIVED // la tienda recibió el producto
+  RESOLVED // cambio entregado, dinero devuelto o reparado
+  REJECTED // no corresponde (con motivo)
 }
 
 // ─── COMPLIANCE Y SEGURIDAD ───────────────────────────────

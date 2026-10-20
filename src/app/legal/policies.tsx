@@ -330,7 +330,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'devoluciones',
     label: 'Cambios y devoluciones',
     title: 'Cambios y devoluciones',
-    meta: 'Última actualización: 10 de junio de 2026',
+    meta: 'Última actualización: 20 de octubre de 2026',
     intro:
       'Si algo llegó con falla o no era lo que esperabas, lo resolvemos. Tus derechos se rigen por la Ley del Consumidor.',
     law: 'Ley N° 19.496 · Protección de los Derechos de los Consumidores',
@@ -347,7 +347,8 @@ const POLICIES: Record<PolicySlug, Policy> = {
               <>
                 Todos los productos cuentan con la garantía legal que establece la Ley N° 19.496 sobre
                 Protección de los Derechos de los Consumidores. Si un producto llega con fallas, dañado
-                o no corresponde a lo que compraste, tienes derecho a su cambio, reparación o a la
+                o no corresponde a lo que compraste, dentro de los <strong>6 meses</strong> siguientes a
+                su recepción <strong>tú eliges</strong> entre su cambio, su reparación gratuita o la
                 devolución de lo pagado.
               </>
             ),
@@ -355,17 +356,21 @@ const POLICIES: Record<PolicySlug, Policy> = {
         ],
       },
       {
-        h: 'Plazo para solicitarlo',
+        h: 'Plazos para solicitarlo',
         blocks: [
           {
-            kind: 'p',
-            content: (
+            kind: 'list',
+            items: [
               <>
-                Puedes solicitar un cambio o devolución dentro de los <strong>10 días corridos</strong>{' '}
-                siguientes a la recepción de tu pedido. Para productos con falla, la garantía legal
-                rige por los plazos que establece la ley aunque hayan pasado esos 10 días.
-              </>
-            ),
+                <strong>Derecho a retracto:</strong> como compraste a distancia, puedes arrepentirte
+                dentro de los <strong>10 días corridos</strong> siguientes a la recepción de tu pedido
+                y pedir el cambio o la devolución del dinero.
+              </>,
+              <>
+                <strong>Garantía legal (producto con falla):</strong> hasta <strong>6 meses</strong>{' '}
+                desde la recepción, aunque hayan pasado los 10 días.
+              </>,
+            ],
           },
         ],
       },
@@ -392,9 +397,19 @@ const POLICIES: Record<PolicySlug, Policy> = {
           {
             kind: 'steps',
             items: [
-              <>Escríbenos a {mailto} indicando tu número de pedido y el motivo.</>,
-              <>Te confirmamos si corresponde cambio, reparación o devolución del dinero.</>,
-              <>Coordinamos contigo el retiro o el reenvío del producto a través de Starken.</>,
+              <>
+                En <strong>Mis pedidos</strong>, toca &ldquo;Solicitar cambio o devolución&rdquo; en el
+                pedido, elige los productos, el motivo y la opción que prefieres. Si no tienes cuenta o
+                prefieres el correo, escríbenos a {mailto} con tu número de pedido.
+              </>,
+              <>
+                Revisamos tu solicitud y te escribimos con las instrucciones para entregarnos el
+                producto (en la tienda o por despacho). Puedes seguir el estado en Mis pedidos.
+              </>,
+              <>
+                Cuando lo recibimos, hacemos el cambio, la reparación o la devolución del dinero. Si
+                la solicitud no corresponde, te explicamos el motivo por escrito.
+              </>,
             ],
           },
         ],
@@ -436,9 +451,9 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'despacho',
     label: 'Envíos a Chile',
     title: 'Envíos a Chile',
-    meta: 'Última actualización: 10 de junio de 2026',
+    meta: 'Última actualización: 20 de octubre de 2026',
     intro:
-      'Despachamos a todo Chile desde Recoleta, vía Starken. Sin cargos ocultos: el valor que ves en el resumen es el total final.',
+      'Despachamos a todo Chile desde Recoleta, vía Starken o Correos de Chile, o lo retiras en tienda. Sin cargos ocultos: el valor que ves en el resumen es el total final.',
     law: null,
     metaTitle: 'Envíos a Chile — Hachiko',
     metaDescription:
@@ -451,10 +466,34 @@ const POLICIES: Record<PolicySlug, Policy> = {
             kind: 'p',
             content: (
               <>
-                Despachamos a todo Chile a través de <strong>Starken</strong>. Puedes elegir entrega a
-                domicilio o retiro en la sucursal Starken más cercana al momento de finalizar tu compra.
+                Despachamos a todo Chile a través de <strong>Starken</strong> o{' '}
+                <strong>Correos de Chile</strong>, a elección tuya al finalizar la compra. También
+                puedes retirar tu pedido sin costo en nuestra tienda de Recoleta.
               </>
             ),
+          },
+        ],
+      },
+      {
+        h: 'Retiro en tienda',
+        blocks: [
+          {
+            kind: 'list',
+            items: [
+              <>
+                Te avisamos por correo cuando tu pedido esté <strong>listo para retiro</strong>. Trae tu
+                nombre y el número de pedido.
+              </>,
+              <>
+                Tienes <strong>15 días corridos</strong> desde ese aviso para retirarlo. Te enviamos
+                recordatorios a los 3 y a los 10 días.
+              </>,
+              <>
+                Si no lo retiras dentro del plazo, cancelamos el pedido y te{' '}
+                <strong>devolvemos el dinero completo</strong> por el mismo medio de pago. No cobramos
+                bodegaje.
+              </>,
+            ],
           },
         ],
       },

@@ -1,15 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { markDeliveredAction, markPreparingAction } from '@/src/actions/order';
+import { markDeliveredAction, markNotPickedUpAction, markPreparingAction } from '@/src/actions/order';
 import Icon from '@/src/components/ui/Icon';
 
 const STEPS = {
-  preparing: { action: markPreparingAction, label: 'Marcar como preparando', icon: 'box', done: 'Pedido en preparación' },
-  delivered: { action: markDeliveredAction, label: 'Marcar como entregado', icon: 'check', done: 'Pedido entregado' },
+  preparing: { action: markPreparingAction, label: 'Marcar como preparando', icon: 'box', done: 'Pedido en preparación', confirm: null },
+  delivered: { action: markDeliveredAction, label: 'Marcar como entregado', icon: 'check', done: 'Pedido entregado', confirm: null },
+  notPickedUp: {
+    action: markNotPickedUpAction,
+    label: 'Marcar como no retirado',
+    icon: 'close',
+    done: 'Pedido cancelado · pasó a reembolsos',
+    confirm: '¿Nadie lo vino a buscar? El pedido se cancela, el stock vuelve y el pago pasa a la lista de reembolsos. Le avisamos al cliente por correo.',
+  },
 } as const;
 
-/** Avanza un pedido en el flujo de despacho (preparando / entregado). */
+/** Avanza un pedido en el flujo de despacho (preparando / entregado / no retirado). */
 export default function OrderStepButton({
   orderId,
   step,
@@ -41,6 +48,7 @@ export default function OrderStepButton({
         type="button"
         disabled={loading}
         onClick={async () => {
+          if (config.confirm && !window.confirm(config.confirm)) return;
           setLoading(true);
           setError('');
           const result = await config.action(orderId);

@@ -4,6 +4,7 @@ import { calculateShipping } from '@/src/lib/shipping';
 import { sendEmail, orderShippedEmail } from '@/src/lib/email';
 import { writeAudit } from './audit.service';
 import { activeReservations, withSerializableRetry } from './inventory.service';
+import { pickupDeadline } from './pickup.service';
 import { addMinutes } from 'date-fns';
 import type { OrderStatus, ShippingMethod } from '@prisma/client';
 
@@ -170,6 +171,8 @@ export async function getOrdersForSeller() {
     shippingPhone: decrypt(o.shippingPhone),
     shippingNotes: o.shippingNotes ?? undefined,
     createdAt: o.createdAt,
+    // Para retiro en tienda: desde cuándo espera (corre el plazo de retiro)
+    shippedAt: o.shippedAt,
   }));
 }
 
@@ -247,6 +250,7 @@ export async function markOrderShipped(
     orderNumber: order.orderNumber,
     shippingMethod: order.shippingMethod,
     trackingNumber,
+    pickupDeadline: order.shippingMethod === 'PICKUP' && order.shippedAt ? pickupDeadline(order.shippedAt) : undefined,
   });
   await sendEmail({ to: order.user.email, ...email });
 

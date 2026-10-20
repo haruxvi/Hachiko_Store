@@ -28,6 +28,8 @@
  */
 import { Prisma } from '@prisma/client';
 import { db } from '@/src/lib/db';
+import { countOverduePickups } from './pickup.service';
+import { countPendingReturns } from './returns.service';
 import { SALE_SQL, SALE_WHERE, localTs } from '@/src/lib/sales';
 
 /** Conteos del plano analítico — usados por los placeholders de cada vista. */
@@ -100,6 +102,8 @@ export interface ProductRow {
   /** null si el producto no tiene costo: no se inventa un margen de 100% */
   marginPct: number | null;
   abc: 'A' | 'B' | 'C';
+  /** Categoría actual del producto (para filtrar la tabla ABC) */
+  category: { slug: string; name: string } | null;
 }
 export interface CommuneRow {
   commune: string;
@@ -181,15 +185,16 @@ export async function getMetricsDashboard(): Promise<MetricsDashboard> {
     .map(([productId, m]) => ({ productId, revenue: m.revenue ?? 0, units: m.units ?? 0, margin: m.margin ?? 0, marginPct: pct(m) }))
     .sort((a, b) => b.revenue - a.revenue);
   const names = prodPivot.length
-    ? new Map((await db.product.findMany({ where: { id: { in: prodPivot.map((p) => p.productId) } }, select: { id: true, name: true } })).map((p) => [p.id, p.name]))
-    : new Map<string, string>();
+    ? new Map((await db.product.findMany({ where: { id: { in: prodPivot.map((p) => p.productId) } }, select: { id: true, name: true, category: { select: { slug: true, name: true } } } })).map((p) => [p.id, p]))
+    : new Map<string, { name: string; category: { slug: string; name: string } | null }>();
   const totalRev = prodPivot.reduce((a, p) => a + p.revenue, 0);
   let cum = 0;
   const products: ProductRow[] = prodPivot.map((p) => {
     cum += p.revenue;
     const share = totalRev > 0 ? cum / totalRev : 1;
     const abc: 'A' | 'B' | 'C' = share <= 0.8 ? 'A' : share <= 0.95 ? 'B' : 'C';
-    return { productId: p.productId, name: names.get(p.productId) ?? p.productId, revenue: p.revenue, units: p.units, margin: p.margin, marginPct: p.marginPct, abc };
+    const info = names.get(p.productId);
+    return { productId: p.productId, name: info?.name ?? p.productId, revenue: p.revenue, units: p.units, margin: p.margin, marginPct: p.marginPct, abc, category: info?.category ?? null };
   });
 
   return {
@@ -833,9 +838,11 @@ export async function getRepeatChurn(): Promise<RepeatChurn> {
   };
 }
 
-export interface Alert { level: 'critical' | 'warning' | 'info'; message: string }
+// Cada alerta lleva a la sección donde se resuelve (con el filtro ya aplicado
+// cuando la página lo tiene), para no tener que buscar a mano qué la generó.
+export interface Alert { level: 'critical' | 'warning' | 'info'; message: string; href: string }
 export async function getAlerts(): Promise<Alert[]> {
-  const [lowStock, urgentRestock, criticalIncidents, riskyOrders, compromised, attacked, refunds] = await Promise.all([
+  const [lowStock, urgentRestock, criticalIncidents, riskyOrders, compromised, attacked, refunds, overduePickups, pendingReturns] = await Promise.all([
     db.$queryRaw<{ c: bigint }[]>`SELECT COUNT(*) AS c FROM "Product" WHERE active = true AND "archivedAt" IS NULL AND stock <= "lowStockThreshold"`,
     db.restockSuggestion.count({ where: { daysToStockout: { lte: LEAD_TIME_DAYS } } }),
     db.securityIncident.count({ where: { severity: 'CRITICAL', status: { notIn: ['RESOLVED', 'CLOSED'] } } }),
@@ -843,16 +850,20 @@ export async function getAlerts(): Promise<Alert[]> {
     db.riskScore.count({ where: { subjectType: 'USER', score: { gte: ACCOUNT_RISK.compromised } } }),
     db.riskScore.count({ where: { subjectType: 'USER', score: { gte: ACCOUNT_RISK.attacked, lt: ACCOUNT_RISK.compromised } } }),
     db.order.count({ where: { paymentStatus: 'REFUND_PENDING' } }),
+    countOverduePickups(),
+    countPendingReturns(),
   ]);
   const alerts: Alert[] = [];
   const low = n(lowStock[0]?.c);
   const plural = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
-  if (refunds > 0) alerts.push({ level: 'critical', message: `${plural(refunds, 'pago recibido que', 'pagos recibidos que')} hay que reembolsar (pedido cancelado, sin stock o monto distinto)` });
-  if (criticalIncidents > 0) alerts.push({ level: 'critical', message: `${plural(criticalIncidents, 'incidente de seguridad crítico', 'incidentes de seguridad críticos')} sin resolver` });
-  if (compromised > 0) alerts.push({ level: 'critical', message: `${plural(compromised, 'cuenta posiblemente comprometida', 'cuentas posiblemente comprometidas')} (acceso desde una IP atacante)` });
-  if (attacked > 0) alerts.push({ level: 'warning', message: `${plural(attacked, 'cuenta', 'cuentas')} con intentos de fuerza bruta` });
-  if (urgentRestock > 0) alerts.push({ level: 'warning', message: `${plural(urgentRestock, 'producto se agota', 'productos se agotan')} antes de que alcance a llegar un pedido al proveedor` });
-  if (low > 0) alerts.push({ level: 'warning', message: `${plural(low, 'producto', 'productos')} en o bajo el umbral de stock` });
-  if (riskyOrders > 0) alerts.push({ level: 'info', message: `${plural(riskyOrders, 'orden por despachar marcada', 'órdenes por despachar marcadas')} para revisión de fraude` });
+  if (refunds > 0) alerts.push({ level: 'critical', message: `${plural(refunds, 'pago recibido que', 'pagos recibidos que')} hay que reembolsar (pedido cancelado, no retirado, sin stock o monto distinto)`, href: '/trastienda/ordenes#reembolsos' });
+  if (criticalIncidents > 0) alerts.push({ level: 'critical', message: `${plural(criticalIncidents, 'incidente de seguridad crítico', 'incidentes de seguridad críticos')} sin resolver`, href: '/trastienda/seguridad#incidencias' });
+  if (compromised > 0) alerts.push({ level: 'critical', message: `${plural(compromised, 'cuenta posiblemente comprometida', 'cuentas posiblemente comprometidas')} (acceso desde una IP atacante)`, href: '/trastienda/riesgo#cuentas' });
+  if (pendingReturns > 0) alerts.push({ level: 'warning', message: `${plural(pendingReturns, 'solicitud de cambio o devolución', 'solicitudes de cambio o devolución')} por revisar`, href: '/trastienda/devoluciones?estado=pendientes' });
+  if (overduePickups > 0) alerts.push({ level: 'warning', message: `${plural(overduePickups, 'pedido de retiro en tienda venció', 'pedidos de retiro en tienda vencieron')} sin que lo fueran a buscar`, href: '/trastienda/ordenes?estado=enviadas&entrega=retiro' });
+  if (attacked > 0) alerts.push({ level: 'warning', message: `${plural(attacked, 'cuenta', 'cuentas')} con intentos de fuerza bruta`, href: '/trastienda/riesgo#cuentas' });
+  if (urgentRestock > 0) alerts.push({ level: 'warning', message: `${plural(urgentRestock, 'producto se agota', 'productos se agotan')} antes de que alcance a llegar un pedido al proveedor`, href: '/trastienda/reponer#sugerencias' });
+  if (low > 0) alerts.push({ level: 'warning', message: `${plural(low, 'producto', 'productos')} en o bajo el umbral de stock`, href: '/trastienda/inventario?stock=bajo' });
+  if (riskyOrders > 0) alerts.push({ level: 'info', message: `${plural(riskyOrders, 'orden por despachar marcada', 'órdenes por despachar marcadas')} para revisión de fraude`, href: '/trastienda/riesgo#ordenes' });
   return alerts;
 }

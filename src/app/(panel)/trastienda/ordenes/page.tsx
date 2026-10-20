@@ -5,6 +5,7 @@ import { formatCLP } from '@/src/lib/format';
 import OrdersBoard, { type SellerOrder } from '@/src/components/panel/OrdersBoard';
 import RefundQueue, { type RefundRow } from '@/src/components/panel/RefundQueue';
 import { getRefundQueue } from '@/src/lib/services/payment.service';
+import { daysWaiting, pickupDeadline } from '@/src/lib/services/pickup.service';
 import ListToolbar from '@/src/components/panel/ListToolbar';
 import PanelPagination from '@/src/components/panel/PanelPagination';
 import {
@@ -68,6 +69,7 @@ const REFUND_REASON_LABEL: Record<string, string> = {
   ORDER_CANCELLED: 'Pagó un pedido ya cancelado',
   OUT_OF_STOCK: 'Se agotó mientras pagaba',
   AMOUNT_MISMATCH: 'El monto no coincidía con el total',
+  NOT_PICKED_UP: 'No lo retiró dentro del plazo',
 };
 
 export default async function OrdenesPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
@@ -109,6 +111,15 @@ export default async function OrdenesPage({ searchParams }: { searchParams: Prom
     shippingNotes: o.shippingNotes,
     items: o.items,
     createdAtLabel: whenLabel(new Date(o.createdAt)),
+    // Retiro en tienda ya avisado: días esperando y plazo (vencido = se puede marcar "no retirado")
+    pickup:
+      o.shippingMethod === 'PICKUP' && o.status === 'SHIPPED' && o.shippedAt
+        ? {
+            daysWaiting: daysWaiting(new Date(o.shippedAt)),
+            deadlineLabel: pickupDeadline(new Date(o.shippedAt)).toLocaleDateString('es-CL', { timeZone: 'America/Santiago', day: 'numeric', month: 'short' }),
+            overdue: new Date() > pickupDeadline(new Date(o.shippedAt)),
+          }
+        : null,
   }));
 
   // KPIs sobre todas las órdenes, no sobre lo filtrado.

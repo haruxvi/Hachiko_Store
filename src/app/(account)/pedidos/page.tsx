@@ -1,9 +1,26 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/src/lib/auth/session';
 import { getClientOrders } from '@/src/lib/services/order.service';
+import { getClientReturns, returnWindows } from '@/src/lib/services/returns.service';
+import { pickupDeadline } from '@/src/lib/services/pickup.service';
 import { shippingLabel, trackingUrlFor } from '@/src/lib/shipping';
 import CancelOrderButton from '@/src/components/storefront/CancelOrderButton';
-import type { OrderStatus, ShippingMethod } from '@prisma/client';
+import type { OrderStatus, ReturnResolution, ReturnStatus, ShippingMethod } from '@prisma/client';
+
+const RETURN_STATUS: Record<ReturnStatus, string> = {
+  REQUESTED: 'En revisión',
+  APPROVED: 'Aprobada: entréganos el producto',
+  RECEIVED: 'Recibimos el producto',
+  RESOLVED: 'Resuelta',
+  REJECTED: 'No aprobada',
+};
+const RESOLUTION_LABEL: Record<ReturnResolution, string> = {
+  EXCHANGE: 'Cambio',
+  REFUND: 'Devolución del dinero',
+  REPAIR: 'Reparación',
+};
+const shortDate = (d: Date) => d.toLocaleDateString('es-CL', { timeZone: 'America/Santiago', day: 'numeric', month: 'long' });
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   PENDING: 'Pendiente de pago',
@@ -34,7 +51,8 @@ export default async function PedidosPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const orders = await getClientOrders(session.sub);
+  const [orders, returnsByOrder] = await Promise.all([getClientOrders(session.sub), getClientReturns(session.sub)]);
+  const now = new Date();
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
@@ -46,6 +64,22 @@ export default async function PedidosPage() {
           {orders.map((o) => {
             const trackingUrl = trackingUrlFor(o.shippingMethod, o.trackingNumber);
             const cancelled = o.status === 'CANCELLED';
+            const returns = returnsByOrder.get(o.id) ?? [];
+            const openReturn = returns.find((r) => r.status === 'REQUESTED' || r.status === 'APPROVED' || r.status === 'RECEIVED');
+            const receivedAt = o.deliveredAt ?? o.shippedAt;
+            const windows = receivedAt ? returnWindows(receivedAt, now) : null;
+            // Unidades ya incluidas en solicitudes (las rechazadas se pueden volver a pedir).
+            const unitsInReturns = returns
+              .filter((r) => r.status !== 'REJECTED')
+              .reduce((a, r) => a + r.items.reduce((b, it) => b + it.quantity, 0), 0);
+            const unitsBought = o.items.reduce((a, it) => a + it.quantity, 0);
+            const canRequestReturn =
+              o.status === 'DELIVERED' &&
+              o.paymentStatus === 'PAID' &&
+              !openReturn &&
+              unitsInReturns < unitsBought &&
+              Boolean(windows?.GARANTIA.open);
+            const pickupUntil = o.shippingMethod === 'PICKUP' && o.status === 'SHIPPED' && o.shippedAt ? pickupDeadline(o.shippedAt) : null;
             return (
               <div key={o.id} className="border rounded-xl p-5">
                 <div className="flex justify-between mb-1">
@@ -121,6 +155,50 @@ export default async function PedidosPage() {
                   </div>
                   <p className="font-bold">${o.totalCLP.toLocaleString('es-CL')}</p>
                 </div>
+
+                {pickupUntil && (
+                  <p className="mt-3 text-[13px] text-soot">
+                    Retíralo en la tienda (Recoleta) hasta el <strong>{shortDate(pickupUntil)}</strong>.
+                  </p>
+                )}
+
+                {cancelled && o.paymentStatus === 'REFUND_PENDING' && (
+                  <p className="mt-3 text-[13px] text-soot">
+                    Te devolveremos el pago completo por el mismo medio con que pagaste. Te avisamos por correo cuando esté hecho.
+                  </p>
+                )}
+                {cancelled && o.paymentStatus === 'REFUNDED' && (
+                  <p className="mt-3 text-[13px] text-soot">Te devolvimos el pago completo por el mismo medio con que pagaste.</p>
+                )}
+
+                {/* Solicitudes de cambio o devolución */}
+                {returns.map((r) => (
+                  <div key={r.requestNumber} className="mt-3 rounded-lg border border-sand bg-cream px-4 py-3 text-[13px]">
+                    <p className="text-soot">
+                      <span className="font-semibold">Solicitud #{r.requestNumber}</span> · {RESOLUTION_LABEL[r.resolution]} ·{' '}
+                      <span className={r.status === 'REJECTED' ? 'text-alert' : 'text-rust-ink'}>{RETURN_STATUS[r.status]}</span>
+                    </p>
+                    {r.sellerNote && (r.status === 'APPROVED' || r.status === 'REJECTED') && (
+                      <p className="mt-1 whitespace-pre-line text-taupe">{r.sellerNote}</p>
+                    )}
+                    {r.status === 'RESOLVED' && r.refundCLP != null && (
+                      <p className="mt-1 text-taupe">Te devolvimos ${r.refundCLP.toLocaleString('es-CL')}.</p>
+                    )}
+                  </div>
+                ))}
+
+                {canRequestReturn && windows && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-taupe">
+                      {windows.RETRACTO.open
+                        ? `Cambio o devolución hasta el ${shortDate(windows.RETRACTO.until)} · por falla, hasta el ${shortDate(windows.GARANTIA.until)}`
+                        : `Garantía por falla hasta el ${shortDate(windows.GARANTIA.until)}`}
+                    </p>
+                    <Link href={`/pedidos/${o.id}/devolucion`} className="btn-outline btn-sm">
+                      Solicitar cambio o devolución
+                    </Link>
+                  </div>
+                )}
               </div>
             );
           })}

@@ -7,9 +7,30 @@ import {
   type ProductRow,
   type CommuneRow,
 } from '@/src/lib/services/intelligence.service';
+import Link from 'next/link';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
+import ListToolbar from '@/src/components/panel/ListToolbar';
+import PanelPagination from '@/src/components/panel/PanelPagination';
+import { Stat } from '@/src/components/panel/intelligence-ui';
+import Icon from '@/src/components/ui/Icon';
+import {
+  DEFAULT_PAGE_SIZE,
+  hrefWith,
+  matchesQuery,
+  one,
+  paginate,
+  parseOption,
+  parsePage,
+  parsePageSize,
+  parseQuery,
+  type RawSearchParams,
+} from '@/src/lib/panel-list';
 
-export const revalidate = 60;
+const BASE = '/trastienda/metricas';
+const CLASES = ['todas', 'A', 'B', 'C'] as const;
+const MARGENES = ['todos', 'con-costo', 'sin-costo'] as const;
+const ORDENES = ['ingresos', 'unidades', 'margen', 'margen-pct', 'nombre'] as const;
+const TOP_COMUNAS = 10;
 
 const clp = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Math.round(n));
 const clpShort = (n: number) => n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${Math.round(n)}`;
@@ -19,8 +40,51 @@ const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep'
 // Períodos guardados a medianoche UTC: leer en UTC para no correr el mes en Chile.
 const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getUTCMonth()]} ${new Date(d).getUTCFullYear()}`;
 
-export default async function MetricasPage() {
+export default async function MetricasPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
+  const sp = await searchParams;
   const [d, alerts, anomalies] = await Promise.all([getMetricsDashboard(), getAlerts(), getSalesAnomalies()]);
+
+  // ── Filtros de la clasificación ABC (formulario GET: funcionan sin JavaScript) ──
+  const q = parseQuery(sp['q']);
+  const clase = parseOption(sp['clase'], CLASES, 'todas');
+  const margen = parseOption(sp['margen'], MARGENES, 'todos');
+  const orden = parseOption(sp['orden'], ORDENES, 'ingresos');
+  const perPage = parsePageSize(sp['mostrar']);
+  const page = parsePage(sp['pagina']);
+  const allComunas = one(sp['comunas']) === 'todas';
+
+  const categoryOptions = [...new Map(d.products.filter((p) => p.category).map((p) => [p.category!.slug, p.category!.name])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  const categoria = parseOption(one(sp['categoria']), categoryOptions.map(([slug]) => slug), '' as string);
+
+  const filtered = d.products
+    .filter((p) => clase === 'todas' || p.abc === clase)
+    .filter((p) => !categoria || p.category?.slug === categoria)
+    .filter((p) => margen === 'todos' || (margen === 'con-costo' ? p.marginPct !== null : p.marginPct === null))
+    .filter((p) => matchesQuery(q, p.name, p.category?.name))
+    .sort((a, b) => {
+      if (orden === 'unidades') return b.units - a.units;
+      if (orden === 'margen') return b.margin - a.margin;
+      if (orden === 'margen-pct') return (b.marginPct ?? -1) - (a.marginPct ?? -1);
+      if (orden === 'nombre') return a.name.localeCompare(b.name, 'es');
+      return b.revenue - a.revenue;
+    });
+  const info = paginate(filtered.length, page, perPage);
+  const pageRows = filtered.slice(info.skip, info.skip + info.take);
+  const filteredRevenue = filtered.reduce((a, p) => a + p.revenue, 0);
+  const totalRevenue = d.products.reduce((a, p) => a + p.revenue, 0);
+  const isFiltered = Boolean(q || clase !== 'todas' || categoria || margen !== 'todos' || orden !== 'ingresos');
+  const params = {
+    q: q || undefined,
+    clase: clase !== 'todas' ? clase : undefined,
+    categoria: categoria || undefined,
+    margen: margen !== 'todos' ? margen : undefined,
+    orden: orden !== 'ingresos' ? orden : undefined,
+    mostrar: perPage !== DEFAULT_PAGE_SIZE ? String(perPage) : undefined,
+    comunas: allComunas ? 'todas' : undefined,
+  };
+  // Las barras de categoría llevan a la tabla filtrada por esa categoría.
+  const slugByCategoryName = new Map(categoryOptions.map(([slug, name]) => [name.toLowerCase(), slug]));
 
   if (!d.hasData) {
     return (
@@ -49,21 +113,29 @@ export default async function MetricasPage() {
         )}
       </header>
 
-      {/* Alertas automáticas (KPI fuera de rango) */}
+      {/* Alertas automáticas: cada una lleva a la sección donde se resuelve */}
       {alerts.length > 0 && (
-        <section className="space-y-2">
+        <section className="space-y-2" aria-label="Alertas">
           {alerts.map((a, i) => (
-            <div
+            <Link
               key={i}
-              className={`flex items-center gap-2.5 rounded-chip border px-4 py-2.5 text-sm ${
+              href={a.href}
+              className={`group flex items-center gap-2.5 rounded-chip border px-4 py-2.5 text-sm transition hover:brightness-[0.97] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rust/30 ${
                 a.level === 'critical' ? 'border-alert/30 bg-alert/[0.08] text-alert'
                 : a.level === 'warning' ? 'border-rust/30 bg-rust/[0.10] text-rust-ink'
                 : 'border-sand bg-cream text-taupe'
               }`}
             >
-              <span className="text-xs font-bold uppercase tracking-wide">{a.level === 'critical' ? 'Crítico' : a.level === 'warning' ? 'Atención' : 'Info'}</span>
-              <span className="text-soot">{a.message}</span>
-            </div>
+              {/* En teléfono el nivel va sobre el mensaje para que el texto use todo el ancho */}
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2.5">
+                <span className="text-xs font-bold uppercase tracking-wide">{a.level === 'critical' ? 'Crítico' : a.level === 'warning' ? 'Atención' : 'Info'}</span>
+                <span className="text-soot">{a.message}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium opacity-80 group-hover:opacity-100">
+                Ver
+                <Icon name="chevronR" size={14} />
+              </span>
+            </Link>
           ))}
         </section>
       )}
@@ -91,24 +163,104 @@ export default async function MetricasPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="card-hs shadow-soft p-6">
           <Eyebrow>Margen por categoría · 12 meses</Eyebrow>
-          <div className="mt-5"><CategoryBars rows={d.categories} /></div>
+          <p className="mt-1.5 text-[13px] text-taupe">Toca una categoría para ver sus productos en la clasificación ABC.</p>
+          <div className="mt-5">
+            <CategoryBars
+              rows={d.categories}
+              hrefFor={(name) => {
+                const slug = slugByCategoryName.get(name.toLowerCase());
+                return slug ? `${hrefWith(BASE, { ...params, categoria: undefined, pagina: undefined }, { categoria: slug })}#abc` : null;
+              }}
+            />
+          </div>
         </section>
 
         <section className="card-hs shadow-soft p-6">
-          <Eyebrow>Ventas por comuna · 12 meses</Eyebrow>
-          <div className="mt-5"><CommuneBars rows={d.communes.slice(0, 10)} /></div>
+          <div className="flex items-baseline justify-between gap-3">
+            <Eyebrow>Ventas por comuna · 12 meses</Eyebrow>
+            {d.communes.length > TOP_COMUNAS && (
+              <Link
+                href={`${hrefWith(BASE, params, { comunas: allComunas ? undefined : 'todas' })}#comunas`}
+                scroll={false}
+                className="text-xs font-medium text-rust-ink hover:underline"
+              >
+                {allComunas ? `Mostrar solo las ${TOP_COMUNAS} principales` : `Mostrar todas (${d.communes.length})`}
+              </Link>
+            )}
+          </div>
+          <div id="comunas" className="mt-5 scroll-mt-6">
+            <CommuneBars rows={allComunas ? d.communes : d.communes.slice(0, TOP_COMUNAS)} />
+          </div>
         </section>
       </div>
 
       {/* Clasificación ABC */}
-      <section className="card-hs shadow-soft p-6">
+      <section id="abc" className="card-hs shadow-soft scroll-mt-6 p-6">
         <Eyebrow>Clasificación ABC de productos · 12 meses</Eyebrow>
         <p className="mt-1.5 text-[13px] text-taupe">
           Regla de Pareto por ingresos — <span className="text-soot">A</span> concentra ~80%,
           {' '}<span className="text-soot">B</span> el siguiente ~15%,
           {' '}<span className="text-soot">C</span> el resto.
         </p>
-        <div className="mt-5"><AbcTable rows={d.products} /></div>
+        <div className="mt-5">
+          <ListToolbar
+            basePath={BASE}
+            query={q}
+            perPage={perPage}
+            searchLabel="Buscar producto"
+            placeholder="Nombre o categoría"
+            clearable={isFiltered}
+            filters={[
+              {
+                name: 'clase',
+                label: 'Mostrar solo',
+                value: clase,
+                options: [
+                  { value: 'todas', label: 'Todas las clases' },
+                  { value: 'A', label: 'Clase A' },
+                  { value: 'B', label: 'Clase B' },
+                  { value: 'C', label: 'Clase C' },
+                ],
+              },
+              {
+                name: 'categoria',
+                label: 'Categoría',
+                value: categoria,
+                options: [{ value: '', label: 'Todas' }, ...categoryOptions.map(([slug, name]) => ({ value: slug, label: name }))],
+              },
+              {
+                name: 'margen',
+                label: 'Costo',
+                value: margen,
+                options: [
+                  { value: 'todos', label: 'Todos' },
+                  { value: 'con-costo', label: 'Con costo cargado' },
+                  { value: 'sin-costo', label: 'Sin costo (sin margen)' },
+                ],
+              },
+              {
+                name: 'orden',
+                label: 'Ordenar por',
+                value: orden,
+                options: [
+                  { value: 'ingresos', label: 'Ingresos' },
+                  { value: 'unidades', label: 'Unidades' },
+                  { value: 'margen', label: 'Margen ($)' },
+                  { value: 'margen-pct', label: 'Margen (%)' },
+                  { value: 'nombre', label: 'Nombre' },
+                ],
+              },
+            ]}
+          />
+          <p className="mb-3 text-[13px] text-taupe" aria-live="polite">
+            {filtered.length === 0
+              ? 'Ningún producto coincide con estos filtros.'
+              : `${num(filtered.length)} ${filtered.length === 1 ? 'producto' : 'productos'} · ${clp(filteredRevenue)} en ingresos`}
+            {isFiltered && filtered.length > 0 && totalRevenue > 0 && ` (${((filteredRevenue / totalRevenue) * 100).toFixed(1)}% del total)`}
+          </p>
+          {filtered.length > 0 && <AbcTable rows={pageRows} />}
+          <PanelPagination basePath={BASE} params={params} info={info} noun={['producto', 'productos']} />
+        </div>
       </section>
 
       {anomalies.hasData && (
@@ -133,16 +285,6 @@ export default async function MetricasPage() {
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return <h2 className="editorial text-[15px] text-taupe">{children}</h2>;
-}
-
-function Stat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: boolean }) {
-  return (
-    <div className="card-hs shadow-soft p-5">
-      <p className="text-[13px] text-taupe">{label}</p>
-      <p className={`price-mono mt-1.5 text-[25px] leading-none ${accent ? 'text-rust-ink' : 'text-soot'}`}>{value}</p>
-      {hint && <p className="mt-2 text-xs text-taupe">{hint}</p>}
-    </div>
-  );
 }
 
 function MonthlyBars({ monthly }: { monthly: MetricPoint[] }) {
@@ -177,14 +319,20 @@ function MonthlyBars({ monthly }: { monthly: MetricPoint[] }) {
   );
 }
 
-function CategoryBars({ rows }: { rows: CategoryRow[] }) {
+function CategoryBars({ rows, hrefFor }: { rows: CategoryRow[]; hrefFor: (name: string) => string | null }) {
   const max = Math.max(...rows.map((r) => r.revenue), 1);
   return (
     <div className="space-y-4">
       {rows.map((r) => (
         <div key={r.category}>
           <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
-            <span className="font-semibold capitalize text-soot">{r.category}</span>
+            {hrefFor(r.category) ? (
+              <Link href={hrefFor(r.category)!} className="font-semibold capitalize text-soot underline-offset-2 hover:text-rust-ink hover:underline">
+                {r.category}
+              </Link>
+            ) : (
+              <span className="font-semibold capitalize text-soot">{r.category}</span>
+            )}
             <span className="text-taupe">
               <span className="price-mono text-soot">{clp(r.revenue)}</span>
               {'  ·  margen '}<span className="text-rust-ink">{pct(r.marginPct)}</span>

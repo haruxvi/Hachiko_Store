@@ -27,7 +27,7 @@ export default async function RiesgoPage() {
       <PageHeader title="Riesgo" subtitle="Señales de fraude y ataques, para revisión humana" updated={d.lastUpdated ?? acc.lastUpdated} />
 
       {acc.hasData && (
-        <section className={`card-hs shadow-soft p-6 ${acc.compromised > 0 ? 'border-alert/40' : ''}`}>
+        <section id="cuentas" className={`scroll-mt-6 card-hs shadow-soft p-6 ${acc.compromised > 0 ? 'border-alert/40' : ''}`}>
           <Eyebrow>Cuentas en riesgo · últimos {acc.windowDays} días</Eyebrow>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Stat label="Posiblemente comprometidas" value={num(acc.compromised)} accent={acc.compromised > 0} hint="entraron desde una IP que atacaba" />
@@ -78,7 +78,7 @@ export default async function RiesgoPage() {
       )}
 
       {d.lastUpdated && (
-      <section className="space-y-3">
+      <section id="ordenes" className="scroll-mt-6 space-y-3">
         <Eyebrow>Órdenes atípicas · por despachar</Eyebrow>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <Stat label="Para revisar" value={num(d.flagged)} accent={d.flagged > 0} />

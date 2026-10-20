@@ -21,8 +21,9 @@ export interface RefundRow {
 export default function RefundQueue({ rows }: { rows: RefundRow[] }) {
   return (
     <section
+      id="reembolsos"
       aria-labelledby="refund-queue-title"
-      className="mb-6 mt-6 rounded-[14px] border border-alert/40 bg-snow px-5 py-4"
+      className="mb-6 mt-6 scroll-mt-6 rounded-[14px] border border-alert/40 bg-snow px-5 py-4"
     >
       <h2 id="refund-queue-title" className="font-display text-lg font-bold text-soot">
         Pagos por reembolsar ({rows.length})

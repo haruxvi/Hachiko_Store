@@ -7,7 +7,7 @@ export const PICKUP = { fullName: 'Cliente Prueba', phone: '+56912345678' };
 export async function resetDb() {
   await db.$executeRawUnsafe(`TRUNCATE TABLE
     "StockMovement", "StockReservation", "StockAdjustment", "OrderStatusHistory", "OrderItem", "Order",
-    "Address", "ActionToken", "RefreshToken", "DeletionRequest", "CustomerSegment", "AnalyticsEvent",
+    "ReturnItem", "ReturnRequest", "Address", "ActionToken", "RefreshToken", "DeletionRequest", "CustomerSegment", "AnalyticsEvent",
     "NewsletterSubscriber", "AuditLog", "PriceHistory", "Product", "Category", "User" CASCADE`);
 }
 

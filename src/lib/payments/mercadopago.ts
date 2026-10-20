@@ -54,6 +54,20 @@ export async function refundMpPayment(paymentId: string, idempotencyKey: string)
   return { status: String(refund.status ?? 'approved') };
 }
 
+/** Reembolso parcial (devolución de algunos productos del pedido), idempotente. */
+export async function refundMpPaymentPartial(
+  paymentId: string,
+  amount: number,
+  idempotencyKey: string,
+): Promise<{ status: string }> {
+  const refund = await new PaymentRefund(client).create({
+    payment_id: paymentId,
+    body: { amount },
+    requestOptions: { idempotencyKey },
+  });
+  return { status: String(refund.status ?? 'approved') };
+}
+
 export function verifyMpWebhookSignature(
   dataId: string,
   xRequestId: string,

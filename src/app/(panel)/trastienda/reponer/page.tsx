@@ -33,7 +33,7 @@ export default async function ReponerPage() {
         </div>
       </section>
 
-      <section className="card-hs shadow-soft p-6">
+      <section id="sugerencias" className="scroll-mt-6 card-hs shadow-soft p-6">
         <Eyebrow>Sugerencias de compra</Eyebrow>
         <p className="mt-1.5 text-[13px] text-taupe">
           Ordenadas por urgencia (menos días de stock primero). Se asume que el proveedor tarda {d.leadTime} días y

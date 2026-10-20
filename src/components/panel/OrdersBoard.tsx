@@ -23,15 +23,17 @@ export interface SellerOrder {
   shippingNotes?: string;
   items: { name: string; quantity: number }[];
   createdAtLabel: string;
+  /** Retiro en tienda ya avisado: días esperando y plazo (null si no aplica) */
+  pickup: { daysWaiting: number; deadlineLabel: string; overdue: boolean } | null;
 }
 
 // Estado con punto de color — sin badges bordeados, voz de tienda.
-function OrderStatus({ status }: { status: string }) {
+function OrderStatus({ status, isPickup }: { status: string; isPickup: boolean }) {
   const map: Record<string, { dot: string; label: string }> = {
     PAID: { dot: 'bg-rust', label: 'Para empacar' },
     PREPARING: { dot: 'bg-tan-mid', label: 'Preparando' },
-    SHIPPED: { dot: 'bg-sky-deep', label: 'Enviado' },
-    DELIVERED: { dot: 'bg-mint-deep', label: 'Entregado' },
+    SHIPPED: { dot: 'bg-sky-deep', label: isPickup ? 'Listo para retiro' : 'Enviado' },
+    DELIVERED: { dot: 'bg-mint-deep', label: isPickup ? 'Retirado' : 'Entregado' },
   };
   const s = map[status] ?? { dot: 'bg-taupe', label: status };
   return (
@@ -135,7 +137,8 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
                       {formatCLP(o.totalCLP)}
                     </td>
                     <td className="px-4 py-4 align-middle">
-                      <OrderStatus status={o.status} />
+                      <OrderStatus status={o.status} isPickup={o.isPickup} />
+                      {o.pickup && <PickupWait pickup={o.pickup} />}
                     </td>
                     <td className="px-4 py-4 align-middle text-[13px] font-normal text-taupe">
                       {o.createdAtLabel}
@@ -172,7 +175,33 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
               <Icon name="close" size={18} />
             </button>
           </div>
-          <OrderStatus status={selected.status} />
+          <OrderStatus status={selected.status} isPickup={selected.isPickup} />
+
+          {/* Retiro en tienda: cuánto lleva esperando y hasta cuándo */}
+          {selected.pickup && (
+            <div
+              className={`mt-4 rounded-[10px] border px-3.5 py-2.5 text-[13px] leading-[1.45] ${
+                selected.pickup.overdue ? 'border-alert/30 bg-alert/[0.08] text-alert' : 'border-sand bg-cream text-soot'
+              }`}
+            >
+              {selected.pickup.overdue ? (
+                <>
+                  <span className="font-medium">Venció el plazo de retiro ({selected.pickup.deadlineLabel}).</span>
+                  <div className="mt-0.5 text-taupe">
+                    Si nadie lo viene a buscar, márcalo como no retirado: el stock vuelve y el pago pasa a reembolso.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="font-medium">
+                    Esperando retiro hace {selected.pickup.daysWaiting} {selected.pickup.daysWaiting === 1 ? 'día' : 'días'} · plazo hasta el{' '}
+                    {selected.pickup.deadlineLabel}
+                  </span>
+                  <div className="mt-0.5 text-taupe">Le enviamos recordatorios por correo a los 3 y a los 10 días.</div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Compliance — punto rust + texto humano, sin escudos */}
           <div className="mt-6 flex items-start gap-2.5 rounded-[10px] border border-sand bg-cream px-3.5 py-2.5">
@@ -234,7 +263,7 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
             </div>
           )}
           {selected.status === 'SHIPPED' && (
-            <div className="mt-auto pt-6">
+            <div className="mt-auto flex flex-col gap-3 pt-6">
               <OrderStepButton
                 key={`deliv-${selected.id}`}
                 orderId={selected.id}
@@ -242,10 +271,24 @@ export default function OrdersBoard({ orders }: { orders: SellerOrder[] }) {
                 variant="primary"
                 label={selected.isPickup ? 'Marcar como retirado' : 'Marcar como entregado'}
               />
+              {selected.pickup?.overdue && (
+                <OrderStepButton key={`nopick-${selected.id}`} orderId={selected.id} step="notPickedUp" />
+              )}
             </div>
           )}
         </aside>
       )}
+    </div>
+  );
+}
+
+// Retiro en tienda: días esperando (o plazo vencido) bajo el estado del pedido.
+function PickupWait({ pickup }: { pickup: NonNullable<SellerOrder['pickup']> }) {
+  return (
+    <div className={`mt-1 text-xs ${pickup.overdue ? 'font-medium text-alert' : 'text-taupe'}`}>
+      {pickup.overdue
+        ? `Plazo vencido (${pickup.deadlineLabel})`
+        : `Esperando · ${pickup.daysWaiting} ${pickup.daysWaiting === 1 ? 'día' : 'días'}`}
     </div>
   );
 }

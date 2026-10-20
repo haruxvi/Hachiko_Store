@@ -200,6 +200,28 @@ export const PiiAccessReasonSchema = z.object({
   userId: z.string().cuid().optional(),
 });
 
+// ─── Cambios y devoluciones ──────────────────────────────
+
+export const ReturnRequestSchema = z.object({
+  orderId: DbIdSchema,
+  type: z.enum(['RETRACTO', 'GARANTIA']),
+  resolution: z.enum(['EXCHANGE', 'REFUND', 'REPAIR']),
+  reason: z
+    .string()
+    .trim()
+    .min(10, 'Cuéntanos qué pasó (mínimo 10 caracteres).')
+    .max(1000, 'El detalle es demasiado largo (máximo 1000 caracteres).'),
+  items: z
+    .array(z.object({ orderItemId: DbIdSchema, quantity: z.number().int().min(1).max(99) }))
+    .min(1, 'Elige al menos un producto.')
+    .max(50),
+});
+
+export const ReturnDecisionSchema = z.object({
+  returnId: DbIdSchema,
+  note: z.string().trim().max(1000).optional(),
+});
+
 // ─── Payments ────────────────────────────────────────────
 
 export const WebpayCreateSchema = z.object({

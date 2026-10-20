@@ -31,14 +31,15 @@ export async function markWebhookProcessed(webhookId: string, provider: string):
  */
 export type PaymentOutcome = 'paid' | 'already_paid' | 'refund_pending' | 'not_found';
 
-type RefundReason = 'ORDER_CANCELLED' | 'AMOUNT_MISMATCH' | 'OUT_OF_STOCK';
+// NOT_PICKED_UP: pedido con retiro en tienda que nadie buscó dentro del plazo.
+export type RefundReason = 'ORDER_CANCELLED' | 'AMOUNT_MISMATCH' | 'OUT_OF_STOCK' | 'NOT_PICKED_UP';
 
 // Estados de pago desde los que un cobro exitoso puede completar la orden.
 // FAILED se incluye porque MercadoPago permite reintentar con otra tarjeta en
 // la misma preferencia: un "rechazado" puede ir seguido de un "aprobado".
 const PAYABLE = ['UNPAID', 'FAILED'] as const;
 
-async function flagForRefund(
+export async function flagForRefund(
   tx: Tx,
   order: { id: string; status: OrderStatus },
   provider: string,

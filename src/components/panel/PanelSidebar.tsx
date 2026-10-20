@@ -19,6 +19,7 @@ interface Item {
 const DAY_TO_DAY: Item[] = [
   { icon: 'grid', label: 'Resumen', href: '/trastienda', exact: true },
   { icon: 'box', label: 'Por despachar', href: '/trastienda/ordenes' },
+  { icon: 'arrow', label: 'Cambios y devoluciones', href: '/trastienda/devoluciones' },
   { icon: 'package', label: 'Productos', href: '/trastienda/productos' },
   { icon: 'list', label: 'Carga masiva', href: '/trastienda/productos/importar' },
   { icon: 'tag', label: 'Categorías', href: '/trastienda/categorias' },
