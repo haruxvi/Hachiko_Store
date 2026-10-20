@@ -71,7 +71,7 @@ def _segment(r: int, f: int) -> str:
 
 
 def main() -> None:
-    with model_run("rfm", "1.2.0", notes="Fase 2 — RFM (umbrales fijos) + KMeans, solo con consentimiento") as run:
+    with model_run("rfm", "1.2.1", notes="Fase 2 — RFM (umbrales fijos) + KMeans, solo con consentimiento") as run:
         df = read_sql(
             f'''SELECT o."userId" AS user_id,
                       EXTRACT(EPOCH FROM (now() - MAX(o."createdAt"))) / 86400 AS recency,
@@ -104,23 +104,30 @@ def main() -> None:
         ])
         X = StandardScaler().fit_transform(feats)
         k = min(4, len(df))
-        km = KMeans(n_clusters=k, random_state=42, n_init=10).fit(X)
-        df["cluster"] = km.labels_
-        sil = float(silhouette_score(X, km.labels_)) if k > 1 else 0.0
+        # n_init: sklearn no anota el parámetro y el checker infiere `str` por su
+        # default "auto"; 10 reinicios dan clusters estables entre corridas.
+        km = KMeans(n_clusters=k, random_state=42, n_init=10).fit(X)  # pyright: ignore[reportArgumentType]
+        labels = np.asarray(km.labels_)
+        df["cluster"] = labels
+        # Con clientes idénticos KMeans puede dejar un solo cluster real, y
+        # silhouette_score exige al menos 2 (y menos que n): si no, lanzaría y
+        # botaría la corrida completa.
+        n_labels = len(np.unique(labels))
+        sil = float(silhouette_score(X, labels)) if 1 < n_labels < len(df) else 0.0
 
         rows = [{
-            "id": f"seg_{run.id[:8]}_{i}", "uid": row.user_id, "seg": row.segment,
-            "r": int(row.r), "f": int(row.f), "m": int(row.m),
-            "cl": int(row.cluster), "run": run.id,
-        } for i, row in enumerate(df.itertuples(index=False))]
+            "id": f"seg_{run.id[:8]}_{i}", "uid": row["user_id"], "seg": row["segment"],
+            "r": int(row["r"]), "f": int(row["f"]), "m": int(row["m"]),
+            "cl": int(row["cluster"]), "run": run.id,
+        } for i, row in enumerate(df.to_dict("records"))]
 
         replace_rows('DELETE FROM "CustomerSegment"', INSERT_SQL, rows)
 
-        dist = {k: int(v) for k, v in df["segment"].value_counts().items()}
-        run.set_metrics({"clientes": len(df), "clusters": k, "silhouette": round(sil, 3),
+        dist = {str(seg): int(n) for seg, n in df["segment"].value_counts().items()}
+        run.set_metrics({"clientes": len(df), "clusters": n_labels, "silhouette": round(sil, 3),
                          "distribucion": dist,
                          "recompra_pct": round(float((df["frequency"] >= 2).mean()), 3)})
-        print(f"CustomerSegment: {len(df)} clientes · {k} clusters "
+        print(f"CustomerSegment: {len(df)} clientes · {n_labels} clusters "
               f"(silhouette {sil:.3f}) · {dist}")
 
 

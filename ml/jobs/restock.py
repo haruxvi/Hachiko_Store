@@ -34,8 +34,15 @@ INSERT_SQL = (
 )
 
 
+def _rate(daily: float) -> str:
+    """Ritmo de venta legible: bajo 1 al día se expresa por mes (no "~0.0 uds/día")."""
+    if daily >= 1:
+        return f"~{daily:.1f} uds/día"
+    return f"~{daily * 30:.0f} uds/mes" if daily * 30 >= 1 else "menos de 1 ud/mes"
+
+
 def main() -> None:
-    with model_run("restock", "1.1.0", notes="Fase 2 — reposición desde forecast") as run:
+    with model_run("restock", "1.1.1", notes="Fase 2 — reposición desde forecast") as run:
         # Forecast del periodo más próximo por producto + reservas vigentes
         df = read_sql(
             '''SELECT DISTINCT ON (f."productId")
@@ -55,9 +62,11 @@ def main() -> None:
 
         rows: list[dict] = []
         seq = 0
-        for r in df.itertuples(index=False):
-            available = max(0, int(r.stock) - int(r.reserved))
-            daily = float(r.pred) / max(1, int(r.days))
+        # to_dict("records") en vez de itertuples: los valores llegan como tipos
+        # nativos de Python y el chequeo de tipos (Pylance) no los ve como "Scalar".
+        for r in df.to_dict("records"):
+            available = max(0, int(r["stock"]) - int(r["reserved"]))
+            daily = float(r["pred"]) / max(1, int(r["days"]))
             dts = int(available / daily) if daily > 0 else 999
             needed = math.ceil(daily * HORIZON_DAYS)
             qty = max(0, needed - available)
@@ -66,8 +75,8 @@ def main() -> None:
             score = round(max(0.0, min(1.0, 1 - dts / HORIZON_DAYS)), 4)
             seq += 1
             rows.append({
-                "id": f"rs_{run.id[:8]}_{seq}", "pid": r.product_id, "qty": qty,
-                "reason": f"Se venden ~{daily:.1f} uds/día; con {available} disponibles alcanza para "
+                "id": f"rs_{run.id[:8]}_{seq}", "pid": r["product_id"], "qty": qty,
+                "reason": f"Se venden {_rate(daily)}; con {available} disponibles alcanza para "
                           f"{dts} días. Cubre {LEAD_TIME_DAYS}d de proveedor + {COVERAGE_DAYS}d de venta.",
                 "dts": dts, "score": score, "run": run.id,
             })

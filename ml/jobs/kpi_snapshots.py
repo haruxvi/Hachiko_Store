@@ -56,7 +56,7 @@ def _rows_from(df: pd.DataFrame, period_type: str, period_col, ref, dim: str,
 
 
 def main() -> None:
-    with model_run("kpi_snapshots", "1.1.0", notes="Fase 1 — KPIs descriptivos") as run:
+    with model_run("kpi_snapshots", "1.2.0", notes="Fase 1 — KPIs descriptivos") as run:
         df = read_sql(
             f'''SELECT oi."orderId" AS order_id, o."createdAt" AS created_at,
                       o."shippingCommune" AS commune, c.name AS category,
@@ -91,9 +91,17 @@ def main() -> None:
         monthly = df.groupby("month").agg(**agg_time).reset_index()
         yearly = df.groupby("year").agg(**agg_time).reset_index()
 
-        # Ventana de los desgloses = los mismos 12 meses de las tarjetas.
-        last_month = monthly["month"].max()
-        window_start = last_month - pd.DateOffset(months=WINDOW_MONTHS - 1)
+        # Un mes sin ventas se guarda en CERO en vez de faltar: el panel suma las
+        # últimas 12 filas, y con un hueco esas filas abarcaban más de 12 meses
+        # (las tarjetas dejaban de cuadrar con los desgloses de abajo).
+        last_closed = current_month - pd.offsets.MonthBegin(1)
+        all_months = pd.date_range(monthly["month"].min(), last_closed, freq="MS")
+        monthly = (monthly.set_index("month").reindex(all_months, fill_value=0)
+                   .rename_axis("month").reset_index())
+
+        # Ventana de los desgloses = los mismos 12 meses de las tarjetas, anclada
+        # al último mes cerrado del calendario (no al último mes con ventas).
+        window_start = last_closed - pd.DateOffset(months=WINDOW_MONTHS - 1)
         win = df[df["month"] >= window_start]
         ref = window_start.to_pydatetime()
 
@@ -122,7 +130,8 @@ def main() -> None:
 
         sin_costo = int(df.loc[~has_cost, "product_id"].nunique())
         run.set_metrics({
-            "meses": len(monthly), "categorias": len(by_cat),
+            "meses": len(monthly), "meses_sin_ventas": int((monthly["orders"] == 0).sum()),
+            "categorias": len(by_cat),
             "productos": len(by_prod), "comunas": len(by_comm), "filas_kpi": len(rows),
             "ventana_desde": str(window_start.date()), "productos_sin_costo": sin_costo,
         })

@@ -188,11 +188,14 @@ export async function getMetricsDashboard(): Promise<MetricsDashboard> {
     ? new Map((await db.product.findMany({ where: { id: { in: prodPivot.map((p) => p.productId) } }, select: { id: true, name: true, category: { select: { slug: true, name: true } } } })).map((p) => [p.id, p]))
     : new Map<string, { name: string; category: { slug: string; name: string } | null }>();
   const totalRev = prodPivot.reduce((a, p) => a + p.revenue, 0);
+  // La clase depende de lo acumulado ANTES del producto: el que cruza el 80% es A
+  // (hace falta para llegar a ese 80%). Con el acumulado incluyéndolo, un producto
+  // que solo ya vende el 90% quedaba como B y la tienda no tenía ningún A.
   let cum = 0;
   const products: ProductRow[] = prodPivot.map((p) => {
+    const before = totalRev > 0 ? cum / totalRev : 1;
     cum += p.revenue;
-    const share = totalRev > 0 ? cum / totalRev : 1;
-    const abc: 'A' | 'B' | 'C' = share <= 0.8 ? 'A' : share <= 0.95 ? 'B' : 'C';
+    const abc: 'A' | 'B' | 'C' = before < 0.8 ? 'A' : before < 0.95 ? 'B' : 'C';
     const info = names.get(p.productId);
     return { productId: p.productId, name: info?.name ?? p.productId, revenue: p.revenue, units: p.units, margin: p.margin, marginPct: p.marginPct, abc, category: info?.category ?? null };
   });

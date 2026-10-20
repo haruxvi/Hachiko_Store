@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import text
 
@@ -46,7 +47,7 @@ def model_run(model_type: str, version: str, notes: str | None = None):
             },
         )
 
-    state = {"metrics": None, "rows_in": None}
+    state: dict[str, Any] = {"metrics": None, "rows_in": None}
 
     class _Handle:
         id = run_id
@@ -66,7 +67,7 @@ def model_run(model_type: str, version: str, notes: str | None = None):
         _close(run_id, "SUCCESS", state)
 
 
-def _close(run_id: str, status: str, state: dict, error: str | None = None) -> None:
+def _close(run_id: str, status: str, state: dict[str, Any], error: str | None = None) -> None:
     metrics = state["metrics"]
     if error:
         metrics = {**(metrics or {}), "error": error}

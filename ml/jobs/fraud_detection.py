@@ -35,7 +35,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
-from ml.db import read_sql, replace_rows, to_local
+from ml.db import SALE_SQL, read_sql, replace_rows, to_local
 from ml.model_run import model_run
 
 CONTAMINATION = 0.02  # proporción esperada de anomalías en la historia
@@ -59,7 +59,8 @@ def _reasons(row: dict, stats: pd.DataFrame) -> list[str]:
         out.append("monto inusualmente alto")
     if z("n_units") >= 2.5:
         out.append("cantidad de unidades atípica")
-    if row["account_age_days"] < 1 and row["prior_orders"] == 0 and z("log_total") >= 1.5:
+    # Un invitado siempre "se crea" al comprar: para él aplica la señal de abajo.
+    if not row["is_guest"] and row["account_age_days"] < 1 and row["prior_orders"] == 0 and z("log_total") >= 1.5:
         out.append("cuenta recién creada con una primera compra grande")
     if row["is_guest"] and z("log_total") >= 1.5:
         out.append("compra como invitado con monto elevado")
@@ -69,13 +70,18 @@ def _reasons(row: dict, stats: pd.DataFrame) -> list[str]:
 
 
 def main() -> None:
-    with model_run("fraud", "1.1.0", notes="Fase 3 — Isolation Forest en órdenes") as run:
+    with model_run("fraud", "1.2.0", notes="Fase 3 — Isolation Forest en órdenes") as run:
         df = read_sql(
             f'''SELECT o.id AS order_id, o."totalCLP" AS total, o."createdAt" AS created_at,
                       o."shippingMethod" AS method, o.status AS status, o."paymentStatus" AS payment,
                       u."isGuest" AS is_guest,
                       EXTRACT(EPOCH FROM (o."createdAt" - u."createdAt")) / 86400 AS account_age_days,
-                      ROW_NUMBER() OVER (PARTITION BY o."userId" ORDER BY o."createdAt") - 1 AS prior_orders,
+                      -- Compras previas = ventas válidas anteriores. Contar todas las
+                      -- órdenes metía los checkouts abandonados o reintentos de pago: una
+                      -- cuenta nueva que reintenta 3 veces parecía cliente habitual.
+                      COALESCE(SUM(CASE WHEN {SALE_SQL} THEN 1 ELSE 0 END) OVER (
+                          PARTITION BY o."userId" ORDER BY o."createdAt"
+                          ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS prior_orders,
                       (SELECT COUNT(*) FROM "OrderItem" oi WHERE oi."orderId" = o.id) AS n_items,
                       (SELECT COALESCE(SUM(oi.quantity), 0) FROM "OrderItem" oi WHERE oi."orderId" = o.id) AS n_units,
                       o."createdAt" >= now() - make_interval(days => {int(RECENT_DAYS)}) AS is_recent
@@ -101,7 +107,9 @@ def main() -> None:
                  "is_guest", "is_pickup", "log_age", "log_prior"]
         X = df[feats].to_numpy(dtype=float)
 
-        model = IsolationForest(contamination=CONTAMINATION, random_state=42, n_estimators=200)
+        # contamination: sklearn no anota el parámetro y el checker infiere `str`
+        # por su default "auto"; un float es un valor válido y documentado.
+        model = IsolationForest(contamination=CONTAMINATION, random_state=42, n_estimators=200)  # pyright: ignore[reportArgumentType]
         model.fit(X)
         raw = model.decision_function(X)           # mayor = más normal
         df["flag"] = model.predict(X) == -1        # -1 = anomalía

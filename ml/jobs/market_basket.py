@@ -57,13 +57,11 @@ def main() -> None:
         for (a, b), co in pair_count.items():
             if co < MIN_COOCCUR:
                 continue
-            support = co / total
             for x, y in ((a, b), (b, a)):
-                confidence = co / item_count[x]
-                lift = confidence / (item_count[y] / total)
+                confidence = co / item_count[x]               # P(y | x)
+                lift = confidence / (item_count[y] / total)   # P(y | x) / P(y)
                 if lift > 1.0:  # solo asociaciones positivas
                     recos[x].append((y, round(lift, 4)))
-            _ = support
 
         rows: list[dict] = []
         seq = 0

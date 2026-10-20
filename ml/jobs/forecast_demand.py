@@ -68,13 +68,13 @@ def _fit(months: pd.DatetimeIndex, y: np.ndarray, origin: pd.Timestamp, seasonal
 
 
 def main() -> None:
-    with model_run("demand_forecast", "1.2.0", notes="Fase 2 — forecast Ridge estacional por producto + backtest") as run:
+    with model_run("demand_forecast", "1.2.1", notes="Fase 2 — forecast Ridge estacional por producto + backtest") as run:
         df = read_sql(
             f'''SELECT oi."productId" AS product_id, o."createdAt" AS created_at, oi.quantity AS units
                FROM "OrderItem" oi
                JOIN "Order" o   ON o.id = oi."orderId"
                JOIN "Product" p ON p.id = oi."productId"
-               WHERE {SALE_SQL} AND p.active = true'''
+               WHERE {SALE_SQL} AND p.active = true AND p."archivedAt" IS NULL'''
         )
         run.set_rows_in(len(df))
 
