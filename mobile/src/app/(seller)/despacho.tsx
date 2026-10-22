@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, ScrollView, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -7,8 +7,10 @@ import { fonts, shape } from '@/theme/tokens';
 import { Divider, IconButton, LeadIcon, ListItem, Skeleton, Txt, tap } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { EmptyState } from '@/ui/layout';
+import { PageSizeChips, Pager } from '@/ui/Pager';
 import { ThemeToggle } from '@/ui/ThemeToggle';
-import { useSellerOrders } from '@/lib/queries';
+import { LIST_PAGE_SIZES, useSellerOrders, type ListPageSize } from '@/lib/queries';
+import type { SellerOrderRow } from '@/lib/types';
 import { clp, plural, relative } from '@/lib/format';
 
 // Pedidos por despachar: pestañas "Por empacar" (lo más antiguo primero) y
@@ -23,9 +25,23 @@ export default function Dispatch() {
     const t = setTimeout(() => setQ(text.trim()), 300);
     return () => clearTimeout(t);
   }, [text]);
-  const orders = useSellerOrders(tab, q);
-  const items = useMemo(() => orders.data?.pages.flatMap((p) => p.items) ?? [], [orders.data]);
-  const counts = orders.data?.pages[0]?.counts;
+  const [size, setSize] = useState<ListPageSize>(20);
+  const [page, setPage] = useState(1);
+  const list = useRef<FlatList<SellerOrderRow>>(null);
+  // Cambiar de pestaña, búsqueda o tamaño vuelve a la página 1.
+  const filterKey = `${tab}|${q}|${size}`;
+  const [lastKey, setLastKey] = useState(filterKey);
+  if (filterKey !== lastKey) {
+    setLastKey(filterKey);
+    setPage(1);
+  }
+  const orders = useSellerOrders(tab, q, page, size);
+  const items = orders.data?.items ?? [];
+  const counts = orders.data?.counts;
+  const goTo = (n: number) => {
+    setPage(n);
+    list.current?.scrollToOffset({ offset: 0, animated: true });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }}>
@@ -51,14 +67,19 @@ export default function Dispatch() {
         <TextInput value={text} onChangeText={setText} placeholder="Número, cliente, comuna o producto" placeholderTextColor={c.onSurfaceVariant} accessibilityLabel="Buscar pedido" maxLength={100} style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, color: c.onSurface, height: 48 }} />
         {text.length > 0 && <IconButton icon="close" label="Borrar búsqueda" size={40} onPress={() => setText('')} />}
       </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
+        <PageSizeChips sizes={LIST_PAGE_SIZES} value={size} onChange={setSize} />
+      </ScrollView>
 
       <FlatList
+        ref={list}
         data={items}
         keyExtractor={(o) => o.id}
         ItemSeparatorComponent={() => <Divider inset />}
         refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => void orders.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
-        onEndReached={() => orders.hasNextPage && !orders.isFetchingNextPage && orders.fetchNextPage()}
+        style={{ opacity: orders.isPlaceholderData ? 0.6 : 1 }}
         contentContainerStyle={{ paddingBottom: 24 }}
+        ListFooterComponent={orders.data && orders.data.total > 0 ? <Pager page={orders.data.page} totalPages={orders.data.totalPages} total={orders.data.total} size={size} noun={['pedido', 'pedidos']} onGo={goTo} /> : undefined}
         renderItem={({ item: o }) => (
           <ListItem
             title={`#${o.orderNumber} · ${o.recipientName}`}

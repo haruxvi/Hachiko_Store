@@ -56,29 +56,42 @@ export function useMyOrders() {
   return useQuery({ queryKey: ['my-orders'], queryFn: () => api<MyOrder[]>('/me/orders'), enabled: authed });
 }
 
+/** "Mis pedidos" por páginas (mismos tamaños que la trastienda). */
+export function useMyOrdersPage(page: number, size: ListPageSize) {
+  const authed = useSession((s) => s.status === 'authed');
+  return useQuery({
+    queryKey: ['my-orders', 'page', page, size],
+    queryFn: ({ signal }) => api<Paged<MyOrder>>(`/me/orders?${new URLSearchParams({ pagina: String(page), mostrar: String(size) })}`, { signal }),
+    enabled: authed,
+    placeholderData: keepPreviousData,
+  });
+}
+
 // ── Vendedor ──
 export function useSellerToday() {
   const seller = useSession((s) => s.user?.role === 'SELLER');
   return useQuery({ queryKey: ['seller', 'today'], queryFn: () => api<SellerToday>('/seller/today'), refetchInterval: 60_000, enabled: seller });
 }
 
-export function useSellerOrders(estado: 'empacar' | 'enviadas', q: string) {
-  return useInfiniteQuery({
-    queryKey: ['seller', 'orders', estado, q],
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => api<SellerOrders>(`/seller/orders?${new URLSearchParams({ estado, q, pagina: String(pageParam) })}`, { signal }),
-    getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
+/** Tamaños de página de las listas (trastienda y Mis pedidos): los mismos del panel web. */
+export const LIST_PAGE_SIZES = [10, 20, 50, 100] as const;
+export type ListPageSize = (typeof LIST_PAGE_SIZES)[number];
+
+export function useSellerOrders(estado: 'empacar' | 'enviadas', q: string, page: number, size: ListPageSize) {
+  return useQuery({
+    queryKey: ['seller', 'orders', estado, q, page, size],
+    queryFn: ({ signal }) => api<SellerOrders>(`/seller/orders?${new URLSearchParams({ estado, q, pagina: String(page), mostrar: String(size) })}`, { signal }),
+    placeholderData: keepPreviousData,
   });
 }
 
 export const useSellerOrder = (id: string) =>
   useQuery({ queryKey: ['seller', 'order', id], queryFn: () => api<SellerOrderDetail>(`/seller/orders/${encodeURIComponent(id)}`) });
 
-export function useInventory(q: string, low: boolean) {
-  return useInfiniteQuery({
-    queryKey: ['seller', 'inventory', q, low],
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => api<Inventory>(`/seller/inventory?${new URLSearchParams({ q, stock: low ? 'bajo' : 'todo', pagina: String(pageParam) })}`, { signal }),
-    getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
+export function useInventory(q: string, low: boolean, page: number, size: ListPageSize) {
+  return useQuery({
+    queryKey: ['seller', 'inventory', q, low, page, size],
+    queryFn: ({ signal }) => api<Inventory>(`/seller/inventory?${new URLSearchParams({ q, stock: low ? 'bajo' : 'todo', pagina: String(page), mostrar: String(size) })}`, { signal }),
+    placeholderData: keepPreviousData,
   });
 }

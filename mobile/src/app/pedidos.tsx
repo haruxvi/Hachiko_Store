@@ -1,11 +1,13 @@
-import { FlatList, RefreshControl, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { FlatList, RefreshControl, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useTheme } from '@/theme/ThemeProvider';
 import { shape } from '@/theme/tokens';
 import { Button, Card, Skeleton, Txt } from '@/ui/core';
 import { EmptyState, TopBar } from '@/ui/layout';
-import { useMyOrders } from '@/lib/queries';
+import { PageSizeChips, Pager } from '@/ui/Pager';
+import { LIST_PAGE_SIZES, useMyOrdersPage, type ListPageSize } from '@/lib/queries';
 import { useSession } from '@/lib/session';
 import { clp, shortDate } from '@/lib/format';
 import type { MyOrder, OrderStatus } from '@/lib/types';
@@ -16,7 +18,18 @@ const reached = (cur: OrderStatus, step: OrderStatus) => ORDER.indexOf(cur) >= O
 export default function MyOrders() {
   const { c } = useTheme();
   const authed = useSession((s) => s.status === 'authed');
-  const q = useMyOrders();
+  const [size, setSize] = useState<ListPageSize>(10);
+  const [page, setPage] = useState(1);
+  const list = useRef<FlatList<MyOrder>>(null);
+  const q = useMyOrdersPage(page, size);
+  const changeSize = (n: ListPageSize) => {
+    setSize(n);
+    setPage(1);
+  };
+  const goTo = (n: number) => {
+    setPage(n);
+    list.current?.scrollToOffset({ offset: 0, animated: true });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -25,11 +38,21 @@ export default function MyOrders() {
         <EmptyState icon="user" title="Inicia sesión" body="Para ver tus pedidos y en qué van." action={{ label: 'Iniciar sesión', onPress: () => router.push('/login') }} />
       ) : (
         <FlatList
-          data={q.data ?? []}
+          ref={list}
+          data={q.data?.items ?? []}
           keyExtractor={(o) => o.id}
+          style={{ opacity: q.isPlaceholderData ? 0.6 : 1 }}
           contentContainerStyle={{ padding: 16, gap: 12 }}
           refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
           renderItem={({ item }) => <OrderCard order={item} />}
+          ListHeaderComponent={
+            q.data && q.data.total > LIST_PAGE_SIZES[0] ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
+                <PageSizeChips sizes={LIST_PAGE_SIZES} value={size} onChange={changeSize} />
+              </ScrollView>
+            ) : undefined
+          }
+          ListFooterComponent={q.data && q.data.total > 0 ? <Pager page={q.data.page} totalPages={q.data.totalPages} total={q.data.total} size={size} noun={['pedido', 'pedidos']} onGo={goTo} /> : undefined}
           ListEmptyComponent={
             q.isLoading ? (
               <View style={{ gap: 12 }}>{[0, 1, 2].map((i) => <Skeleton key={i} width="100%" height={150} radius={shape.lg} />)}</View>

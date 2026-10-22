@@ -7,6 +7,7 @@ import { fonts, shape } from '@/theme/tokens';
 import { Chip, IconButton, Skeleton, Txt } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { EmptyState } from '@/ui/layout';
+import { PageSizeChips, Pager } from '@/ui/Pager';
 import { ThemeToggle } from '@/ui/ThemeToggle';
 import { ProductCard } from '@/features/catalog/ProductCard';
 import { PAGE_SIZES, useCategories, useProductPage, type PageSize, type ProductQuery } from '@/lib/queries';
@@ -119,13 +120,10 @@ export default function Search() {
               <Chip key={s.key} label={s.label} selected={orden === s.key} onPress={() => setOrden(s.key)} />
             ))}
             <View style={{ width: 1, height: 20, backgroundColor: c.outlineVariant, marginHorizontal: 4 }} />
-            <Txt variant="bodyM" color={c.onSurfaceVariant}>Mostrar</Txt>
-            {PAGE_SIZES.map((n) => (
-              <Chip key={n} label={String(n)} selected={size === n} onPress={() => setSize(n)} />
-            ))}
+            <PageSizeChips sizes={PAGE_SIZES} value={size} onChange={setSize} />
           </ScrollView>
         }
-        ListFooterComponent={products.data && products.data.total > 0 ? <Pager page={products.data.page} totalPages={products.data.totalPages} total={products.data.total} size={size} onGo={goTo} /> : undefined}
+        ListFooterComponent={products.data && products.data.total > 0 ? <Pager page={products.data.page} totalPages={products.data.totalPages} total={products.data.total} size={size} noun={['producto', 'productos']} onGo={goTo} /> : undefined}
         ListEmptyComponent={
           products.isLoading ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 16 }}>
@@ -143,29 +141,6 @@ export default function Search() {
           )
         }
       />
-    </View>
-  );
-}
-
-/** "Mostrando 25–48 de 57" + anterior / siguiente. */
-function Pager({ page, totalPages, total, size, onGo }: { page: number; totalPages: number; total: number; size: PageSize; onGo: (n: number) => void }) {
-  const { c } = useTheme();
-  const from = (page - 1) * size + 1;
-  const to = Math.min(page * size, total);
-  const hasPrev = page > 1;
-  const hasNext = page < totalPages;
-  return (
-    <View style={{ alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 4 }}>
-      <Txt variant="bodyM" color={c.onSurfaceVariant} style={{ fontVariant: ['tabular-nums'] }}>
-        Mostrando {from}–{to} de {plural(total, 'producto', 'productos')}
-      </Txt>
-      {totalPages > 1 && (
-        <View accessibilityRole="toolbar" accessibilityLabel="Paginación" style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <IconButton icon="chevronLeft" label="Página anterior" variant="outlined" onPress={hasPrev ? () => onGo(page - 1) : undefined} style={!hasPrev && { opacity: 0.38 }} />
-          <Txt variant="titleM" style={{ fontVariant: ['tabular-nums'], minWidth: 120, textAlign: 'center' }}>Página {page} de {totalPages}</Txt>
-          <IconButton icon="chevronRight" label="Página siguiente" variant="outlined" onPress={hasNext ? () => onGo(page + 1) : undefined} style={!hasNext && { opacity: 0.38 }} />
-        </View>
-      )}
     </View>
   );
 }
