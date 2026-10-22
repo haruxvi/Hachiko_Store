@@ -7,7 +7,8 @@
 // 2. Levanta el entorno Docker aislado (base propia con datos de prueba; nunca
 //    toca Neon) publicado también en esa IP.
 // 3. Abre Expo con la app ya apuntando a ese Docker: se escanea el QR con el
-//    teléfono (conectado al MISMO Wi-Fi) y listo.
+//    teléfono (conectado al MISMO Wi-Fi) y listo. Expo Go con SDK 57 exige sesión
+//    de Expo en ambos lados: en el PC basta con un token en EXPO_TOKEN.
 // 4. Al cerrar Expo (Ctrl+C), el Docker vuelve a quedar solo en este computador.
 //
 // Opciones:
@@ -73,7 +74,7 @@ say('      mismo Wi-Fi puede abrir el sitio de desarrollo.\n');
 
 if (flag('dry-run')) {
   say(`   [dry-run] docker ${COMPOSE_LAN.join(' ')}   (HACHIKO_LAN_IP=${ip})`);
-  if (!flag('no-expo')) say(`   [dry-run] cd mobile && npx expo start   (EXPO_PUBLIC_API_URL=${API_URL})`);
+  if (!flag('no-expo')) say(`   [dry-run] cd mobile && npx expo start --lan --clear   (EXPO_PUBLIC_API_URL=${API_URL})`);
   process.exit(0);
 }
 
@@ -128,8 +129,22 @@ if (!existsSync(join(MOBILE, 'node_modules'))) {
   }
 }
 
+// En Windows, `expo login --browser` se cae (pasa la URL a `cmd start` sin comillas y
+// el `&` la corta); con un token de acceso en EXPO_TOKEN no hace falta el navegador.
+if (run('npx', ['expo', 'whoami'], { cwd: MOBILE, stdio: 'ignore' }).status !== 0) {
+  fail(
+    'Expo Go (SDK 57) exige sesión de Expo en este PC y en la app.\n' +
+      '   1. En expo.dev → Settings → Access tokens, crea un token.\n' +
+      "   2. En esta terminal: $env:EXPO_TOKEN = '<tu token>'   (solo vive en esta terminal)\n" +
+      '   3. Vuelve a ejecutar: node scripts/demo-lan.mjs',
+  );
+}
+say('    En el iPhone, inicia sesión en Expo Go con la MISMA cuenta (Home → ícono de perfil).');
+
 say('==> Abriendo Expo: escanea el QR con la cámara del teléfono (iPhone) o con Expo Go (Android).');
 say('    Para terminar: Ctrl+C.\n');
+// Desde el SDK 57, Expo Go en un iPhone físico exige sesión iniciada con la misma
+// cuenta en el CLI (npx expo login) y en la app; --offline no lo evita.
 const expo = spawn('npx', ['expo', 'start', '--lan', '--clear'], {
   cwd: MOBILE,
   stdio: 'inherit',
