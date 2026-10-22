@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, ScrollView, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,8 @@ import { Icon } from '@/ui/Icon';
 import { EmptyState } from '@/ui/layout';
 import { ThemeToggle } from '@/ui/ThemeToggle';
 import { ProductCard } from '@/features/catalog/ProductCard';
-import { useCategories, useProducts, type ProductQuery } from '@/lib/queries';
+import { PAGE_SIZES, useCategories, useProductPage, type PageSize, type ProductQuery } from '@/lib/queries';
+import type { ProductCard as Product } from '@/lib/types';
 import { plural } from '@/lib/format';
 
 const SORTS: { key: NonNullable<ProductQuery['orden']>; label: string }[] = [
@@ -19,7 +20,8 @@ const SORTS: { key: NonNullable<ProductQuery['orden']>; label: string }[] = [
 ];
 
 // Buscar: escribe y los resultados aparecen solos (300 ms después de dejar de
-// escribir). Filtros a la vista como chips, sin pantallas extra.
+// escribir). Filtros a la vista como chips, sin pantallas extra. Resultados por
+// páginas con "Mostrar 12/24/48", igual que el catálogo web.
 export default function Search() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -31,7 +33,10 @@ export default function Search() {
   const [categoria, setCategoria] = useState<string | undefined>(params.categoria);
   const [orden, setOrden] = useState<ProductQuery['orden']>('recent');
   const [stock, setStock] = useState(false);
+  const [size, setSize] = useState<PageSize>(24);
+  const [page, setPage] = useState(1);
   const input = useRef<TextInputInstance>(null);
+  const list = useRef<FlatList<Product>>(null);
   const categories = useCategories();
 
   // Si se llega desde "Explorar" con otra categoría, se aplica (ajuste en el render, sin efecto).
@@ -45,9 +50,21 @@ export default function Search() {
     return () => clearTimeout(t);
   }, [text]);
 
-  const products = useProducts({ q, categoria, orden, stock });
-  const items = useMemo(() => products.data?.pages.flatMap((p) => p.items) ?? [], [products.data]);
-  const total = products.data?.pages[0]?.total;
+  // Cualquier cambio de búsqueda, filtro, orden o tamaño vuelve a la página 1.
+  const filterKey = `${q}|${categoria ?? ''}|${orden}|${stock}|${size}`;
+  const [lastKey, setLastKey] = useState(filterKey);
+  if (filterKey !== lastKey) {
+    setLastKey(filterKey);
+    setPage(1);
+  }
+
+  const products = useProductPage({ q, categoria, orden, stock }, page, size);
+  const items = products.data?.items ?? [];
+  const total = products.data?.total;
+  const goTo = (n: number) => {
+    setPage(n);
+    list.current?.scrollToOffset({ offset: 0, animated: true });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }}>
@@ -80,19 +97,19 @@ export default function Search() {
       </ScrollView>
 
       <FlatList
+        ref={list}
         data={items}
         keyExtractor={(p) => p.id}
         numColumns={2}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
+        style={{ opacity: products.isPlaceholderData ? 0.6 : 1 }}
         columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
         contentContainerStyle={{ gap: 20, paddingBottom: 32 }}
         renderItem={({ item }) => <ProductCard product={item} width={colW} />}
-        onEndReached={() => products.hasNextPage && !products.isFetchingNextPage && products.fetchNextPage()}
-        onEndReachedThreshold={0.6}
         ListHeaderComponent={
-          // Contador + orden en una fila deslizable, alineada con la de filtros: en
-          // pantallas angostas los tres órdenes no caben a lo ancho.
+          // Contador + orden + "Mostrar" en una fila deslizable, alineada con la de
+          // filtros: en pantallas angostas no caben a lo ancho.
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8, paddingHorizontal: 16 }}>
             <Txt variant="bodyM" color={c.onSurfaceVariant} accessibilityLiveRegion="polite">
               {total !== undefined ? plural(total, 'producto', 'productos') : ' '}
@@ -101,8 +118,14 @@ export default function Search() {
             {SORTS.map((s) => (
               <Chip key={s.key} label={s.label} selected={orden === s.key} onPress={() => setOrden(s.key)} />
             ))}
+            <View style={{ width: 1, height: 20, backgroundColor: c.outlineVariant, marginHorizontal: 4 }} />
+            <Txt variant="bodyM" color={c.onSurfaceVariant}>Mostrar</Txt>
+            {PAGE_SIZES.map((n) => (
+              <Chip key={n} label={String(n)} selected={size === n} onPress={() => setSize(n)} />
+            ))}
           </ScrollView>
         }
+        ListFooterComponent={products.data && products.data.total > 0 ? <Pager page={products.data.page} totalPages={products.data.totalPages} total={products.data.total} size={size} onGo={goTo} /> : undefined}
         ListEmptyComponent={
           products.isLoading ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 16 }}>
@@ -120,6 +143,29 @@ export default function Search() {
           )
         }
       />
+    </View>
+  );
+}
+
+/** "Mostrando 25–48 de 57" + anterior / siguiente. */
+function Pager({ page, totalPages, total, size, onGo }: { page: number; totalPages: number; total: number; size: PageSize; onGo: (n: number) => void }) {
+  const { c } = useTheme();
+  const from = (page - 1) * size + 1;
+  const to = Math.min(page * size, total);
+  const hasPrev = page > 1;
+  const hasNext = page < totalPages;
+  return (
+    <View style={{ alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 4 }}>
+      <Txt variant="bodyM" color={c.onSurfaceVariant} style={{ fontVariant: ['tabular-nums'] }}>
+        Mostrando {from}–{to} de {plural(total, 'producto', 'productos')}
+      </Txt>
+      {totalPages > 1 && (
+        <View accessibilityRole="toolbar" accessibilityLabel="Paginación" style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <IconButton icon="chevronLeft" label="Página anterior" variant="outlined" onPress={hasPrev ? () => onGo(page - 1) : undefined} style={!hasPrev && { opacity: 0.38 }} />
+          <Txt variant="titleM" style={{ fontVariant: ['tabular-nums'], minWidth: 120, textAlign: 'center' }}>Página {page} de {totalPages}</Txt>
+          <IconButton icon="chevronRight" label="Página siguiente" variant="outlined" onPress={hasNext ? () => onGo(page + 1) : undefined} style={!hasNext && { opacity: 0.38 }} />
+        </View>
+      )}
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { useSession } from './session';
 import type { Category, Inventory, Me, MyOrder, Paged, ProductCard, ProductDetail, SellerOrderDetail, SellerOrders, SellerToday } from './types';
@@ -10,20 +10,36 @@ export const useCategories = () =>
 
 export type ProductQuery = { q?: string; categoria?: string; orden?: 'recent' | 'price-asc' | 'price-desc'; stock?: boolean };
 
+/** Tamaños de página que acepta la API (los mismos de "Mostrar" en la web). */
+export const PAGE_SIZES = [12, 24, 48] as const;
+export type PageSize = (typeof PAGE_SIZES)[number];
+
+function productParams(f: ProductQuery, page: number, size: PageSize) {
+  const p = new URLSearchParams({ pagina: String(page), mostrar: String(size) });
+  if (f.q) p.set('q', f.q);
+  if (f.categoria) p.set('categoria', f.categoria);
+  if (f.orden) p.set('orden', f.orden);
+  if (f.stock) p.set('stock', '1');
+  return p;
+}
+
 /** Vitrina con scroll infinito (páginas de 24). */
 export function useProducts(f: ProductQuery) {
   return useInfiniteQuery({
     queryKey: ['products', f],
     initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => {
-      const p = new URLSearchParams({ pagina: String(pageParam), mostrar: '24' });
-      if (f.q) p.set('q', f.q);
-      if (f.categoria) p.set('categoria', f.categoria);
-      if (f.orden) p.set('orden', f.orden);
-      if (f.stock) p.set('stock', '1');
-      return api<Paged<ProductCard>>(`/catalog/products?${p}`, { auth: false, signal });
-    },
+    queryFn: ({ pageParam, signal }) => api<Paged<ProductCard>>(`/catalog/products?${productParams(f, pageParam, 24)}`, { auth: false, signal }),
     getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
+  });
+}
+
+/** Una página del catálogo (Buscar: páginas numeradas, como la web). Mientras
+ *  carga la siguiente se sigue viendo la actual. */
+export function useProductPage(f: ProductQuery, page: number, size: PageSize) {
+  return useQuery({
+    queryKey: ['products-page', f, page, size],
+    queryFn: ({ signal }) => api<Paged<ProductCard>>(`/catalog/products?${productParams(f, page, size)}`, { auth: false, signal }),
+    placeholderData: keepPreviousData,
   });
 }
 
