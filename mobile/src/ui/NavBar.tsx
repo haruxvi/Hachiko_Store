@@ -1,5 +1,5 @@
 import { type Ref } from 'react';
-import { Pressable, View, type ViewProps } from 'react-native';
+import { Pressable, View, type ViewInstance, type ViewProps } from 'react-native';
 import type { TabTriggerSlotProps } from 'expo-router/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -10,7 +10,7 @@ import { Badge, Txt, tap } from './core';
 
 // Barra de navegación inferior (Material 3): pastilla mantequilla en el
 // destino activo, ícono con relleno suave, etiqueta siempre visible.
-export function NavBar({ children, ref, ...rest }: ViewProps & { ref?: Ref<View> }) {
+export function NavBar({ children, ref, ...rest }: ViewProps & { ref?: Ref<ViewInstance> }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -25,7 +25,7 @@ export function NavBar({ children, ref, ...rest }: ViewProps & { ref?: Ref<View>
   );
 }
 
-export function NavItem({ icon, label, badge, isFocused, ref, ...props }: TabTriggerSlotProps & { icon: IconName; label: string; badge?: number; ref?: Ref<View> }) {
+export function NavItem({ icon, label, badge, isFocused, ref, ...props }: TabTriggerSlotProps & { icon: IconName; label: string; badge?: number; ref?: Ref<ViewInstance> }) {
   const { c } = useTheme();
   const pill = useAnimatedStyle(() => ({
     transform: [{ scaleX: withSpring(isFocused ? 1 : 0.4, { damping: 16, stiffness: 220 }) }],

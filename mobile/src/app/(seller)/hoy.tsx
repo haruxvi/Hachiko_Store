@@ -22,7 +22,7 @@ export default function Today() {
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 112 }}
-        refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
+        refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
       >
         <View style={{ paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Icon name="store" size={22} color={c.onSurfaceVariant} />

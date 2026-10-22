@@ -52,7 +52,7 @@ export default function Dispatch() {
         data={items}
         keyExtractor={(o) => o.id}
         ItemSeparatorComponent={() => <Divider inset />}
-        refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => orders.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
+        refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => void orders.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
         onEndReached={() => orders.hasNextPage && !orders.isFetchingNextPage && orders.fetchNextPage()}
         contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item: o }) => (

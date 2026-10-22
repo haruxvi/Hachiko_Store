@@ -45,7 +45,7 @@ export default function InventoryScreen() {
         data={items}
         keyExtractor={(p) => p.id}
         ItemSeparatorComponent={() => <Divider />}
-        refreshControl={<RefreshControl refreshing={inv.isRefetching} onRefresh={() => inv.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
+        refreshControl={<RefreshControl refreshing={inv.isRefetching} onRefresh={() => void inv.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
         onEndReached={() => inv.hasNextPage && !inv.isFetchingNextPage && inv.fetchNextPage()}
         contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item: p }) => (

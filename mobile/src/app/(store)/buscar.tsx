@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { FlatList, ScrollView, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -30,7 +30,7 @@ export default function Search() {
   const [categoria, setCategoria] = useState<string | undefined>(params.categoria);
   const [orden, setOrden] = useState<ProductQuery['orden']>('recent');
   const [stock, setStock] = useState(false);
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   const categories = useCategories();
 
   // Si se llega desde "Explorar" con otra categoría, se aplica (ajuste en el render, sin efecto).

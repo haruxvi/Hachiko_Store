@@ -7,7 +7,7 @@
 // 2. Levanta el entorno Docker aislado (base propia con datos de prueba; nunca
 //    toca Neon) publicado también en esa IP.
 // 3. Abre Expo con la app ya apuntando a ese Docker: se escanea el QR con el
-//    teléfono (conectado al MISMO Wi-Fi) y listo. Expo Go con SDK 57 exige sesión
+//    teléfono (conectado al MISMO Wi-Fi) y listo. Expo Go (desde el SDK 57) exige sesión
 //    de Expo en ambos lados: en el PC basta con un token en EXPO_TOKEN.
 // 4. Al cerrar Expo (Ctrl+C), el Docker vuelve a quedar solo en este computador.
 //
@@ -78,10 +78,33 @@ if (flag('dry-run')) {
   process.exit(0);
 }
 
-// ── 2. Docker ───────────────────────────────────────────────────────────────
 const run = (cmd, argv, opts = {}) =>
   spawnSync(cmd, argv, { cwd: ROOT, stdio: 'inherit', shell: isWin, env, ...opts });
 
+// ── Sesión de Expo: se revisa ANTES de abrir el Docker a la red ─────────────
+if (!flag('no-expo')) {
+  if (!existsSync(join(MOBILE, 'node_modules'))) {
+    say('==> Instalando dependencias de la app (solo la primera vez)…');
+    if (run('npm', ['install', '--no-package-lock', '--no-audit', '--no-fund'], { cwd: MOBILE }).status !== 0) {
+      fail('No se pudieron instalar las dependencias de la app.');
+    }
+  }
+
+  // En Windows, `expo login --browser` se cae (pasa la URL a `cmd start` sin comillas y
+  // el `&` la corta); con un token de acceso en EXPO_TOKEN no hace falta el navegador.
+  if (run('npx', ['expo', 'whoami'], { cwd: MOBILE, stdio: 'ignore' }).status !== 0) {
+    fail(
+      'Expo Go exige sesión de Expo en este PC y en la app.\n' +
+        '   1. En expo.dev → Settings → Access tokens, crea un token.\n' +
+        "   2. Solo esta terminal:  $env:EXPO_TOKEN = '<tu token>'\n" +
+        "      Permanente:          [Environment]::SetEnvironmentVariable('EXPO_TOKEN', '<tu token>', 'User')\n" +
+        '                           (y reinicia VS Code)\n' +
+        '   3. Vuelve a ejecutar: node scripts/demo-lan.mjs',
+    );
+  }
+}
+
+// ── 2. Docker ───────────────────────────────────────────────────────────────
 if (spawnSync('docker', ['info'], { stdio: 'ignore', shell: isWin }).status !== 0) {
   fail('Docker no responde. Abre Docker Desktop, espera a que diga "running" y vuelve a intentar.');
 }
@@ -122,23 +145,6 @@ if (flag('no-expo')) {
 }
 
 // ── 3. Expo ─────────────────────────────────────────────────────────────────
-if (!existsSync(join(MOBILE, 'node_modules'))) {
-  say('==> Instalando dependencias de la app (solo la primera vez)…');
-  if (run('npm', ['install', '--no-package-lock', '--no-audit', '--no-fund'], { cwd: MOBILE }).status !== 0) {
-    fail('No se pudieron instalar las dependencias de la app.');
-  }
-}
-
-// En Windows, `expo login --browser` se cae (pasa la URL a `cmd start` sin comillas y
-// el `&` la corta); con un token de acceso en EXPO_TOKEN no hace falta el navegador.
-if (run('npx', ['expo', 'whoami'], { cwd: MOBILE, stdio: 'ignore' }).status !== 0) {
-  fail(
-    'Expo Go (SDK 57) exige sesión de Expo en este PC y en la app.\n' +
-      '   1. En expo.dev → Settings → Access tokens, crea un token.\n' +
-      "   2. En esta terminal: $env:EXPO_TOKEN = '<tu token>'   (solo vive en esta terminal)\n" +
-      '   3. Vuelve a ejecutar: node scripts/demo-lan.mjs',
-  );
-}
 say('    En el iPhone, inicia sesión en Expo Go con la MISMA cuenta (Home → ícono de perfil).');
 
 say('==> Abriendo Expo: escanea el QR con la cámara del teléfono (iPhone) o con Expo Go (Android).');

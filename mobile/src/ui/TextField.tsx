@@ -1,5 +1,5 @@
 import { forwardRef, useState } from 'react';
-import { Pressable, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, shape } from '@/theme/tokens';
@@ -10,7 +10,7 @@ import { Txt } from './core';
 // cómo arreglarlo; se anuncia al lector de pantalla.
 type Props = TextInputProps & { label: string; error?: string | null; helper?: string; leading?: IconName; secure?: boolean };
 
-export const TextField = forwardRef<TextInput, Props>(function TextField({ label, error, helper, leading, secure, value, onFocus, onBlur, style, ...rest }, ref) {
+export const TextField = forwardRef<TextInputInstance, Props>(function TextField({ label, error, helper, leading, secure, value, onFocus, onBlur, style, ...rest }, ref) {
   const { c } = useTheme();
   const [focus, setFocus] = useState(false);
   const [show, setShow] = useState(false);

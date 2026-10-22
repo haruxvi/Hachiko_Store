@@ -28,7 +28,7 @@ export default function MyOrders() {
           data={q.data ?? []}
           keyExtractor={(o) => o.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
           renderItem={({ item }) => <OrderCard order={item} />}
           ListEmptyComponent={
             q.isLoading ? (

@@ -57,7 +57,7 @@ Levanta el Docker local con datos de prueba (nunca toca Neon) y abre Expo ya apu
    ```
    - Emulador Android: tecla `a`. Navegador: tecla `w`.
 
-Para instalar paquetes usa siempre `npx expo install <paquete>`, que elige versiones compatibles con el SDK 57.
+Para instalar paquetes usa siempre `npx expo install <paquete>`, que elige versiones compatibles con el SDK 58.
 
 ## Verificación
 

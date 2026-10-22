@@ -35,7 +35,7 @@ export default function Home() {
       renderItem={({ item }) => <ProductCard product={item} width={colW} />}
       onEndReached={() => products.hasNextPage && !products.isFetchingNextPage && products.fetchNextPage()}
       onEndReachedThreshold={0.6}
-      refreshControl={<RefreshControl refreshing={products.isRefetching} onRefresh={() => products.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
+      refreshControl={<RefreshControl refreshing={products.isRefetching} onRefresh={() => void products.refetch()} tintColor={c.primaryStrong} colors={[c.primaryStrong]} />}
       ListHeaderComponent={<Header />}
       ListEmptyComponent={
         products.isLoading ? (
@@ -46,7 +46,7 @@ export default function Home() {
           </View>
         ) : products.isError ? (
           <EmptyState icon="refresh" title="No pudimos cargar la vitrina" body="Revisa tu conexión y vuelve a intentarlo." action={{ label: 'Reintentar', onPress: () => products.refetch() }} />
-        ) : null
+        ) : undefined
       }
     />
   );

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View, type TextInputInstance } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,8 +24,8 @@ export default function Login() {
   const [needsTotp, setNeedsTotp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const pass = useRef<TextInput>(null);
-  const code = useRef<TextInput>(null);
+  const pass = useRef<TextInputInstance>(null);
+  const code = useRef<TextInputInstance>(null);
 
   const submit = async () => {
     if (!email.trim() || !password) {
