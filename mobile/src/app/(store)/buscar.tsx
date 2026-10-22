@@ -89,16 +89,17 @@ export default function Search() {
         onEndReached={() => products.hasNextPage && !products.isFetchingNextPage && products.fetchNextPage()}
         onEndReachedThreshold={0.6}
         ListHeaderComponent={
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 }}>
+          // Contador + orden en una fila deslizable, alineada con la de filtros: en
+          // pantallas angostas los tres órdenes no caben a lo ancho.
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8, paddingHorizontal: 16 }}>
             <Txt variant="bodyM" color={c.onSurfaceVariant} accessibilityLiveRegion="polite">
               {total !== undefined ? plural(total, 'producto', 'productos') : ' '}
             </Txt>
-            <View style={{ flexDirection: 'row', gap: 4 }}>
-              {SORTS.map((s) => (
-                <Chip key={s.key} label={s.label} selected={orden === s.key} onPress={() => setOrden(s.key)} />
-              ))}
-            </View>
-          </View>
+            <View style={{ width: 1, height: 20, backgroundColor: c.outlineVariant, marginHorizontal: 4 }} />
+            {SORTS.map((s) => (
+              <Chip key={s.key} label={s.label} selected={orden === s.key} onPress={() => setOrden(s.key)} />
+            ))}
+          </ScrollView>
         }
         ListEmptyComponent={
           products.isLoading ? (
