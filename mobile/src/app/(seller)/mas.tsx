@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Button, Card, Divider, LeadIcon, ListItem, Txt, tap } from '@/ui/core';
 import { Icon, type IconName } from '@/ui/Icon';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/api';
 
@@ -27,7 +28,10 @@ export default function More() {
 
   return (
     <ScrollView style={{ backgroundColor: c.background }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 32, gap: 16 }}>
-      <Txt variant="headlineM" accessibilityRole="header">Más</Txt>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Txt variant="headlineM" accessibilityRole="header">Más</Txt>
+        <ThemeToggle />
+      </View>
 
       <Card variant="outlined" style={{ padding: 0, overflow: 'hidden' }}>
         <ListItem title="Ver la tienda" subtitle="Como la ven tus clientes" leading={<LeadIcon icon="store" tone="primary" />} trailing={<Icon name="chevronRight" size={20} color={c.onSurfaceVariant} />} onPress={() => { tap(); setMode('store'); router.replace('/'); }} />

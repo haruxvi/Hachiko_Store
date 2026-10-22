@@ -59,7 +59,7 @@ export type MyOrder = {
 };
 
 // ── Vendedor ──
-export type Alert = { level: 'critical' | 'warning' | 'info'; message: string };
+export type Alert = { level: 'critical' | 'warning' | 'info'; message: string; href: string };
 export type SellerToday = {
   kpis: {
     toPack: number; preparing: number; awaitingPayment: number;

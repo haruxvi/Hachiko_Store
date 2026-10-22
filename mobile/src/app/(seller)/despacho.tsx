@@ -7,6 +7,7 @@ import { fonts, shape } from '@/theme/tokens';
 import { Divider, IconButton, LeadIcon, ListItem, Skeleton, Txt, tap } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { EmptyState } from '@/ui/layout';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 import { useSellerOrders } from '@/lib/queries';
 import { clp, plural, relative } from '@/lib/format';
 
@@ -28,7 +29,10 @@ export default function Dispatch() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }}>
-      <Txt variant="headlineM" accessibilityRole="header" style={{ paddingHorizontal: 16, paddingTop: 12 }}>Pedidos</Txt>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12 }}>
+        <Txt variant="headlineM" accessibilityRole="header">Pedidos</Txt>
+        <ThemeToggle />
+      </View>
 
       <View accessibilityRole="tablist" style={{ flexDirection: 'row', marginTop: 8, borderBottomWidth: 1, borderBottomColor: c.outlineVariant }}>
         {([['empacar', 'Por empacar', counts?.empacar], ['enviadas', 'Enviadas', counts?.enviadas]] as const).map(([k, label, n]) => {

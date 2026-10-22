@@ -11,6 +11,7 @@ import { Button, Card, IconButton, Stepper, Txt, tap } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { ProductArt, toneFor } from '@/ui/brand';
 import { EmptyState } from '@/ui/layout';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 import { snack } from '@/ui/Snackbar';
 import { FREE_SHIPPING_THRESHOLD, cartCount, cartSubtotal, checkoutUrl, returnUrl, useCart } from '@/lib/cart';
 import { clp, plural } from '@/lib/format';
@@ -41,8 +42,13 @@ export default function CartScreen() {
 
   if (lines.length === 0) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top, justifyContent: 'center' }}>
-        <EmptyState icon="bag" title="Tu carrito está vacío" body="Agrega algo rico de la vitrina y aparecerá aquí." action={{ label: 'Ir a la vitrina', onPress: () => router.navigate('/') }} />
+      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }}>
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 16 }}>
+          <ThemeToggle />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <EmptyState icon="bag" title="Tu carrito está vacío" body="Agrega algo rico de la vitrina y aparecerá aquí." action={{ label: 'Ir a la vitrina', onPress: () => router.navigate('/') }} />
+        </View>
       </View>
     );
   }
@@ -50,7 +56,10 @@ export default function CartScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 16, paddingBottom: 200, gap: 12 }}>
-        <Txt variant="headlineM" accessibilityRole="header">Tu carrito</Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Txt variant="headlineM" accessibilityRole="header">Tu carrito</Txt>
+          <ThemeToggle />
+        </View>
         <Txt variant="bodyM" color={c.onSurfaceVariant} style={{ marginTop: -8, marginBottom: 4 }}>{plural(cartCount(lines), 'producto', 'productos')}</Txt>
 
         {lines.map((l) => (

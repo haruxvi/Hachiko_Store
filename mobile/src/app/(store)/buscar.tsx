@@ -7,6 +7,7 @@ import { fonts, shape } from '@/theme/tokens';
 import { Chip, IconButton, Skeleton, Txt } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { EmptyState } from '@/ui/layout';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 import { ProductCard } from '@/features/catalog/ProductCard';
 import { useCategories, useProducts, type ProductQuery } from '@/lib/queries';
 import { plural } from '@/lib/format';
@@ -50,8 +51,8 @@ export default function Search() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-        <View style={{ height: 56, borderRadius: shape.full, backgroundColor: c.surfaceContainerHigh, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4, gap: 12 }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flex: 1, height: 56, borderRadius: shape.full, backgroundColor: c.surfaceContainerHigh, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4, gap: 12 }}>
           <Icon name="search" size={22} color={c.onSurfaceVariant} />
           <TextInput
             ref={input}
@@ -68,6 +69,7 @@ export default function Search() {
           />
           {text.length > 0 && <IconButton icon="close" label="Borrar búsqueda" onPress={() => { setText(''); input.current?.focus(); }} />}
         </View>
+        <ThemeToggle />
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>

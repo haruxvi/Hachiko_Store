@@ -7,6 +7,7 @@ import { fonts, shape } from '@/theme/tokens';
 import { Chip, Divider, IconButton, ListItem, Skeleton, Txt } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { EmptyState } from '@/ui/layout';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 import { useInventory } from '@/lib/queries';
 
 // Inventario: buscar por nombre o SKU, ver solo lo que está bajo el umbral, y
@@ -27,9 +28,10 @@ export default function InventoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4, paddingTop: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
         <Txt variant="headlineM" accessibilityRole="header" style={{ flex: 1 }}>Inventario</Txt>
         <IconButton icon="scan" label="Escanear un producto" variant="tonal" onPress={() => router.push('/vendedor/escanear')} />
+        <ThemeToggle />
       </View>
 
       <View style={{ marginHorizontal: 16, marginTop: 12, height: 48, borderRadius: shape.full, backgroundColor: c.surfaceContainerHigh, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4, gap: 10 }}>

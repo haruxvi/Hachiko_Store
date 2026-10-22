@@ -8,6 +8,7 @@ import { shape } from '@/theme/tokens';
 import { Button, Card, Divider, LeadIcon, ListItem, Txt, tap } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { Paper } from '@/ui/brand';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 import { useMe } from '@/lib/queries';
 import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/api';
@@ -25,7 +26,10 @@ export default function Account() {
 
   return (
     <ScrollView style={{ backgroundColor: c.background }} contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 16, paddingBottom: 40, gap: 16 }}>
-      <Txt variant="headlineM" accessibilityRole="header">Cuenta</Txt>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Txt variant="headlineM" accessibilityRole="header">Cuenta</Txt>
+        <ThemeToggle />
+      </View>
 
       {status !== 'authed' ? (
         <Paper radius={shape.xl} style={{ padding: 24, gap: 12 }}>
