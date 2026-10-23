@@ -90,7 +90,7 @@ export default function Search() {
         <ThemeToggle />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
         <Chip label="Disponible ahora" selected={stock} onPress={() => setStock((s) => !s)} />
         {(categories.data ?? []).map((cat) => (
           <Chip key={cat.slug} label={cat.name} selected={categoria === cat.slug} onPress={() => setCategoria((v) => (v === cat.slug ? undefined : cat.slug))} />

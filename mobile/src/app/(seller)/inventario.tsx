@@ -55,7 +55,7 @@ export default function InventoryScreen() {
         <TextInput value={text} onChangeText={setText} placeholder="Nombre o SKU" placeholderTextColor={c.onSurfaceVariant} accessibilityLabel="Buscar producto" autoCapitalize="none" maxLength={100} style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, color: c.onSurface, height: 48 }} />
         {text.length > 0 && <IconButton icon="close" label="Borrar búsqueda" size={40} onPress={() => setText('')} />}
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
         <Chip label={lowCount !== undefined ? `Bajo el umbral · ${lowCount}` : 'Bajo el umbral'} selected={low} onPress={() => setLow((v) => !v)} />
         <View style={{ width: 1, height: 20, backgroundColor: c.outlineVariant, marginHorizontal: 4 }} />
         <PageSizeChips sizes={LIST_PAGE_SIZES} value={size} onChange={setSize} />

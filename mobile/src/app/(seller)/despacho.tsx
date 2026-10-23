@@ -67,7 +67,7 @@ export default function Dispatch() {
         <TextInput value={text} onChangeText={setText} placeholder="Número, cliente, comuna o producto" placeholderTextColor={c.onSurfaceVariant} accessibilityLabel="Buscar pedido" maxLength={100} style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, color: c.onSurface, height: 48 }} />
         {text.length > 0 && <IconButton icon="close" label="Borrar búsqueda" size={40} onPress={() => setText('')} />}
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
         <PageSizeChips sizes={LIST_PAGE_SIZES} value={size} onChange={setSize} />
       </ScrollView>
 
