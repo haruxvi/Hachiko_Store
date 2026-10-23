@@ -115,6 +115,18 @@ export async function jsonBody(req: NextRequest, maxBytes = 16 * 1024): Promise<
   }
 }
 
+/** Id de la ruta (cuid o UUID); si no tiene forma de id, es un 404. */
+export function routeId(id: string, notFound: string): string {
+  if (!/^[A-Za-z0-9-]{1,64}$/.test(id)) throw new ApiError(404, 'NOT_FOUND', notFound);
+  return id;
+}
+
+/** Resultado de las altas/cambios compartidos con el panel: el error ya viene en español para el vendedor. */
+export function settled<T extends object>(r: ({ ok: true } & T) | { ok: false; error: string }): T {
+  if (!r.ok) throw new ApiError(422, 'REJECTED', r.error);
+  return r;
+}
+
 /** Parseo con zod que lanza un 400 con el primer mensaje legible. */
 export function parse<T>(schema: { safeParse: (v: unknown) => { success: true; data: T } | { success: false; error: { issues: { message: string }[] } } }, value: unknown): T {
   const r = schema.safeParse(value);

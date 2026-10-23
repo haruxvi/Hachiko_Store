@@ -17,7 +17,13 @@ const WEB: { title: string; subtitle: string; icon: IconName; path: string }[] =
   { title: 'Demanda', subtitle: 'Pronóstico del mes', icon: 'refresh', path: '/trastienda/demanda' },
   { title: 'Riesgo', subtitle: 'Fraude y cuentas en riesgo', icon: 'alert', path: '/trastienda/riesgo' },
   { title: 'Promociones', subtitle: 'Correos a quienes aceptaron recibirlos', icon: 'mail', path: '/trastienda/promociones' },
-  { title: 'Productos y carga masiva', subtitle: 'Crear, editar y subir planillas', icon: 'tag', path: '/trastienda/productos' },
+];
+
+// El catálogo se administra desde la app (mismas reglas que el panel web).
+const CATALOG: { title: string; subtitle: string; icon: IconName; path: '/vendedor/productos' | '/vendedor/categorias' | '/vendedor/carga-masiva' }[] = [
+  { title: 'Productos', subtitle: 'Crear, editar, fotos y archivar', icon: 'tag', path: '/vendedor/productos' },
+  { title: 'Categorías', subtitle: 'Orden y visibilidad en la tienda', icon: 'list', path: '/vendedor/categorias' },
+  { title: 'Carga masiva', subtitle: 'Subir la plantilla Excel o un CSV', icon: 'package', path: '/vendedor/carga-masiva' },
 ];
 
 export default function More() {
@@ -35,6 +41,16 @@ export default function More() {
 
       <Card variant="outlined" style={{ padding: 0, overflow: 'hidden' }}>
         <ListItem title="Ver la tienda" subtitle="Como la ven tus clientes" leading={<LeadIcon icon="store" tone="primary" />} trailing={<Icon name="chevronRight" size={20} color={c.onSurfaceVariant} />} onPress={() => { tap(); setMode('store'); router.replace('/'); }} />
+      </Card>
+
+      <Txt variant="titleM" accessibilityRole="header">Catálogo</Txt>
+      <Card variant="outlined" style={{ padding: 0, overflow: 'hidden' }}>
+        {CATALOG.map((x, i) => (
+          <View key={x.path}>
+            {i > 0 && <Divider inset />}
+            <ListItem title={x.title} subtitle={x.subtitle} leading={<LeadIcon icon={x.icon} tone="primary" />} trailing={<Icon name="chevronRight" size={20} color={c.onSurfaceVariant} />} onPress={() => router.push(x.path)} />
+          </View>
+        ))}
       </Card>
 
       <View style={{ gap: 8 }}>

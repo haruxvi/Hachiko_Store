@@ -3,12 +3,13 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/ThemeProvider';
-import { elevation, shape } from '@/theme/tokens';
+import { shape } from '@/theme/tokens';
 import { Card, Divider, LeadIcon, ListItem, Skeleton, Txt, tap } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
 import { Paper } from '@/ui/brand';
 import { EmptyState, SectionHeader } from '@/ui/layout';
 import { ThemeToggle } from '@/ui/ThemeToggle';
+import { ExtendedFab } from '@/ui/Fab';
 import { useSellerToday } from '@/lib/queries';
 import { clp, plural, relative, todayTitle } from '@/lib/format';
 import { SITE_URL } from '@/lib/api';
@@ -130,16 +131,7 @@ export default function Today() {
         )}
       </ScrollView>
 
-      {/* FAB extendido: escanear un producto */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Escanear un producto"
-        onPress={() => { tap(); router.push('/vendedor/escanear'); }}
-        style={({ pressed }) => ({ position: 'absolute', right: 16, bottom: 16, height: 56, paddingHorizontal: 20, borderRadius: shape.lg, backgroundColor: c.primary, flexDirection: 'row', alignItems: 'center', gap: 12, transform: [{ scale: pressed ? 0.96 : 1 }], ...elevation(3, c.shadow) })}
-      >
-        <Icon name="scan" size={22} color={c.onPrimary} />
-        <Txt variant="labelL" color={c.onPrimary}>Escanear</Txt>
-      </Pressable>
+      <ExtendedFab icon="scan" label="Escanear" accessibilityLabel="Escanear un producto" onPress={() => router.push('/vendedor/escanear')} />
     </View>
   );
 }

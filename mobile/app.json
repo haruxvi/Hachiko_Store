@@ -50,6 +50,12 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Hachiko usa tus fotos solo para agregar imágenes a los productos del catálogo."
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Hachiko usa la cámara solo para escanear el código de los productos del inventario.",

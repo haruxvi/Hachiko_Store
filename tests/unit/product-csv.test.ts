@@ -13,6 +13,12 @@ const header =
   "sku,slug,nombre,descripcion,categoria,precio_clp,stock,peso_gramos";
 const row = "SKU-1,snack,Snack,Descripcion,snacks,1990,10,100";
 describe("CSV de productos", () => {
+  it("una categoría desconocida se explica una sola vez, sin el error técnico", () => {
+    const r = parseProductCsv(`${header}\nSKU-1,snack,Snack,Descripcion,inventada,1990,10,100`, cats);
+    expect(r.issues).toEqual([
+      { row: 2, message: "Categoría no disponible: inventada. Usa su código de la lista." },
+    ]);
+  });
   it("genera identificadores estables si faltan las columnas o quedan vacías", () => {
     const minHeader = "nombre,descripcion,categoria,precio_clp,stock,peso_gramos";
     const minRow = "Té de limón,Demo,snacks,1990,10,100";

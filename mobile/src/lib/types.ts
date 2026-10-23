@@ -95,3 +95,29 @@ export type ScannedProduct = {
   id: string; sku: string; name: string; category: string; priceCLP: number; image: string | null;
   stock: number; available: number; threshold: number; archived: boolean;
 };
+
+// ─── Catálogo (trastienda) ───────────────────────────────────
+export type SellerCategory = {
+  id: string; name: string; slug: string; description: string | null; order: number;
+  active: boolean; archived: boolean; productCount: number;
+};
+export type SellerProductRow = {
+  id: string; sku: string; name: string; nameKorean: string | null; category: string; image: string | null;
+  priceCLP: number; stock: number; active: boolean; featured: boolean; archived: boolean;
+};
+export type SellerProduct = {
+  id: string; sku: string; slug: string; name: string; nameKorean: string | null; description: string;
+  categoryId: string; category: string; priceCLP: number; costCLP: number | null; stock: number;
+  lowStockThreshold: number; weightGrams: number;
+  /** Tal como están guardadas (para reenviarlas) y listas para mostrar. */
+  images: string[]; imageUrls: string[];
+  active: boolean; featured: boolean; archived: boolean;
+};
+export type ImportIssue = { row: number; message: string };
+export type ImportPreviewRow = {
+  row: number; operation: 'create' | 'restock'; sku: string; name: string; category: string;
+  price: number; stock: number; currentStock: number; resultingStock: number; active: boolean;
+};
+export type ImportResult =
+  | { ok: false; issues: ImportIssue[] }
+  | { ok: true; preview?: ImportPreviewRow[]; count: number; createdCount: number; restockedCount: number; recoveredIdentifiers?: number };

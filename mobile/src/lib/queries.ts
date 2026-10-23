@@ -1,7 +1,7 @@
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery, type QueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { useSession } from './session';
-import type { Category, Inventory, Me, MyOrder, Paged, ProductCard, ProductDetail, SellerOrderDetail, SellerOrders, SellerToday } from './types';
+import type { Category, Inventory, Me, MyOrder, Paged, ProductCard, ProductDetail, SellerCategory, SellerOrderDetail, SellerOrders, SellerProduct, SellerProductRow, SellerToday } from './types';
 
 // Consultas de datos (caché compartida con TanStack Query).
 
@@ -87,6 +87,44 @@ export function useSellerOrders(estado: 'empacar' | 'enviadas', q: string, page:
 
 export const useSellerOrder = (id: string) =>
   useQuery({ queryKey: ['seller', 'order', id], queryFn: () => api<SellerOrderDetail>(`/seller/orders/${encodeURIComponent(id)}`) });
+
+/** Tras crear o editar el catálogo: refresca la trastienda y también la vitrina. */
+export function refreshCatalog(qc: QueryClient) {
+  for (const key of ['seller', 'products', 'products-page', 'categories', 'product']) void qc.invalidateQueries({ queryKey: [key] });
+}
+
+export type ProductStatus = 'activos' | 'archivados';
+
+export function useSellerProducts(q: string, estado: ProductStatus, categoria: string | undefined, page: number, size: ListPageSize) {
+  return useQuery({
+    queryKey: ['seller', 'products', q, estado, categoria, page, size],
+    queryFn: ({ signal }) => {
+      const p = new URLSearchParams({ q, estado, pagina: String(page), mostrar: String(size) });
+      if (categoria) p.set('categoria', categoria);
+      return api<Paged<SellerProductRow>>(`/seller/products?${p}`, { signal });
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+export const useSellerProduct = (id: string | undefined) =>
+  useQuery({ queryKey: ['seller', 'product-edit', id], queryFn: () => api<SellerProduct>(`/seller/products/${encodeURIComponent(id!)}`), enabled: !!id });
+
+export function useSellerCategories(q: string, archivadas: boolean, page: number, size: ListPageSize) {
+  return useQuery({
+    queryKey: ['seller', 'categories', q, archivadas, page, size],
+    queryFn: ({ signal }) =>
+      api<Paged<SellerCategory>>(`/seller/categories?${new URLSearchParams({ q, estado: archivadas ? 'archivadas' : 'activas', pagina: String(page), mostrar: String(size) })}`, { signal }),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export const useSellerCategory = (id: string | undefined) =>
+  useQuery({ queryKey: ['seller', 'category', id], queryFn: () => api<SellerCategory>(`/seller/categories/${encodeURIComponent(id!)}`), enabled: !!id });
+
+/** Todas las categorías activas (para elegir una en el formulario de producto). */
+export const useCategoryOptions = () =>
+  useQuery({ queryKey: ['seller', 'categories', 'options'], queryFn: () => api<Paged<SellerCategory>>('/seller/categories?mostrar=100'), staleTime: 60_000 });
 
 export function useInventory(q: string, low: boolean, page: number, size: ListPageSize) {
   return useQuery({

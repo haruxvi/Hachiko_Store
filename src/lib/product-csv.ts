@@ -271,11 +271,14 @@ export function parseProductCsv(
       featured: boolean("destacado", false),
     });
     if (!parsed.success)
-      for (const issue of parsed.error.issues)
+      for (const issue of parsed.error.issues) {
+        // La categoría desconocida ya se explicó arriba, con su nombre.
+        if (!category && issue.path[0] === "categoryId") continue;
         issues.push({
           row,
           message: `${issue.path.join(".")}: ${issue.message}`,
         });
+      }
     if (skus.has(sku.toLowerCase()))
       issues.push({
         row,

@@ -77,18 +77,25 @@ export async function refreshSession(): Promise<boolean> {
   }
 }
 
-type Options = { method?: 'GET' | 'POST'; body?: unknown; auth?: boolean; signal?: AbortSignal };
+/** Archivo elegido con un selector de Expo, listo para `FormData.append`: en el
+ *  teléfono se sube desde su uri local; en la vista web, el `File` del navegador. */
+export function fileField(a: { uri: string; name: string; mimeType?: string; file?: File }): Blob {
+  return a.file ?? ({ uri: a.uri, name: a.name, type: a.mimeType ?? 'application/octet-stream' } as unknown as Blob);
+}
+
+/** `form`: archivos (multipart); el Content-Type con su boundary lo pone fetch. */
+type Options = { method?: 'GET' | 'POST'; body?: unknown; form?: FormData; auth?: boolean; signal?: AbortSignal };
 
 export async function api<T>(path: string, opts: Options = {}): Promise<T> {
   const send = () =>
     fetch(`${API_URL}/api/v1${path}`, {
-      method: opts.method ?? 'GET',
+      method: opts.form ? 'POST' : (opts.method ?? 'GET'),
       headers: {
         Accept: 'application/json',
-        ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(opts.body !== undefined && !opts.form ? { 'Content-Type': 'application/json' } : {}),
         ...(accessToken && opts.auth !== false ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
       signal: opts.signal,
     });
 
