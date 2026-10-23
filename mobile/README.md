@@ -1,6 +1,6 @@
 # Hachiko · App (Expo / React Native)
 
-App para clientes y para el vendedor. Partimos con Android; el mismo código sirve después para iPhone.
+App para clientes y para el vendedor, para iPhone y Android con el mismo código.
 
 - **Clientes:**
   - inicio y vitrina;
@@ -14,6 +14,7 @@ App para clientes y para el vendedor. Partimos con Android; el mismo código sir
   - pedidos por despachar, con ficha y botón para marcar como enviado;
   - inventario con ajuste de stock;
   - escáner de códigos;
+  - catálogo: productos (con fotos), categorías y carga masiva desde la plantilla Excel;
   - accesos al panel web.
 
 El diseño sale del sistema de diseño en [`design-system/`](design-system/README.md). Para verlo, abre `design-system/index.html`.
@@ -36,7 +37,12 @@ El diseño sale del sistema de diseño en [`design-system/`](design-system/READM
 node scripts/demo-lan.mjs
 ```
 
-Levanta el Docker local con datos de prueba (nunca toca Neon) y abre Expo ya apuntando a él. Detalles en el README principal ("Probar la app en un teléfono").
+Levanta el Docker local con datos de prueba (nunca toca Neon) y abre Expo ya apuntando a él.
+
+Desde el SDK 57, Expo Go exige sesión de Expo en el computador **y** en la app, con la misma
+cuenta. En el computador se usa un token en la variable `EXPO_TOKEN`; `expo login --browser` falla
+en Windows. Requisitos, red, firewall y problemas frecuentes, paso a paso:
+[Manual: probar Hachiko en tu casa](../docs/manual-demo-telefono.md).
 
 **A mano (emulador o navegador):**
 
@@ -73,7 +79,7 @@ src/
     (store)/    pestañas de la tienda: inicio, buscar, carrito, cuenta
     (seller)/   pestañas de la trastienda: hoy, despacho, inventario, más
     producto/   ficha de producto
-    vendedor/   pedido, ajuste de stock, escáner
+    vendedor/   pedido, ajuste de stock, escáner, productos, categorías, carga masiva
   ui/           componentes del sistema de diseño (solo tokens)
   theme/        tokens claro/noche (espejo de design-system/styles.css)
   lib/          API, sesión, carrito, consultas, formatos

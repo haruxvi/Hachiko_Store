@@ -4,6 +4,10 @@ Guía para levantar Hachiko **completo en tu PC** (app + base de datos) con un
 solo comando, viendo la tienda en `http://localhost:3000`, sin exponer nada a la
 red ni tocar la base de producción.
 
+> ¿Quieres probar también la **app en tu teléfono**? Sigue el
+> [Manual: probar Hachiko en tu casa](manual-demo-telefono.md): usa este mismo
+> entorno y lo levanta con un solo comando.
+
 > Producción vive en **Vercel + Neon**. Este entorno es **local y aislado**: la
 > app se conecta a un Postgres que corre en un contenedor en tu máquina, nunca a
 > Neon. Lo que agregues o borres aquí **no afecta los datos reales**.

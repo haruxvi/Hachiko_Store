@@ -292,12 +292,23 @@ Toma `DIRECT_URL` del `.env` de la raíz. En la nube corre solo por cron en
 
 ### Demo en un teléfono (equipo y comisión)
 
+> 📖 **Paso a paso completo, con solución de problemas:** [Manual: probar Hachiko en tu casa](docs/manual-demo-telefono.md).
+
 Un comando levanta un entorno Docker aislado con datos de prueba (**nunca toca Neon**) y abre la
-app lista para escanear con Expo Go. El teléfono y el computador deben estar en el mismo Wi-Fi.
+app lista para escanear con Expo Go. Antes, una sola vez:
+
+1. Instala **Docker Desktop**, **Node.js 20+** y, en el teléfono, **Expo Go** (el proyecto usa el SDK 58).
+2. Crea una cuenta gratis en [expo.dev](https://expo.dev) y, en **Settings → Access tokens**, un
+   token. Guárdalo en la variable `EXPO_TOKEN` de tu usuario y reabre la terminal (Expo Go exige
+   sesión en el computador **y** en la app, con la misma cuenta).
+3. Pon el teléfono y el computador en el **mismo Wi-Fi de confianza**. En Windows, márcalo como red
+   **Privada** y permite Node y Docker en el firewall solo para redes privadas.
 
 ```bash
 node scripts/demo-lan.mjs
 ```
+
+Escanea el QR con la cámara (iPhone) o con Expo Go (Android). Para terminar, **Ctrl+C**.
 
 | Rol | Correo | Contraseña |
 |---|---|---|
@@ -323,7 +334,7 @@ Los mismos comandos que bloquean el CI en cada push:
 ```bash
 pnpm typecheck          # 0 errores de tipos
 pnpm lint               # 0 errores de ESLint
-pnpm test               # 157 tests unitarios (Vitest)
+pnpm test               # 229 tests unitarios (Vitest)
 pnpm audit              # CVE moderadas o superiores
 pnpm build              # build de producción
 ```
@@ -333,9 +344,10 @@ no se pueden probar con mocks). Abortan si la base no es local, así que nunca t
 
 ```bash
 docker run -d --name hachiko-test-db -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test \
-  -e POSTGRES_DB=hachiko_test -p 127.0.0.1:55432:5432 postgres:16-alpine
-# PowerShell:
-$env:DATABASE_URL="postgresql://test:test@127.0.0.1:55432/hachiko_test"; $env:DIRECT_URL=$env:DATABASE_URL
+  -e POSTGRES_DB=hachiko_test -p 127.0.0.1:45432:5432 postgres:16-alpine
+# PowerShell (45432: Windows reserva el rango del 55432 en muchos equipos):
+$env:TEST_DATABASE_URL="postgresql://test:test@127.0.0.1:45432/hachiko_test"
+$env:DATABASE_URL=$env:TEST_DATABASE_URL; $env:DIRECT_URL=$env:TEST_DATABASE_URL
 pnpm exec prisma db push --skip-generate
 pnpm test:integration   # 53 tests: checkout, reembolsos, retiro/devoluciones, seguridad y analítica
 docker rm -f hachiko-test-db
@@ -351,6 +363,7 @@ docker rm -f hachiko-test-db
 | **Inteligencia** | [Machine learning (CRISP-DM)](docs/machine-learning.md) · [Pipeline `/ml`](ml/README.md) |
 | **Calidad** | [ISO/IEC 25010](docs/calidad-iso25010.md) · [ISO/IEC 25012](docs/calidad-datos-iso25012.md) · [ISO/IEC 12207](docs/ciclo-de-vida-iso12207.md) · [IEEE 730](docs/plan-sqa-ieee730.md) · [CMMI](docs/procesos-cmmi.md) |
 | **API** | [Referencia](docs/api.md) · [OpenAPI 3.1](docs/api/openapi.json) (Swagger UI en `/api/docs`, solo desarrollo) |
+| **Manual** | [Probar Hachiko en tu casa: web y app en el teléfono](docs/manual-demo-telefono.md) (equipo y comisión) |
 | **Operación** | [Despliegue](docs/deploy.md) · [Docker local](docs/despliegue-local-docker.md) · [Carga masiva](docs/carga-masiva.md) · [Guía de pruebas](docs/guia-de-pruebas.md) |
 | **App móvil** | [mobile/README.md](mobile/README.md) |
 | **Capstone** | Evidencias académicas en [`Capstone/`](Capstone/) |
