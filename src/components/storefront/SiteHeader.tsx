@@ -60,6 +60,7 @@ export default async function SiteHeader() {
             aria-label="Buscar productos"
             className="w-44 bg-transparent text-[13px] text-soot placeholder:text-taupe focus:outline-none"
           />
+          
         </form>
 
         {session?.role === 'SELLER' && (

@@ -161,9 +161,10 @@ export default async function CatalogoPage({ searchParams }: Props) {
       <section className="flex flex-col gap-6 pt-4">
         <aside className="w-full border-y border-sand py-4 flex flex-col gap-4">
           
-          {/* Fila de Buscador + Stock */}
+          {/* Fila de Buscador (Solo móvil) + Stock */}
           <div className="flex flex-wrap items-center gap-4 justify-between">
-            <form method="get" action="/catalogo" className="flex-1 min-w-[240px] max-w-xs">
+            {/* Buscador: md:hidden para que sólo aparezca en pantallas móviles */}
+            <form method="get" action="/catalogo" className="flex-1 min-w-[240px] max-w-xs md:hidden">
               {params.categoria && (
                 <input type="hidden" name="categoria" value={params.categoria} />
               )}
@@ -194,7 +195,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
             </form>
 
             {/* Filtro de Stock */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto md:ml-0">
               <span className="text-xs font-bold text-soot uppercase tracking-wider">Stock:</span>
               <FilterCheck
                 label="Disponible ahora"
