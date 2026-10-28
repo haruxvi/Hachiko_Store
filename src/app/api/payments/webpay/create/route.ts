@@ -5,14 +5,16 @@ import { WebpayCreateSchema } from '@/src/lib/validation/schemas';
 import { createWebpayTransaction } from '@/src/lib/payments/webpay';
 import { writeAudit } from '@/src/lib/services/audit.service';
 import { getUnpaidOrderForUser } from '@/src/lib/services/order.service';
+import { readJsonBody } from '@/src/lib/http-body';
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   const roleError = requireRole(session, ['CLIENT', 'SELLER']);
   if (roleError) return roleError;
 
-  const body = await request.json();
-  const parsed = WebpayCreateSchema.safeParse(body);
+  const read = await readJsonBody(request);
+  if (!read.ok) return read.response;
+  const parsed = WebpayCreateSchema.safeParse(read.data);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: { code: 'VALIDATION' } }, { status: 400 });
   }

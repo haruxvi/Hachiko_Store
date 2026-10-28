@@ -3,6 +3,21 @@ import { getOrdersForSeller } from '@/src/lib/services/order.service';
 import { shippingLabel, SHIPPING_METHODS } from '@/src/lib/shipping';
 import { formatCLP } from '@/src/lib/format';
 import OrdersBoard, { type SellerOrder } from '@/src/components/panel/OrdersBoard';
+import RefundQueue, { type RefundRow } from '@/src/components/panel/RefundQueue';
+import { getRefundQueue } from '@/src/lib/services/payment.service';
+import { daysWaiting, pickupDeadline } from '@/src/lib/services/pickup.service';
+import ListToolbar from '@/src/components/panel/ListToolbar';
+import PanelPagination from '@/src/components/panel/PanelPagination';
+import {
+  matchesQuery,
+  paginate,
+  parseOption,
+  parsePage,
+  parsePageSize,
+  parseQuery,
+  DEFAULT_PAGE_SIZE,
+  type RawSearchParams,
+} from '@/src/lib/panel-list';
 
 // KPI — número en mono tabular, label en sentence case.
 function Stat({
@@ -21,7 +36,7 @@ function Stat({
       <div className="mb-2.5 text-[13px] font-medium text-taupe">{label}</div>
       <div
         className={`price-mono text-[28px] leading-none tracking-[-0.02em] ${
-          accent ? 'text-rust' : 'text-soot'
+          accent ? 'text-rust-ink' : 'text-soot'
         }`}
       >
         {value}
@@ -44,11 +59,40 @@ function whenLabel(date: Date): string {
   return date.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
 }
 
-export default async function OrdenesPage() {
+const BASE = '/trastienda/ordenes';
+const STATUS_FILTERS = ['todas', 'empacar', 'enviadas'] as const;
+const DELIVERY_FILTERS = ['todas', 'domicilio', 'retiro'] as const;
+const TO_PACK = new Set(['PAID', 'PREPARING']);
+
+const PROVIDER_LABEL: Record<string, string> = { WEBPAY: 'Webpay', MERCADOPAGO: 'MercadoPago' };
+const REFUND_REASON_LABEL: Record<string, string> = {
+  ORDER_CANCELLED: 'Pagó un pedido ya cancelado',
+  OUT_OF_STOCK: 'Se agotó mientras pagaba',
+  AMOUNT_MISMATCH: 'El monto no coincidía con el total',
+  NOT_PICKED_UP: 'No lo retiró dentro del plazo',
+};
+
+export default async function OrdenesPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   const session = await getSession();
   if (!session || session.role !== 'SELLER') return null;
 
-  const raw = await getOrdersForSeller();
+  const sp = await searchParams;
+  const q = parseQuery(sp['q']);
+  const statusFilter = parseOption(sp['estado'], STATUS_FILTERS, 'todas');
+  const deliveryFilter = parseOption(sp['entrega'], DELIVERY_FILTERS, 'todas');
+  const perPage = parsePageSize(sp['mostrar']);
+  const page = parsePage(sp['pagina']);
+
+  const [raw, refunds] = await Promise.all([getOrdersForSeller(), getRefundQueue()]);
+  const refundRows: RefundRow[] = refunds.map((r) => ({
+    id: r.id,
+    orderNumber: r.orderNumber,
+    providerLabel: PROVIDER_LABEL[r.provider ?? ''] ?? 'la pasarela',
+    amountCLP: r.amountCLP,
+    reasonLabel: REFUND_REASON_LABEL[r.reason ?? ''] ?? 'Pago no aplicable',
+    whenLabel: whenLabel(r.createdAt),
+    canRefundViaProvider: r.canRefundViaProvider,
+  }));
 
   const orders: SellerOrder[] = raw.map((o) => ({
     id: o.id,
@@ -67,11 +111,48 @@ export default async function OrdenesPage() {
     shippingNotes: o.shippingNotes,
     items: o.items,
     createdAtLabel: whenLabel(new Date(o.createdAt)),
+    // Retiro en tienda ya avisado: días esperando y plazo (vencido = se puede marcar "no retirado")
+    pickup:
+      o.shippingMethod === 'PICKUP' && o.status === 'SHIPPED' && o.shippedAt
+        ? {
+            daysWaiting: daysWaiting(new Date(o.shippedAt)),
+            deadlineLabel: pickupDeadline(new Date(o.shippedAt)).toLocaleDateString('es-CL', { timeZone: 'America/Santiago', day: 'numeric', month: 'short' }),
+            overdue: new Date() > pickupDeadline(new Date(o.shippedAt)),
+          }
+        : null,
   }));
 
-  const porEmpacar = orders.filter((o) => o.status === 'PAID');
+  // KPIs sobre todas las órdenes, no sobre lo filtrado.
+  const porEmpacar = orders.filter((o) => TO_PACK.has(o.status));
   const enviadas = orders.filter((o) => o.status === 'SHIPPED');
   const ventasPendientes = porEmpacar.reduce((acc, o) => acc + o.totalCLP, 0);
+
+  // Los nombres y direcciones están cifrados en la base: no se pueden buscar con
+  // SQL, así que se filtra aquí, sobre los datos ya descifrados para el despacho.
+  const matching = orders.filter(
+    (o) =>
+      (statusFilter === 'todas' ||
+        (statusFilter === 'empacar' ? TO_PACK.has(o.status) : o.status === 'SHIPPED')) &&
+      (deliveryFilter === 'todas' || (deliveryFilter === 'retiro') === o.isPickup) &&
+      matchesQuery(
+        q.replace(/^#\s*/, ''),
+        o.orderNumber,
+        o.recipientName,
+        o.shippingCommune,
+        o.shippingRegion,
+        ...o.items.map((i) => i.name),
+      ),
+  );
+  const info = paginate(matching.length, page, perPage);
+  const pageOrders = matching.slice(info.skip, info.skip + info.take);
+
+  const params = {
+    q: q || undefined,
+    estado: statusFilter !== 'todas' ? statusFilter : undefined,
+    entrega: deliveryFilter !== 'todas' ? deliveryFilter : undefined,
+    mostrar: perPage !== DEFAULT_PAGE_SIZE ? String(perPage) : undefined,
+  };
+  const filtered = Boolean(q || statusFilter !== 'todas' || deliveryFilter !== 'todas');
 
   const now = new Date();
   const dateLabel = now.toLocaleDateString('es-CL', {
@@ -91,6 +172,8 @@ export default async function OrdenesPage() {
           Trastienda — solo lo necesario para despachar, según Ley 21.719.
         </div>
       </header>
+
+      {refundRows.length > 0 && <RefundQueue rows={refundRows} />}
 
       {/* KPIs — solo datos reales, nada inventado */}
       <div className="mb-6 mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -119,7 +202,47 @@ export default async function OrdenesPage() {
       {orders.length === 0 ? (
         <p className="py-12 text-taupe">No hay órdenes pagadas pendientes de despacho.</p>
       ) : (
-        <OrdersBoard orders={orders} />
+        <>
+          <ListToolbar
+            basePath={BASE}
+            query={q}
+            perPage={perPage}
+            searchLabel="Buscar orden"
+            placeholder="Número, cliente, comuna o producto"
+            clearable={filtered}
+            filters={[
+              {
+                name: 'estado',
+                label: 'Estado',
+                value: statusFilter,
+                options: [
+                  { value: 'todas', label: 'Todas' },
+                  { value: 'empacar', label: 'Por empacar' },
+                  { value: 'enviadas', label: 'Enviadas' },
+                ],
+              },
+              {
+                name: 'entrega',
+                label: 'Entrega',
+                value: deliveryFilter,
+                options: [
+                  { value: 'todas', label: 'Todas' },
+                  { value: 'domicilio', label: 'Despacho a domicilio' },
+                  { value: 'retiro', label: 'Retiro en tienda' },
+                ],
+              },
+            ]}
+          />
+          {pageOrders.length === 0 ? (
+            <p className="rounded-2xl border border-sand bg-snow px-4 py-10 text-center text-[15px] text-taupe-deep">
+              Ninguna orden coincide con la búsqueda o los filtros.
+            </p>
+          ) : (
+            // La key reinicia la orden seleccionada al cambiar de página o de filtro.
+            <OrdersBoard key={JSON.stringify({ ...params, pagina: info.page })} orders={pageOrders} />
+          )}
+          <PanelPagination basePath={BASE} params={params} info={info} noun={['orden', 'órdenes']} />
+        </>
       )}
     </div>
   );

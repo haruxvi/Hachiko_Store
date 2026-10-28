@@ -79,7 +79,7 @@ export default function IncidentActions({
 
       {tab === 'note' && (
         <form
-          onSubmit={(e) => {
+          method="post" onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             void run(() =>
@@ -111,7 +111,7 @@ export default function IncidentActions({
 
       {tab === 'status' && (
         <form
-          onSubmit={(e) => {
+          method="post" onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             void run(() =>
@@ -145,7 +145,7 @@ export default function IncidentActions({
 
       {tab === 'authority' && (
         <form
-          onSubmit={(e) => {
+          method="post" onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             void run(() =>
@@ -198,7 +198,7 @@ function TabButton({
       onClick={onClick}
       className={`rounded-chip px-3.5 py-2 text-[13px] font-medium transition ${
         active
-          ? 'bg-rust text-snow'
+          ? 'bg-rust text-soot'
           : 'border border-sand text-taupe hover:border-soot hover:text-soot'
       }`}
     >

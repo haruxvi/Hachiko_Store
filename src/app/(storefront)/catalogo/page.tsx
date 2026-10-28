@@ -163,7 +163,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
           
           {/* Fila de Buscador (Solo móvil) + Stock */}
           <div className="flex flex-wrap items-center gap-4 justify-between">
-            {/* Buscador: md:hidden para que sólo aparezca en pantallas móviles */}
+            {/* Buscador: md:hidden para mostrarlo exclusivamente en móvil */}
             <form method="get" action="/catalogo" className="flex-1 min-w-[240px] max-w-xs md:hidden">
               {params.categoria && (
                 <input type="hidden" name="categoria" value={params.categoria} />

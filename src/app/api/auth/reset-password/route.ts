@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { resetPassword } from '@/src/lib/services/account-token.service';
 import { ResetPasswordSchema } from '@/src/lib/validation/schemas';
 import { rateLimit, clientIpFrom } from '@/src/lib/rate-limit';
+import { readJsonBody } from '@/src/lib/http-body';
 
 const RESET_LIMIT = 10; // por IP por minuto — frena fuerza bruta de tokens
 const RESET_WINDOW_MS = 60 * 1000;
@@ -20,8 +21,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const parsed = ResetPasswordSchema.safeParse(body);
+    const read = await readJsonBody(request);
+    if (!read.ok) return read.response;
+    const parsed = ResetPasswordSchema.safeParse(read.data);
     if (!parsed.success) {
       return NextResponse.json(
         { ok: false, error: { code: 'VALIDATION', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' } },

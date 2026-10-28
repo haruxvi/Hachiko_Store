@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Demo en red local: publica el stack de desarrollo también en la IP del PC en
+# el Wi-Fi, para probar la app en un teléfono real (Expo Go) conectado a la
+# MISMA red. Lo usa scripts/demo-lan.mjs, que detecta la IP y la pasa aquí:
+#
+#   node scripts/demo-lan.mjs
+#
+# Sigue siendo el entorno aislado de docker-compose.yml: base Postgres propia
+# con datos de prueba y claves de descarte. Nunca toca Neon ni tus secretos.
+#
+# Úsalo solo en una red de confianza (casa, hotspot propio): quien esté en el
+# mismo Wi-Fi puede abrir el sitio de desarrollo, y las cuentas de prueba del
+# seed son públicas. Sin este archivo (docker compose up -d) todo queda solo en
+# 127.0.0.1.
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  app:
+    ports:
+      # Se SUMA al 127.0.0.1:3000 del compose base. Solo la IP indicada, nunca
+      # 0.0.0.0: si falta la IP, compose se detiene en vez de abrir todo.
+      - '${HACHIKO_LAN_IP:?Falta HACHIKO_LAN_IP: usa node scripts/demo-lan.mjs}:3000:3000'
+    environment:
+      # Enlaces absolutos (imágenes, retorno del pago) a una dirección que el
+      # teléfono sí puede abrir.
+      NEXT_PUBLIC_APP_URL: http://${HACHIKO_LAN_IP}:3000
+      # El teléfono abre el sitio de desarrollo desde esta IP (ver next.config.ts).
+      DEV_ALLOWED_ORIGINS: ${HACHIKO_LAN_IP}

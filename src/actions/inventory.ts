@@ -5,19 +5,35 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/src/lib/auth/session';
 import { adjustStock } from '@/src/lib/services/inventory.service';
 import {
-  createProduct,
-  updateProduct,
-  archiveProduct,
-  restoreProduct,
-  createCategory,
-  updateCategory,
-  archiveCategory,
-} from '@/src/lib/services/catalog.service';
+  archiveCategoryAs,
+  archiveProductAs,
+  createCategoryAs,
+  createProductAs,
+  idSchema,
+  restoreCategoryAs,
+  restoreProductAs,
+  updateCategoryAs,
+  updateProductAs,
+  type CategoryActionSchema,
+  type CreateProductSchema,
+  type UpdateCategorySchema,
+  type UpdateProductSchema,
+} from '@/src/lib/catalog-admin';
+
+// Las reglas de productos y categorías viven en src/lib/catalog-admin.ts (las
+// comparte la API de la app); aquí solo se verifica la sesión del panel web.
+
+async function isSeller() {
+  const session = await getSession();
+  return session?.role === 'SELLER' ? session : null;
+}
+
+const FORBIDDEN = { ok: false as const, error: 'Sin permisos' };
 
 // ─── Stock adjustment ────────────────────────────────────────
 
 const AdjustStockSchema = z.object({
-  productId: z.string().cuid(),
+  productId: idSchema,
   newStock: z.number().int().min(0).max(99999),
   reason: z.enum([
     'RESTOCK',
@@ -56,184 +72,61 @@ export async function adjustStockAction(
 
 // ─── Products ────────────────────────────────────────────────
 
-const ProductActionSchema = z.object({
-  sku: z.string().min(1).max(50),
-  slug: z
-    .string()
-    .min(1)
-    .max(100)
-    .regex(/^[a-z0-9-]+$/),
-  name: z.string().min(1).max(200),
-  nameKorean: z.string().max(200).optional(),
-  description: z.string().min(1).max(5000),
-  priceCLP: z.number().int().positive(),
-  costCLP: z.number().int().positive().optional(),
-  stock: z.number().int().min(0),
-  lowStockThreshold: z.number().int().min(0).default(5),
-  weightGrams: z.number().int().positive(),
-  images: z.array(z.string()).max(10).default([]),
-  active: z.boolean().default(true),
-  featured: z.boolean().default(false),
-  categoryId: z.string().cuid(),
-});
-
-type ProductActionInput = z.infer<typeof ProductActionSchema>;
-
 export async function createProductAction(
-  input: ProductActionInput,
+  input: z.input<typeof CreateProductSchema>,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session || session.role !== 'SELLER') {
-    return { ok: false, error: 'Sin permisos' };
-  }
-
-  const parsed = ProductActionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
-
-  try {
-    const product = await createProduct(parsed.data);
-    revalidatePath('/trastienda/productos');
-    revalidatePath('/trastienda/inventario');
-    return { ok: true, id: product.id };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al crear producto' };
-  }
+  if (!(await isSeller())) return FORBIDDEN;
+  return createProductAs(input);
 }
 
-const UpdateProductSchema = ProductActionSchema.partial().extend({
-  id: z.string().cuid(),
-});
-
 export async function updateProductAction(
-  input: z.infer<typeof UpdateProductSchema>,
+  input: z.input<typeof UpdateProductSchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session || session.role !== 'SELLER') {
-    return { ok: false, error: 'Sin permisos' };
-  }
-
-  const parsed = UpdateProductSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
-
-  const { id, ...data } = parsed.data;
-
-  try {
-    await updateProduct(id, data, session.sub);
-    revalidatePath('/trastienda/productos');
-    revalidatePath(`/trastienda/productos/${id}`);
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al actualizar producto' };
-  }
+  const session = await isSeller();
+  if (!session) return FORBIDDEN;
+  return updateProductAs(input, session.sub);
 }
 
 export async function archiveProductAction(
   productId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session || session.role !== 'SELLER') {
-    return { ok: false, error: 'Sin permisos' };
-  }
-
-  try {
-    await archiveProduct(productId);
-    revalidatePath('/trastienda/productos');
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al archivar producto' };
-  }
+  if (!(await isSeller())) return FORBIDDEN;
+  return archiveProductAs(productId);
 }
 
 export async function restoreProductAction(
   productId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session || session.role !== 'SELLER') {
-    return { ok: false, error: 'Sin permisos' };
-  }
-
-  try {
-    await restoreProduct(productId);
-    revalidatePath('/trastienda/productos');
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al restaurar producto' };
-  }
+  if (!(await isSeller())) return FORBIDDEN;
+  return restoreProductAs(productId);
 }
 
 // ─── Categories ──────────────────────────────────────────────
 
-const CategoryActionSchema = z.object({
-  name: z.string().min(1).max(100),
-  slug: z
-    .string()
-    .min(1)
-    .max(100)
-    .regex(/^[a-z0-9-]+$/),
-  description: z.string().max(500).optional(),
-  active: z.boolean().default(true),
-  order: z.number().int().default(0),
-});
-
 export async function createCategoryAction(
-  input: z.infer<typeof CategoryActionSchema>,
+  input: z.input<typeof CategoryActionSchema>,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session || session.role !== 'SELLER') {
-    return { ok: false, error: 'Sin permisos' };
-  }
-
-  const parsed = CategoryActionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
-
-  try {
-    const cat = await createCategory(parsed.data);
-    revalidatePath('/trastienda/categorias');
-    return { ok: true, id: cat.id };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al crear categoría' };
-  }
+  if (!(await isSeller())) return FORBIDDEN;
+  return createCategoryAs(input);
 }
 
-const UpdateCategorySchema = CategoryActionSchema.partial().extend({
-  id: z.string().cuid(),
-});
-
 export async function updateCategoryAction(
-  input: z.infer<typeof UpdateCategorySchema>,
+  input: z.input<typeof UpdateCategorySchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session || session.role !== 'SELLER') {
-    return { ok: false, error: 'Sin permisos' };
-  }
-
-  const parsed = UpdateCategorySchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
-
-  const { id, ...data } = parsed.data;
-
-  try {
-    await updateCategory(id, data);
-    revalidatePath('/trastienda/categorias');
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al actualizar categoría' };
-  }
+  if (!(await isSeller())) return FORBIDDEN;
+  return updateCategoryAs(input);
 }
 
 export async function archiveCategoryAction(
   categoryId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session || session.role !== 'SELLER') {
-    return { ok: false, error: 'Sin permisos' };
-  }
+  if (!(await isSeller())) return FORBIDDEN;
+  return archiveCategoryAs(categoryId);
+}
 
-  try {
-    await archiveCategory(categoryId);
-    revalidatePath('/trastienda/categorias');
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error al archivar categoría' };
-  }
+export async function restoreCategoryAction(
+  categoryId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isSeller())) return FORBIDDEN;
+  return restoreCategoryAs(categoryId);
 }

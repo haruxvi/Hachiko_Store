@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { getSession } from '@/src/lib/auth/session';
 import { getOrderForClient } from '@/src/lib/services/order.service';
+import PaymentReturnCart from '@/src/components/storefront/PaymentReturnCart';
+import BackToApp from '@/src/components/storefront/BackToApp';
 import Shiba from '@/src/components/ui/Shiba';
 
 export const metadata = { title: 'Pedido confirmado — Hachiko' };
@@ -29,8 +31,31 @@ export default async function CheckoutSuccessPage({
   const order =
     orderId && session ? await getOrderForClient(orderId, session.sub) : null;
 
+  if (!order || order.paymentStatus !== 'PAID') {
+    return (
+      <div className="mx-auto max-w-[560px] px-6 py-24 text-center">
+        {order && <PaymentReturnCart paid={false} orderId={order.id} />}
+        <Shiba size={180} mood="idle" />
+        <h1 className="mb-3 mt-8 font-display text-3xl font-bold text-soot">
+          {order ? 'Estamos confirmando tu pago' : 'No encontramos una orden pagada'}
+        </h1>
+        <p className="mb-8 leading-[1.7] text-taupe">
+          {order
+            ? 'Tu carrito sigue disponible mientras recibimos la confirmación del medio de pago. Revisaremos el estado durante unos segundos; si tarda más, consulta tus pedidos.'
+            : 'Tu carrito sigue disponible. Puedes volver a revisarlo o intentar el pago otra vez.'}
+        </p>
+        <div className="flex justify-center gap-3">
+          <Link href="/carrito" className="btn-primary">Volver al carrito</Link>
+          {order && <Link href="/pedidos" className="btn-link">Ver mis pedidos</Link>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-6 py-16 sm:px-12">
+      <PaymentReturnCart paid orderId={order.id} />
+      <BackToApp orderNumber={order.orderNumber} />
       <div className="mx-auto max-w-[880px] text-center">
         {/* Shiba feliz + confeti discreto — la mascota aparece acá y en pocos lugares más */}
         <div className="relative mb-6 inline-block">
@@ -41,7 +66,7 @@ export default async function CheckoutSuccessPage({
           <span className="absolute -left-2.5 bottom-8 h-1.5 w-1.5 rounded-full bg-sand" />
         </div>
 
-        <div className="hangul mb-2 text-sm text-rust">주문 완료 · 감사합니다</div>
+        <div className="hangul mb-2 text-sm text-rust-ink">주문 완료 · 감사합니다</div>
         <h1 className="mb-2 font-display text-3xl font-bold tracking-[-0.02em] text-soot sm:text-[44px] sm:leading-tight">
           Listo. Lo estamos empacando.
         </h1>
@@ -87,8 +112,8 @@ export default async function CheckoutSuccessPage({
 
         <p className="mt-6 text-[13px] text-taupe">
           ¿Algo no calza? Escríbenos a{' '}
-          <a href="mailto:contacto@hachiko.cl" className="text-rust hover:underline">
-            contacto@hachiko.cl
+          <a href="mailto:hachiko.store.contacto@gmail.com" className="text-rust-ink hover:underline">
+            hachiko.store.contacto@gmail.com
           </a>{' '}
           — respondemos en horario de barrio (10:00–19:00).
         </p>

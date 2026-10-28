@@ -123,7 +123,7 @@ export default function LegalShell({ active }: { active: PolicySlug }) {
                     href={`#${anchorId(active, i)}`}
                     className="flex gap-2 transition-colors hover:text-soot"
                   >
-                    <span className="mt-px shrink-0 font-mono text-[11px] text-rust">{pad(i)}</span>
+                    <span className="mt-px shrink-0 font-mono text-[11px] text-rust-ink">{pad(i)}</span>
                     <span>{s.h}</span>
                   </a>
                 </li>
@@ -137,10 +137,10 @@ export default function LegalShell({ active }: { active: PolicySlug }) {
             <div className="text-[13px] leading-[1.5] text-taupe">
               Escríbenos a{' '}
               <a
-                href="mailto:contacto@hachiko.cl"
-                className="font-medium text-rust hover:underline"
+                href="mailto:hachiko.store.contacto@gmail.com"
+                className="font-medium text-rust-ink hover:underline"
               >
-                contacto@hachiko.cl
+                hachiko.store.contacto@gmail.com
               </a>{' '}
               — respondemos en horario de barrio.
             </div>
@@ -179,7 +179,7 @@ export default function LegalShell({ active }: { active: PolicySlug }) {
                 id={anchorId(active, i)}
                 className="grid scroll-mt-24 grid-cols-[36px_1fr] gap-4 sm:grid-cols-[48px_1fr] sm:gap-5"
               >
-                <div className="border-t-2 border-sand pt-[3px] font-mono text-[15px] font-medium text-rust">
+                <div className="border-t-2 border-sand pt-[3px] font-mono text-[15px] font-medium text-rust-ink">
                   {pad(i)}
                 </div>
                 <div className="border-t-2 border-sand pt-[3px]">

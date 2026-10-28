@@ -30,7 +30,7 @@ export const PasswordSchema = z
   });
 
 export const RegisterSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
   password: PasswordSchema,
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
@@ -42,7 +42,7 @@ export const RegisterSchema = z.object({
 });
 
 export const LoginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
   password: z.string().min(1),
   totpCode: z
     .string()
@@ -51,13 +51,13 @@ export const LoginSchema = z.object({
 });
 
 export const ForgotPasswordSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
 });
 
 // "Continuar como invitado": solo email + consentimiento esencial. La cuenta
 // se crea con contraseña aleatoria; se reclama después vía recuperación.
 export const GuestCheckoutSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().max(254),
   consentEssential: z.literal(true, {
     error: 'Debes aceptar el tratamiento esencial de datos',
   }),
@@ -104,7 +104,8 @@ export const ProductSchema = z.object({
   images: z.array(z.string()).max(10),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
-  categoryId: z.string().cuid(),
+  // Las categorías pueden usar cuid o UUID (por ejemplo, datos ya sembrados).
+  categoryId: z.string().min(1).max(64),
 });
 
 // ─── Orders ──────────────────────────────────────────────
@@ -125,10 +126,15 @@ export const ShippingAddressSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+// Ids de la BD: cuid (lo normal) o UUID (catálogo sintético de demostración,
+// seed-synthetic usa randomUUID). Se acota largo y alfabeto; si el id no
+// existe, la consulta parametrizada simplemente no lo encuentra.
+export const DbIdSchema = z.string().min(1).max(64).regex(/^[A-Za-z0-9-]+$/, 'Identificador inválido');
+
 export const CartItemsSchema = z
   .array(
     z.object({
-      productId: z.string().cuid(),
+      productId: DbIdSchema,
       quantity: z.number().int().min(1).max(99),
     })
   )
@@ -147,6 +153,8 @@ export const CheckoutSchema = z
     shippingAddress: ShippingAddressSchema,
     paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO']),
     items: CartItemsSchema,
+    // Solo viene si la persona aceptó la medición (ver src/lib/analytics/client.ts)
+    analyticsSessionId: z.string().uuid().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.shippingMethod === 'PICKUP') return;
@@ -162,7 +170,9 @@ export const CheckoutSchema = z
   });
 
 export const TrackingSchema = z.object({
-  orderId: z.string().cuid(),
+  // cuid (pedidos reales) o uuid (datos de demostración): se acepta cualquier id
+  // acotado; la orden se busca por id con consulta parametrizada.
+  orderId: z.string().min(1).max(64).regex(/^[A-Za-z0-9-]+$/),
   // Opcional: el retiro en tienda no tiene número de seguimiento
   trackingNumber: z.string().max(100).optional(),
 });
@@ -170,11 +180,12 @@ export const TrackingSchema = z.object({
 // ─── Account ─────────────────────────────────────────────
 
 export const UpdateProfileSchema = z.object({
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
+  firstName: z.string().trim().min(1, 'Escribe tu nombre.').max(100, 'El nombre es demasiado largo.').optional(),
+  lastName: z.string().trim().min(1, 'Escribe tu apellido.').max(100, 'El apellido es demasiado largo.').optional(),
   phone: z
     .string()
-    .regex(/^\+?56\s?9\s?\d{4}\s?\d{4}$/)
+    .trim()
+    .regex(/^\+?56\s?9\s?\d{4}\s?\d{4}$/, 'Revisa el teléfono: usa el formato +56 9 1234 5678.')
     .optional(),
   consentMarketing: z.boolean().optional(),
 });
@@ -187,6 +198,28 @@ export const PiiAccessReasonSchema = z.object({
   reason: z.string().min(10, 'Describe el motivo de acceso (mínimo 10 caracteres)'),
   orderId: z.string().cuid().optional(),
   userId: z.string().cuid().optional(),
+});
+
+// ─── Cambios y devoluciones ──────────────────────────────
+
+export const ReturnRequestSchema = z.object({
+  orderId: DbIdSchema,
+  type: z.enum(['RETRACTO', 'GARANTIA']),
+  resolution: z.enum(['EXCHANGE', 'REFUND', 'REPAIR']),
+  reason: z
+    .string()
+    .trim()
+    .min(10, 'Cuéntanos qué pasó (mínimo 10 caracteres).')
+    .max(1000, 'El detalle es demasiado largo (máximo 1000 caracteres).'),
+  items: z
+    .array(z.object({ orderItemId: DbIdSchema, quantity: z.number().int().min(1).max(99) }))
+    .min(1, 'Elige al menos un producto.')
+    .max(50),
+});
+
+export const ReturnDecisionSchema = z.object({
+  returnId: DbIdSchema,
+  note: z.string().trim().max(1000).optional(),
 });
 
 // ─── Payments ────────────────────────────────────────────

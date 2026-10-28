@@ -39,7 +39,7 @@ export default async function RecomendacionesPage() {
                 {g.items.map((it, i) => (
                   <li key={i} className="flex items-center justify-between gap-3 rounded-chip bg-cream px-3 py-2">
                     <span className="text-sm text-soot">{it.name}</span>
-                    <span className="price-mono text-xs text-rust-dark">×{it.score.toFixed(1)} lift</span>
+                    <span className="price-mono text-xs text-rust-ink">×{it.score.toFixed(1)} lift</span>
                   </li>
                 ))}
               </ul>
@@ -56,7 +56,7 @@ export default async function RecomendacionesPage() {
             {bundles.bundles.map((b, i) => (
               <div key={i} className="flex items-center justify-between gap-3 rounded-chip border border-sand bg-cream px-4 py-3">
                 <span className="text-sm text-soot">{b.a} <span className="text-taupe">+</span> {b.b}</span>
-                <span className="price-mono shrink-0 text-sm text-rust-dark">{clp(b.price)}</span>
+                <span className="price-mono shrink-0 text-sm text-rust-ink">{clp(b.price)}</span>
               </div>
             ))}
           </div>

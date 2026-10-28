@@ -3,6 +3,7 @@ import { loginUser } from '@/src/lib/services/auth.service';
 import { LoginSchema } from '@/src/lib/validation/schemas';
 import { accessCookieOptions, refreshCookieOptions } from '@/src/lib/auth/session';
 import { rateLimit, clientIpFrom } from '@/src/lib/rate-limit';
+import { readJsonBody } from '@/src/lib/http-body';
 
 const LOGIN_LIMIT = 10; // intentos por IP por minuto
 const LOGIN_WINDOW_MS = 60 * 1000;
@@ -21,8 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const parsed = LoginSchema.safeParse(body);
+    const read = await readJsonBody(request);
+    if (!read.ok) return read.response;
+    const parsed = LoginSchema.safeParse(read.data);
 
     if (!parsed.success) {
       return NextResponse.json(

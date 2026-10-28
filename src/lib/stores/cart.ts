@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { track } from '@/src/lib/analytics/client';
 
 interface CartItem {
   id: string;
@@ -25,6 +26,7 @@ export const useCartStore = create<CartStore>()(
       items: [],
 
       addItem(item) {
+        track({ type: 'ADD_TO_CART', productId: item.id });
         set((state) => {
           const existing = state.items.find((i) => i.id === item.id);
           if (existing) {
@@ -39,6 +41,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       removeItem(id) {
+        track({ type: 'REMOVE_FROM_CART', productId: id });
         set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
       },
 

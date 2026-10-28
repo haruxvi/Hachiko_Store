@@ -46,22 +46,24 @@ export const EVENT_TYPE_LABELS: Record<IncidentEventType, string> = {
 export const SEVERITY_BADGE: Record<IncidentSeverity, string> = {
   LOW: 'bg-sand text-taupe',
   MEDIUM: 'bg-tan/40 text-soot',
-  HIGH: 'bg-rust/20 text-rust-dark',
+  HIGH: 'bg-rust/20 text-rust-ink',
   CRITICAL: 'bg-alert/15 text-alert',
 };
 
 export const STATUS_BADGE: Record<IncidentStatus, string> = {
   OPEN: 'bg-alert/15 text-alert',
   INVESTIGATING: 'bg-tan/40 text-soot',
-  CONTAINED: 'bg-sky text-sky-deep',
-  RESOLVED: 'bg-mint text-mint-deep',
-  REPORTED: 'bg-rust/20 text-rust-dark',
+  CONTAINED: 'bg-sky text-sky-ink',
+  RESOLVED: 'bg-mint text-mint-ink',
+  REPORTED: 'bg-rust/20 text-rust-ink',
   CLOSED: 'bg-sand text-taupe',
 };
 
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
   LOGIN_FAILED: 'Intento de login fallido',
   ACCOUNT_LOCKED: 'Cuenta bloqueada por intentos',
+  REFRESH_TOKEN_REUSE: 'Sesión copiada detectada (token reutilizado)',
+  REGISTER_EXISTING_EMAIL: 'Intento de registro con un correo ya existente',
   ROLE_CHANGE: 'Cambio de rol',
   DATA_EXPORT: 'Exportación de datos (ARCO)',
   ACCOUNT_DELETE_REQUEST: 'Solicitud de eliminación',

@@ -1,139 +1,203 @@
 import Link from 'next/link';
-import type { Prisma } from '@prisma/client';
 import { getSession } from '@/src/lib/auth/session';
-import { listProductsForPanel } from '@/src/lib/services/catalog.service';
+import {
+  getCategories,
+  listProductsForPanel,
+  type PanelProductSort,
+  type PanelProductStatus,
+} from '@/src/lib/services/catalog.service';
 import { archiveProductAction, restoreProductAction } from '@/src/actions/inventory';
+import { formatCLP } from '@/src/lib/format';
+import {
+  parseOption,
+  parsePage,
+  parsePageSize,
+  parseQuery,
+  one,
+  DEFAULT_PAGE_SIZE,
+  type RawSearchParams,
+} from '@/src/lib/panel-list';
+import ListToolbar from '@/src/components/panel/ListToolbar';
+import PanelPagination from '@/src/components/panel/PanelPagination';
 
 export const revalidate = 0;
 
-type ProductWithCategory = Prisma.ProductGetPayload<{
-  include: { category: { select: { name: true } } };
-}>;
+const BASE = '/trastienda/productos';
+const STATUSES = ['activos', 'archivados'] as const satisfies readonly PanelProductStatus[];
+const SORTS = ['recientes', 'nombre', 'precio-asc', 'precio-desc', 'stock-asc'] as const satisfies readonly PanelProductSort[];
+const SORT_LABELS: Record<PanelProductSort, string> = {
+  recientes: 'Más recientes',
+  nombre: 'Nombre (A–Z)',
+  'precio-asc': 'Precio: menor a mayor',
+  'precio-desc': 'Precio: mayor a menor',
+  'stock-asc': 'Menos stock primero',
+};
 
-export default async function ProductosPage() {
+export default async function ProductosPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   const session = await getSession();
   if (!session || session.role !== 'SELLER') return null;
 
-  const products = await listProductsForPanel();
+  const sp = await searchParams;
+  const q = parseQuery(sp['q']);
+  const status = parseOption(sp['estado'], STATUSES, 'activos');
+  const sort = parseOption(sp['orden'], SORTS, 'recientes');
+  const perPage = parsePageSize(sp['mostrar']);
+  const page = parsePage(sp['pagina']);
 
-  const active = products.filter((p) => !p.archivedAt);
-  const archived = products.filter((p) => p.archivedAt);
+  const categories = await getCategories(false);
+  // La categoría viaja por slug (URL legible); solo se acepta una que exista.
+  const category = categories.find((c) => c.slug === one(sp['categoria']));
+
+  const { info, items: products } = await listProductsForPanel({
+    q,
+    categoryId: category?.id,
+    status,
+    sort,
+    page,
+    perPage,
+  });
+
+  const params = {
+    q: q || undefined,
+    categoria: category?.slug,
+    estado: status !== 'activos' ? status : undefined,
+    orden: sort !== 'recientes' ? sort : undefined,
+    mostrar: perPage !== DEFAULT_PAGE_SIZE ? String(perPage) : undefined,
+  };
+  const filtered = Boolean(q || category || status !== 'activos');
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Productos</h1>
-        <Link
-          href="/trastienda/productos/nuevo"
-          className="bg-rose-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-rose-700"
-        >
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-[34px] font-bold leading-[1.1] tracking-[-0.015em] text-soot">
+            Productos
+          </h1>
+          <p className="editorial mt-1.5 text-[15px] leading-snug text-taupe">
+            {status === 'archivados' ? 'Los que sacaste de la tienda. Puedes restaurarlos.' : 'Todo lo que está a la venta.'}
+          </p>
+        </div>
+        <Link href={`${BASE}/nuevo`} className="btn-primary btn-sm min-h-11">
           + Nuevo producto
         </Link>
+      </header>
+
+      <ListToolbar
+        basePath={BASE}
+        query={q}
+        perPage={perPage}
+        searchLabel="Buscar producto"
+        placeholder="Nombre o SKU"
+        clearable={filtered || sort !== 'recientes'}
+        filters={[
+          {
+            name: 'categoria',
+            label: 'Categoría',
+            value: category?.slug ?? '',
+            options: [{ value: '', label: 'Todas' }, ...categories.map((c) => ({ value: c.slug, label: c.name }))],
+          },
+          {
+            name: 'estado',
+            label: 'Estado',
+            value: status,
+            options: [
+              { value: 'activos', label: 'A la venta' },
+              { value: 'archivados', label: 'Archivados' },
+            ],
+          },
+          {
+            name: 'orden',
+            label: 'Ordenar',
+            value: sort,
+            options: SORTS.map((s) => ({ value: s, label: SORT_LABELS[s] })),
+          },
+        ]}
+      />
+
+      <div className="overflow-hidden rounded-2xl border border-sand bg-snow">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse font-body text-sm">
+            <thead>
+              <tr className="bg-cream">
+                <th className="px-4 py-3 text-left text-xs font-medium text-taupe">Producto</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-taupe">Categoría</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-taupe">Precio</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-taupe">Stock</th>
+                <th className="px-4 py-3">
+                  <span className="sr-only">Acciones</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p) => {
+                const archived = p.archivedAt !== null;
+                return (
+                  <tr key={p.id} className="border-t border-sand transition hover:bg-cream/60">
+                    <td className="px-4 py-3.5 align-middle">
+                      <div className="text-[15px] font-medium leading-snug text-soot">{p.name}</div>
+                      <div className="price-mono mt-0.5 text-[12px] text-taupe-deep">{p.sku}</div>
+                    </td>
+                    <td className="px-4 py-3.5 align-middle text-[14px] text-taupe-deep">{p.category.name}</td>
+                    <td className="price-mono whitespace-nowrap px-4 py-3.5 text-right align-middle text-[15px] text-soot">
+                      {formatCLP(p.priceCLP)}
+                    </td>
+                    <td className="price-mono px-4 py-3.5 text-right align-middle text-[15px]">
+                      <span
+                        className={
+                          p.stock === 0
+                            ? 'font-semibold text-alert'
+                            : p.stock <= p.lowStockThreshold
+                              ? 'font-semibold text-rust-ink'
+                              : 'text-soot'
+                        }
+                      >
+                        {p.stock}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 align-middle">
+                      <div className="flex items-center justify-end gap-4 whitespace-nowrap text-[13px] font-medium">
+                        <Link href={`${BASE}/${p.id}`} className="text-soot underline decoration-rust decoration-2 underline-offset-4 hover:decoration-soot">
+                          Editar
+                        </Link>
+                        <Link
+                          href={`/trastienda/inventario/${p.id}/historico`}
+                          className="text-taupe-deep transition hover:text-soot hover:underline"
+                        >
+                          Historial
+                        </Link>
+                        <form
+                          action={async () => {
+                            'use server';
+                            if (archived) await restoreProductAction(p.id);
+                            else await archiveProductAction(p.id);
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className={`transition hover:underline ${archived ? 'text-mint-ink' : 'text-alert'}`}
+                          >
+                            {archived ? 'Restaurar' : 'Archivar'}
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {products.length === 0 && (
+          <p className="px-4 py-10 text-center text-[15px] text-taupe-deep">
+            {filtered
+              ? 'Nada coincide con la búsqueda o los filtros.'
+              : 'Todavía no hay productos. Crea el primero con “Nuevo producto”.'}
+          </p>
+        )}
       </div>
 
-      <ProductTable products={active} showRestore={false} />
-
-      {archived.length > 0 && (
-        <details className="mt-8">
-          <summary className="text-sm text-gray-400 cursor-pointer mb-3">
-            Archivados ({archived.length})
-          </summary>
-          <ProductTable products={archived} showRestore={true} />
-        </details>
-      )}
+      <PanelPagination basePath={BASE} params={params} info={info} noun={['producto', 'productos']} />
     </div>
-  );
-}
-
-function ProductTable({
-  products,
-  showRestore,
-}: {
-  products: ProductWithCategory[];
-  showRestore: boolean;
-}) {
-  if (products.length === 0) {
-    return <p className="text-sm text-gray-400">Sin productos.</p>;
-  }
-
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b text-left">
-          <th className="py-2 pr-4 font-medium text-gray-500">SKU</th>
-          <th className="py-2 pr-4 font-medium text-gray-500">Nombre</th>
-          <th className="py-2 pr-4 font-medium text-gray-500">Categoría</th>
-          <th className="py-2 pr-4 font-medium text-gray-500 text-right">Precio</th>
-          <th className="py-2 pr-4 font-medium text-gray-500 text-right">Stock</th>
-          <th className="py-2 font-medium text-gray-500"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {products.map((p) => (
-          <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50">
-            <td className="py-2 pr-4 font-mono text-xs text-gray-500">{p.sku}</td>
-            <td className="py-2 pr-4">{p.name}</td>
-            <td className="py-2 pr-4 text-gray-500">{p.category.name}</td>
-            <td className="py-2 pr-4 text-right">
-              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(
-                p.priceCLP,
-              )}
-            </td>
-            <td className="py-2 pr-4 text-right">
-              <span
-                className={
-                  p.stock === 0
-                    ? 'text-red-600 font-medium'
-                    : p.stock <= p.lowStockThreshold
-                      ? 'text-amber-600 font-medium'
-                      : ''
-                }
-              >
-                {p.stock}
-              </span>
-            </td>
-            <td className="py-2">
-              <div className="flex gap-2 justify-end">
-                <Link
-                  href={`/trastienda/productos/${p.id}`}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Editar
-                </Link>
-                <Link
-                  href={`/trastienda/inventario/${p.id}/historico`}
-                  className="text-xs text-gray-500 hover:underline"
-                >
-                  Historial
-                </Link>
-                {showRestore ? (
-                  <form
-                    action={async () => {
-                      'use server';
-                      await restoreProductAction(p.id);
-                    }}
-                  >
-                    <button type="submit" className="text-xs text-green-600 hover:underline">
-                      Restaurar
-                    </button>
-                  </form>
-                ) : (
-                  <form
-                    action={async () => {
-                      'use server';
-                      await archiveProductAction(p.id);
-                    }}
-                  >
-                    <button type="submit" className="text-xs text-red-500 hover:underline">
-                      Archivar
-                    </button>
-                  </form>
-                )}
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

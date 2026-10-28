@@ -1,14 +1,19 @@
 import { db } from '@/src/lib/db';
-import { subDays, startOfDay } from 'date-fns';
+import { Prisma } from '@prisma/client';
+import { SALE_SQL, SALE_WHERE, localTs } from '@/src/lib/sales';
+import { startOfStoreDay, storeDaysAgo } from '@/src/lib/store-time';
+import { fetchPage } from '@/src/lib/panel-list';
+import { productSearchWhere } from '@/src/lib/services/catalog.service';
 
 export async function getSellerDashboardKpis() {
-  const today = startOfDay(new Date());
-  const last7d = subDays(today, 7);
-  const last30d = subDays(today, 30);
+  // Días en hora de Chile ("hoy" = desde la medianoche de Santiago).
+  const today = startOfStoreDay();
+  const last7d = storeDaysAgo(7);
+  const last30d = storeDaysAgo(30);
 
   const [
-    ordersToShipToday,
-    readyToShip,
+    toPack,
+    preparing,
     awaitingPayment,
     todayRevenue,
     weekRevenue,
@@ -17,27 +22,28 @@ export async function getSellerDashboardKpis() {
     totalProductsActive,
     totalStockUnits,
   ] = await Promise.all([
+    // Lo mismo que "Por empacar" en Por despachar: pagadas y aún sin enviar.
     db.order.count({
-      where: { status: 'PAID', createdAt: { gte: today } },
+      where: { paymentStatus: 'PAID', status: { in: ['PAID', 'PREPARING'] } },
     }),
     db.order.count({
-      where: { status: 'PREPARING' },
+      where: { paymentStatus: 'PAID', status: 'PREPARING' },
     }),
     db.order.count({
-      where: { paymentStatus: 'UNPAID', createdAt: { gte: subDays(today, 1) } },
+      where: { paymentStatus: 'UNPAID', status: 'PENDING', createdAt: { gte: new Date(Date.now() - 86_400_000) } },
     }),
     db.order.aggregate({
-      where: { paymentStatus: 'PAID', paidAt: { gte: today } },
-      _sum: { totalCLP: true },
+      where: { ...SALE_WHERE, paidAt: { gte: today } },
+      _sum: { subtotalCLP: true },
       _count: true,
     }),
     db.order.aggregate({
-      where: { paymentStatus: 'PAID', paidAt: { gte: last7d } },
-      _sum: { totalCLP: true },
+      where: { ...SALE_WHERE, paidAt: { gte: last7d } },
+      _sum: { subtotalCLP: true },
     }),
     db.order.aggregate({
-      where: { paymentStatus: 'PAID', paidAt: { gte: last30d } },
-      _sum: { totalCLP: true },
+      where: { ...SALE_WHERE, paidAt: { gte: last30d } },
+      _sum: { subtotalCLP: true },
     }),
     db.$queryRaw<[{ count: bigint }]>`
       SELECT COUNT(*)::bigint AS count
@@ -55,15 +61,15 @@ export async function getSellerDashboardKpis() {
 
   return {
     operational: {
-      ordersToShipToday,
-      readyToShip,
+      toPack,
+      preparing,
       awaitingPayment,
     },
     revenue: {
-      today: todayRevenue._sum.totalCLP ?? 0,
+      today: todayRevenue._sum.subtotalCLP ?? 0,
       todayCount: todayRevenue._count,
-      week: weekRevenue._sum.totalCLP ?? 0,
-      month: monthRevenue._sum.totalCLP ?? 0,
+      week: weekRevenue._sum.subtotalCLP ?? 0,
+      month: monthRevenue._sum.subtotalCLP ?? 0,
     },
     inventory: {
       lowStockCount: Number(lowStockResult[0]?.count ?? 0),
@@ -74,12 +80,12 @@ export async function getSellerDashboardKpis() {
 }
 
 export async function getTopSellingProducts(days = 30, limit = 10) {
-  const since = subDays(new Date(), days);
+  const since = storeDaysAgo(days);
 
   const result = await db.orderItem.groupBy({
     by: ['productId', 'productName'],
     where: {
-      order: { paymentStatus: 'PAID', paidAt: { gte: since } },
+      order: { ...SALE_WHERE, paidAt: { gte: since } },
     },
     _sum: { quantity: true },
     orderBy: { _sum: { quantity: 'desc' } },
@@ -107,21 +113,24 @@ export async function getLowStockProducts() {
   `;
 }
 
+// `date` es la medianoche del día en Chile, representada como fecha UTC:
+// mostrarla con timeZone 'UTC' para no correrla un día.
 export async function getDailyRevenue(days = 30) {
-  const since = subDays(new Date(), days);
+  const since = storeDaysAgo(days);
+  const day = Prisma.sql`DATE_TRUNC('day', ${localTs(Prisma.sql`o."paidAt"`)})`;
 
   const result = await db.$queryRaw<
     Array<{ date: Date; revenue: bigint; orders: bigint }>
   >`
     SELECT
-      DATE_TRUNC('day', "paidAt") AS date,
-      SUM("totalCLP")::bigint AS revenue,
+      ${day} AS date,
+      SUM(o."subtotalCLP")::bigint AS revenue,
       COUNT(*)::bigint AS orders
-    FROM "Order"
-    WHERE "paymentStatus" = 'PAID'
-      AND "paidAt" >= ${since}
-    GROUP BY DATE_TRUNC('day', "paidAt")
-    ORDER BY date ASC
+    FROM "Order" o
+    WHERE ${SALE_SQL}
+      AND o."paidAt" >= ${since}
+    GROUP BY 1
+    ORDER BY 1 ASC
   `;
 
   return result.map((r) => ({
@@ -137,32 +146,64 @@ export async function getInventoryValuation() {
     select: { stock: true, costCLP: true, priceCLP: true },
   });
 
+  // Un producto sin costo no suma "$0" al costo: se cuenta aparte para avisarlo.
   return products.reduce(
     (acc, p) => ({
       atCost: acc.atCost + (p.costCLP ?? 0) * p.stock,
       atRetail: acc.atRetail + p.priceCLP * p.stock,
       units: acc.units + p.stock,
+      withoutCost: acc.withoutCost + (p.costCLP === null && p.stock > 0 ? 1 : 0),
     }),
-    { atCost: 0, atRetail: 0, units: 0 },
+    { atCost: 0, atRetail: 0, units: 0, withoutCost: 0 },
   );
 }
 
-export async function getInventoryMaster() {
-  const products = await db.product.findMany({
-    where: { active: true, archivedAt: null },
-    select: {
-      id: true,
-      sku: true,
-      name: true,
-      stock: true,
-      lowStockThreshold: true,
-      costCLP: true,
-      priceCLP: true,
-      category: { select: { name: true } },
-    },
-    orderBy: { name: 'asc' },
-  });
+export async function getInventoryMaster(opts: {
+  q: string;
+  categoryId?: string;
+  lowOnly: boolean;
+  page: number;
+  perPage: number;
+}) {
+  const where: Prisma.ProductWhereInput = {
+    active: true,
+    archivedAt: null,
+    ...productSearchWhere(opts.q),
+    ...(opts.categoryId ? { categoryId: opts.categoryId } : {}),
+    // Bajo stock = stock físico <= umbral del mismo producto (comparación entre columnas).
+    ...(opts.lowOnly ? { stock: { lte: db.product.fields.lowStockThreshold } } : {}),
+  };
 
+  // El conteo de "necesitan reposición" es de todo el inventario, no solo de lo filtrado.
+  const [lowCount, { info, items: products }] = await Promise.all([
+    db.product.count({
+      where: { active: true, archivedAt: null, stock: { lte: db.product.fields.lowStockThreshold } },
+    }),
+    fetchPage(
+      opts.page,
+      opts.perPage,
+      () => db.product.count({ where }),
+      (skip, take) =>
+        db.product.findMany({
+          where,
+          skip,
+          take,
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            stock: true,
+            lowStockThreshold: true,
+            costCLP: true,
+            priceCLP: true,
+            category: { select: { name: true } },
+          },
+          orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        }),
+    ),
+  ]);
+
+  // Reservas solo de los productos de esta página.
   const reservations = await db.stockReservation.groupBy({
     by: ['productId'],
     where: {
@@ -176,10 +217,14 @@ export async function getInventoryMaster() {
     reservations.map((r) => [r.productId, r._sum.quantity ?? 0]),
   );
 
-  return products.map((p) => ({
-    ...p,
-    reserved: reservedMap.get(p.id) ?? 0,
-    available: p.stock - (reservedMap.get(p.id) ?? 0),
-    isLowStock: p.stock <= p.lowStockThreshold,
-  }));
+  return {
+    info,
+    lowCount,
+    products: products.map((p) => ({
+      ...p,
+      reserved: reservedMap.get(p.id) ?? 0,
+      available: p.stock - (reservedMap.get(p.id) ?? 0),
+      isLowStock: p.stock <= p.lowStockThreshold,
+    })),
+  };
 }

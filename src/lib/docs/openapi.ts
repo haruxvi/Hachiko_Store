@@ -42,10 +42,10 @@ export const openApiSpec = {
     title: 'Hachiko API',
     version: '0.1.0',
     description:
-      'API del e-commerce Hachiko. Autenticación por cookies httpOnly (JWT firmado HS256): ' +
-      '`hachiko_access` (15 min) y `hachiko_refresh` (7 días, scope `/api/auth/refresh`). ' +
+      'API del e-commerce Hachiko. Autenticación por cookies httpOnly (JWT cifrado, JWE dir + A256GCM): ' +
+      '`hachiko_access` (15 min) y `hachiko_refresh` (7 días, de un solo uso, scope `/api/auth`). ' +
       'Todas las respuestas de error siguen el formato `{ ok: false, error: { code, message } }`.',
-    contact: { email: 'contacto@hachiko.cl' },
+    contact: { email: 'hachiko.store.contacto@gmail.com' },
   },
   servers: [
     { url: 'http://localhost:3000', description: 'Desarrollo local' },
@@ -191,7 +191,9 @@ export const openApiSpec = {
         description:
           'Usa la cookie `hachiko_refresh` para emitir un nuevo par de tokens. Verifica contra ' +
           'la base que el usuario siga activo, no esté bloqueado y que el token no haya sido ' +
-          'revocado por logout (tokenVersion). Rate limit: 30 por IP por minuto.',
+          'revocado por logout (tokenVersion). Cada refresh token sirve UNA vez: si reaparece uno ya ' +
+          'usado (fuera de una ventana de 30 s), se revoca toda su familia y se audita ' +
+          'REFRESH_TOKEN_REUSE. Rate limit: 30 por IP por minuto.',
         security: [{ refreshCookie: [] }],
         responses: {
           '200': {
@@ -202,6 +204,10 @@ export const openApiSpec = {
             'Refresh inválido, revocado o cuenta bloqueada ' +
               '(codes: NO_REFRESH, INVALID_REFRESH, ACCOUNT_LOCKED). Limpia las cookies.'
           ),
+          '409': errorContent(
+            'Otra pestaña renovó con el mismo token hace un instante (code: REFRESH_RACE). ' +
+              'NO limpia las cookies: ya traen el par nuevo; basta con reintentar.'
+          ),
           '429': errorContent('Demasiados intentos (code: RATE_LIMITED)'),
         },
       },
@@ -211,9 +217,10 @@ export const openApiSpec = {
         tags: ['Auth'],
         summary: 'Cerrar sesión (todos los dispositivos)',
         description:
-          'Incrementa tokenVersion del usuario, lo que revoca todos los refresh tokens ' +
+          'Identifica al usuario por el access token o, si ya venció, por el refresh token, e ' +
+          'incrementa su tokenVersion, lo que revoca todos los refresh tokens ' +
           'emitidos, y limpia las cookies de esta sesión.',
-        security: [{ accessCookie: [] }, {}],
+        security: [{ accessCookie: [] }, { refreshCookie: [] }, {}],
         responses: {
           '200': {
             description: 'Sesión cerrada (idempotente: responde 200 aunque no haya sesión)',
@@ -499,7 +506,7 @@ export const openApiSpec = {
         type: 'apiKey',
         in: 'cookie',
         name: 'hachiko_refresh',
-        description: 'JWT de refresco (7 días) con path restringido a /api/auth/refresh',
+        description: 'JWT de refresco cifrado (7 días, un solo uso) con path restringido a /api/auth',
       },
       cronBearer: {
         type: 'http',

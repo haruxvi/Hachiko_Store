@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import type { NextResponse } from 'next/server';
 import { verifyAccessToken, type JWTPayload } from './jwt';
 
 const ACCESS_COOKIE = 'hachiko_access';
@@ -36,14 +37,31 @@ export function refreshCookieOptions() {
       secure: process.env['NODE_ENV'] === 'production',
       sameSite: 'strict' as const,
       maxAge: 7 * 24 * 60 * 60,
-      path: '/api/auth/refresh',
+      // Solo viaja a /api/auth/* (refresh y logout), nunca al resto del sitio.
+      // Logout lo necesita para revocar la sesión aunque el access ya venció.
+      path: REFRESH_COOKIE_PATH,
     },
   };
 }
 
-export function clearAuthCookies() {
-  return [
-    { name: ACCESS_COOKIE, options: { maxAge: 0, path: '/' } },
-    { name: REFRESH_COOKIE, options: { maxAge: 0, path: '/api/auth/refresh' } },
-  ];
+const REFRESH_COOKIE_PATH = '/api/auth';
+// Ruta anterior de la cookie de refresh: se sigue borrando al cerrar sesión para
+// que no queden cookies huérfanas en navegadores con sesiones antiguas.
+const LEGACY_REFRESH_COOKIE_PATH = '/api/auth/refresh';
+
+export const REFRESH_COOKIE_NAME = REFRESH_COOKIE;
+
+/**
+ * Borra las cookies de sesión en la respuesta. `response.cookies` guarda una
+ * cookie por NOMBRE, así que la de la ruta antigua se agrega directo como
+ * header (y al final: un `cookies.set` posterior reescribiría los headers).
+ */
+export function clearAuthCookies(response: NextResponse): NextResponse {
+  response.cookies.set(ACCESS_COOKIE, '', { maxAge: 0, path: '/' });
+  response.cookies.set(REFRESH_COOKIE, '', { maxAge: 0, path: REFRESH_COOKIE_PATH });
+  response.headers.append(
+    'Set-Cookie',
+    `${REFRESH_COOKIE}=; Path=${LEGACY_REFRESH_COOKIE_PATH}; Max-Age=0; HttpOnly; SameSite=Strict`,
+  );
+  return response;
 }

@@ -1,6 +1,7 @@
 import { db } from '@/src/lib/db';
 import { encrypt, decrypt, decryptOptional } from '@/src/lib/crypto/pii';
 import { writeAudit } from './audit.service';
+import { unsubscribeEmailEverywhere } from './newsletter.service';
 
 export async function exportUserData(userId: string) {
   const user = await db.user.findUnique({
@@ -81,6 +82,86 @@ export async function requestAccountDeletion(userId: string, reason?: string) {
   });
 }
 
+// Pedidos que todavía se están despachando: sus datos de entrega se necesitan
+// para la etiqueta, así que la purga espera a que salgan de este estado.
+const IN_DISPATCH = ['PAID', 'PREPARING'] as const;
+
+/**
+ * Ejecuta las solicitudes de eliminación cuyo plazo de 30 días ya venció
+ * (Ley 21.719, derecho de supresión). Lo llama el cron diario de retención.
+ *
+ * - La cuenta se anonimiza en vez de borrarse: los pedidos deben conservarse
+ *   por obligación tributaria (SII), así que se mantienen montos, productos y
+ *   fechas, pero se elimina todo lo que identifica a la persona: email,
+ *   nombre, teléfono, direcciones, datos de entrega, 2FA, tokens, segmentos de
+ *   ML, suscripción a promociones y el vínculo con los eventos de navegación.
+ * - El email se reemplaza por uno imposible, lo que libera el original: la
+ *   persona puede volver a registrarse si quiere.
+ * - Si tiene un pedido aún en despacho, se posterga al siguiente día.
+ */
+export async function executeDueDeletions(now = new Date()): Promise<{ executed: number; postponed: number }> {
+  const due = await db.deletionRequest.findMany({
+    where: { executedAt: null, scheduledFor: { lte: now } },
+    select: { id: true, userId: true },
+  });
+
+  let executed = 0;
+  let postponed = 0;
+  for (const req of due) {
+    const done = await db.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: req.userId }, select: { email: true } });
+      if (!user) {
+        await tx.deletionRequest.update({ where: { id: req.id }, data: { executedAt: now } });
+        return true;
+      }
+      const inDispatch = await tx.order.count({ where: { userId: req.userId, status: { in: [...IN_DISPATCH] } } });
+      if (inDispatch > 0) return false;
+
+      await tx.user.update({
+        where: { id: req.userId },
+        data: {
+          email: `eliminado+${req.userId}@hachiko.invalid`,
+          passwordHash: '!deleted',
+          firstName: null,
+          lastName: null,
+          phone: null,
+          totpSecret: null,
+          totpEnabledAt: null,
+          consentMarketing: false,
+          consentIp: null,
+          deletedAt: now,
+          tokenVersion: { increment: 1 },
+        },
+      });
+      await tx.order.updateMany({
+        where: { userId: req.userId },
+        data: {
+          shippingFullName: encrypt('[eliminado]'),
+          shippingPhone: encrypt('[eliminado]'),
+          shippingStreet: null,
+          shippingNumber: null,
+          shippingApartment: null,
+          shippingNotes: null,
+        },
+      });
+      await tx.address.deleteMany({ where: { userId: req.userId } });
+      await tx.actionToken.deleteMany({ where: { userId: req.userId } });
+      await tx.refreshToken.deleteMany({ where: { userId: req.userId } });
+      await tx.customerSegment.deleteMany({ where: { userId: req.userId } });
+      await tx.analyticsEvent.updateMany({ where: { userId: req.userId }, data: { userId: null } });
+      await tx.newsletterSubscriber.deleteMany({ where: { email: user.email } });
+      await tx.deletionRequest.update({ where: { id: req.id }, data: { executedAt: now } });
+      await tx.auditLog.create({
+        data: { actorId: req.userId, action: 'ACCOUNT_DELETED', targetType: 'User', targetId: req.userId },
+      });
+      return true;
+    });
+    if (done) executed++;
+    else postponed++;
+  }
+  return { executed, postponed };
+}
+
 export async function updateUserProfile(
   userId: string,
   input: { firstName?: string; lastName?: string; phone?: string }
@@ -147,17 +228,39 @@ export async function saveDefaultShippingAddress(userId: string, input: SavedAdd
   }
 }
 
+// Resumen para el perfil: cuántas compras pagadas tiene la persona y en qué va
+// la última. Dos consultas livianas en paralelo (Order está indexado por userId).
+export async function getAccountSummary(userId: string) {
+  const paid = { userId, paymentStatus: 'PAID' as const };
+  const [orderCount, lastOrder] = await Promise.all([
+    // "Llevas N compras": las canceladas (reembolsadas) no cuentan como compra.
+    db.order.count({ where: { ...paid, status: { not: 'CANCELLED' } } }),
+    db.order.findFirst({
+      where: paid,
+      orderBy: { createdAt: 'desc' },
+      select: { orderNumber: true, status: true, shippingMethod: true },
+    }),
+  ]);
+  return { orderCount, lastOrder };
+}
+
 export async function updateUserConsent(
   userId: string,
   consentMarketing: boolean
 ) {
-  await db.user.update({
+  const user = await db.user.update({
     where: { id: userId },
     data: {
       consentMarketing,
       consentUpdatedAt: new Date(),
     },
+    select: { email: true },
   });
+
+  // Revocar el marketing desde el perfil también da de baja una suscripción del
+  // footer con el mismo correo: la persona deja de recibir promociones por
+  // cualquier vía (Ley 21.719, revocación efectiva).
+  if (!consentMarketing) await unsubscribeEmailEverywhere(user.email);
 
   await writeAudit({
     actorId: userId,

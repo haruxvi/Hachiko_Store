@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import NewsletterForm from '@/src/components/storefront/NewsletterForm';
 
 function FooterCol({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
@@ -7,7 +8,7 @@ function FooterCol({ title, links }: { title: string; links: { label: string; hr
       <ul className="flex flex-col gap-2.5">
         {links.map((l) => (
           <li key={l.label}>
-            <Link href={l.href} className="text-sm text-taupe hover:text-rust">
+            <Link href={l.href} className="text-sm text-taupe hover:text-rust-ink">
               {l.label}
             </Link>
           </li>
@@ -25,20 +26,10 @@ export default function SiteFooter() {
           <div>
             <div className="mb-3 font-display text-lg font-bold text-soot">Carta del barrio</div>
             <p className="mb-4 max-w-[280px] text-sm text-taupe">
-              Un correo al mes. Recetas, lanzamientos pequeños y las cosas raras que encontramos en
-              Seúl.
+              Promociones exclusivas, lanzamientos y las cosas raras que encontramos en Seúl, directo a
+              tu correo.
             </p>
-            <form className="flex gap-2">
-              <input
-                type="email"
-                placeholder="tu@correo.cl"
-                aria-label="Email para el boletín"
-                className="input-hs flex-1"
-              />
-              <button type="submit" className="btn-primary btn-sm !px-3.5 !py-2.5">
-                Suscribir
-              </button>
-            </form>
+            <NewsletterForm />
           </div>
           <FooterCol
             title="Tienda"
@@ -55,7 +46,7 @@ export default function SiteFooter() {
               { label: 'Envíos a Chile', href: '/legal/despacho' },
               { label: 'Cambios y devoluciones', href: '/legal/devoluciones' },
               { label: 'Pago seguro', href: '/legal/terminos' },
-              { label: 'Contacto', href: 'mailto:contacto@hachiko.cl' },
+              { label: 'Contacto', href: 'mailto:hachiko.store.contacto@gmail.com' },
             ]}
           />
           <FooterCol
@@ -70,7 +61,7 @@ export default function SiteFooter() {
         </div>
         <div className="flex flex-col items-start justify-between gap-6 border-t border-sand pt-8 sm:flex-row sm:items-end">
           <div className="font-display text-6xl font-bold leading-[0.9] tracking-[-0.04em] text-soot sm:text-8xl">
-            hachiko<span className="text-rust">.</span>
+            hachiko<span className="text-rust-ink">.</span>
           </div>
           <div className="text-[13px] text-taupe sm:text-right">
             <div>Hecho con cariño en Recoleta · 2026</div>

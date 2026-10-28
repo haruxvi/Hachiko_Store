@@ -13,7 +13,7 @@ export default async function RegistroPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
-        <Link href="/" className="text-rose-600 font-bold text-xl">
+        <Link href="/" className="text-rust-ink font-bold text-xl">
           Hachiko
         </Link>
         <h1 className="text-2xl font-bold mt-6 mb-6">Crear cuenta</h1>

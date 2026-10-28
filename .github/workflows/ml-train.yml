@@ -18,9 +18,20 @@ jobs:
   train:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Sin el secret el pipeline no tiene base de datos: se avisa claro en vez de
+      # fallar con un error genérico (pasó 49 días seguidos sin que se notara).
+      - name: Verificar que existe el secret NEON_DIRECT_URL
+        env:
+          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+        run: |
+          if [ -z "$DIRECT_URL" ]; then
+            echo "::error title=Falta el secret NEON_DIRECT_URL::Agrégalo en Settings → Secrets and variables → Actions con la URL directa (no pooled) de Neon."
+            exit 1
+          fi
 
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip

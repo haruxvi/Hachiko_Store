@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCartStore } from '@/src/lib/stores/cart';
 import { checkoutAction } from '@/src/actions/cart';
+import { analyticsSessionId, track } from '@/src/lib/analytics/client';
 import { ShippingAddressSchema, ShippingMethodSchema } from '@/src/lib/validation/schemas';
 import { SHIPPING_METHODS, calculateShipping } from '@/src/lib/shipping';
 import type { ShippingMethod } from '@prisma/client';
@@ -84,7 +86,7 @@ function PayLogo({ name }: { name: 'WEBPAY' | 'MERCADOPAGO' }) {
 }
 
 export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddress | null }) {
-  const { items, clear, total } = useCartStore();
+  const { items, total } = useCartStore();
   const {
     register,
     handleSubmit,
@@ -97,6 +99,14 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
       ...(savedAddress ?? {}),
     },
   });
+
+  // Embudo: una vez por visita al checkout, y solo si hay algo que comprar
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return;
+    checkoutTracked.current = true;
+    track({ type: 'CHECKOUT_START' });
+  }, [items.length]);
 
   const method = watch('shippingMethod') as ShippingMethod;
   const provider = watch('paymentProvider');
@@ -120,6 +130,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
       },
       paymentProvider: data.paymentProvider,
       items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+      analyticsSessionId: analyticsSessionId() ?? undefined,
     });
 
     if (!result.ok) {
@@ -137,7 +148,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
       });
       const json = (await res.json()) as { ok: boolean; data?: { url: string; token: string } };
       if (json.ok && json.data) {
-        clear();
+        window.sessionStorage.setItem('hachiko-pending-payment', orderId);
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = json.data.url;
@@ -157,7 +168,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
       });
       const json = (await res.json()) as { ok: boolean; data?: { initPoint: string } };
       if (json.ok && json.data) {
-        clear();
+        window.sessionStorage.setItem('hachiko-pending-payment', orderId);
         window.location.href = json.data.initPoint;
       }
     }
@@ -182,7 +193,7 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form method="post" onSubmit={handleSubmit(onSubmit)}>
         {/* ── 1 · Envío ── */}
         <Section num="1" title="¿A dónde lo enviamos?">
           {/* Método de entrega: lo que se elija aquí es lo ÚNICO que el cliente
@@ -295,11 +306,11 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
 
         <p className="text-center text-xs text-taupe">
           Al pagar aceptas nuestros{' '}
-          <a href="/legal/terminos" className="underline hover:text-rust">
+          <a href="/legal/terminos" className="underline hover:text-rust-ink">
             Términos y Condiciones
           </a>{' '}
           y{' '}
-          <a href="/legal/privacidad" className="underline hover:text-rust">
+          <a href="/legal/privacidad" className="underline hover:text-rust-ink">
             Política de Privacidad
           </a>
           .

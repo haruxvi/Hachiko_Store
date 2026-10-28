@@ -18,12 +18,12 @@ export default function VerifyEmailButton({ token }: { token: string }) {
   if (state === 'ok') {
     return (
       <div className="space-y-4">
-        <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg px-4 py-4">
+        <div className="bg-mint border border-mint-deep/40 text-mint-ink text-sm rounded-lg px-4 py-4">
           ✓ Tu correo quedó verificado. ¡Gracias!
         </div>
         <Link
           href="/"
-          className="block text-center bg-rose-600 text-white text-sm py-2.5 rounded-lg hover:bg-rose-700"
+          className="btn-primary w-full"
         >
           Ir a la tienda
         </Link>
@@ -33,7 +33,7 @@ export default function VerifyEmailButton({ token }: { token: string }) {
 
   if (state === 'fail') {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-4">
+      <div className="bg-alert/[0.08] border border-alert/30 text-alert text-sm rounded-lg px-4 py-4">
         El enlace expiró o ya fue usado. Puedes pedir uno nuevo desde tu perfil.
       </div>
     );
@@ -43,7 +43,7 @@ export default function VerifyEmailButton({ token }: { token: string }) {
     <button
       onClick={handle}
       disabled={state === 'loading'}
-      className="w-full bg-rose-600 text-white text-sm py-2.5 rounded-lg hover:bg-rose-700 disabled:opacity-50"
+      className="btn-primary w-full disabled:opacity-50"
     >
       {state === 'loading' ? 'Verificando…' : 'Confirmar mi correo'}
     </button>

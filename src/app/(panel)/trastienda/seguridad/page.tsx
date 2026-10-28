@@ -95,7 +95,7 @@ export default async function SeguridadPage() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Incidencias */}
-        <section className="overflow-hidden rounded-2xl border border-sand bg-snow">
+        <section id="incidencias" className="scroll-mt-6 overflow-hidden rounded-2xl border border-sand bg-snow">
           <h2 className="editorial bg-cream px-4 py-3 text-sm text-taupe">Incidencias</h2>
           {incidents.length === 0 ? (
             <p className="px-4 py-5 text-sm text-taupe">Sin incidencias registradas.</p>
@@ -110,7 +110,7 @@ export default async function SeguridadPage() {
                     <td className="px-4 py-3 align-middle">
                       <Link
                         href={`/trastienda/seguridad/${i.id}`}
-                        className="text-[15px] font-medium leading-snug text-soot transition hover:text-rust hover:underline"
+                        className="text-[15px] font-medium leading-snug text-soot transition hover:text-rust-ink hover:underline"
                       >
                         {i.title}
                       </Link>
@@ -195,7 +195,7 @@ function KpiCard({
       <div className="mb-2.5 text-[13px] font-medium text-taupe">{label}</div>
       <div
         className={`price-mono text-[28px] leading-none tracking-[-0.02em] ${
-          alert ? 'text-rust-dark' : 'text-soot'
+          alert ? 'text-rust-ink' : 'text-soot'
         }`}
       >
         {value}

@@ -6,7 +6,9 @@ export const num = (n: number) => n.toLocaleString('es-CL');
 export const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-export const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getMonth()]} ${new Date(d).getFullYear()}`;
+// Los períodos se guardan a medianoche UTC (p. ej. 2026-10-01T00:00Z). Leerlos en
+// hora local corre el mes hacia atrás en zonas como Chile (UTC−3 → "sep").
+export const monthLabel = (d: Date) => `${MONTHS_ES[new Date(d).getUTCMonth()]} ${new Date(d).getUTCFullYear()}`;
 
 export function PageHeader({ title, subtitle, updated }: { title: string; subtitle: string; updated?: Date | null }) {
   return (
@@ -30,9 +32,10 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
 
 export function Stat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: boolean }) {
   return (
-    <div className="card-hs shadow-soft p-5">
+    <div className="card-hs shadow-soft min-w-0 p-4 sm:p-5">
       <p className="text-[13px] text-taupe">{label}</p>
-      <p className={`price-mono mt-1.5 text-[25px] leading-none ${accent ? 'text-rust-dark' : 'text-soot'}`}>{value}</p>
+      {/* En teléfono los montos de 8+ dígitos no caben a 25px en media columna */}
+      <p className={`price-mono mt-1.5 break-all text-[19px] leading-none sm:text-[25px] ${accent ? 'text-rust-ink' : 'text-soot'}`}>{value}</p>
       {hint && <p className="mt-2 text-xs text-taupe">{hint}</p>}
     </div>
   );

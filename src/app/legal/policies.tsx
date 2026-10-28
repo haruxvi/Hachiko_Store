@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { CookiePreferencesButton } from '@/src/components/storefront/CookieNotice';
 
 // Contenido de las páginas legales, estructurado para el layout editorial
 // (rediseño importado desde Claude Design · proyecto Hachiko_Store).
@@ -43,8 +44,8 @@ export const ORDER: PolicySlug[] = [
 ];
 
 const mailto = (
-  <a href="mailto:contacto@hachiko.cl" className="font-medium text-rust hover:underline">
-    contacto@hachiko.cl
+  <a href="mailto:hachiko.store.contacto@gmail.com" className="font-medium text-rust-ink hover:underline">
+    hachiko.store.contacto@gmail.com
   </a>
 );
 
@@ -53,7 +54,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'privacidad',
     label: 'Privacidad',
     title: 'Política de Privacidad',
-    meta: 'Versión 1.0 — vigente desde el 10 de junio de 2026',
+    meta: 'Versión 1.2 — vigente desde el 14 de octubre de 2026',
     intro:
       'Cómo tratamos tus datos personales, conforme a la Ley N° 21.719. En resumen: pedimos lo mínimo, lo cuidamos, y puedes ejercer tus derechos cuando quieras.',
     law: 'Ley N° 21.719 · Protección de Datos Personales',
@@ -112,9 +113,32 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 cumplimiento de obligación legal.
               </>,
               <>
-                <strong>Comunicaciones de marketing</strong>: solo si marcaste la casilla
-                correspondiente. Base de licitud: tu consentimiento, que puedes revocar en cualquier
-                momento desde tu perfil sin afectar tu cuenta.
+                <strong>Promociones por correo</strong> (tu correo electrónico): solo si marcaste la
+                casilla al registrarte o en tu perfil, o si te suscribiste desde el pie de página del
+                sitio. En este último caso la suscripción se activa recién cuando la confirmas desde
+                el enlace que te enviamos, para asegurar que el correo es tuyo. Base de licitud: tu
+                consentimiento, que puedes revocar en cualquier momento con el enlace{' '}
+                <strong>&ldquo;Darme de baja&rdquo;</strong> que trae cada correo de promociones, o
+                desde tu perfil, sin afectar tu cuenta ni los correos de tus pedidos.
+              </>,
+              <>
+                <strong>Segmentación de clientes</strong> (fechas, cantidad y monto de tus compras,
+                sin correo ni teléfono): solo si aceptaste recibir promociones, para agruparte con
+                clientes de hábitos parecidos y ofrecerte promociones más pertinentes. No produce
+                decisiones automáticas con efectos sobre ti. Base de licitud: tu consentimiento; si lo
+                revocas, sales de la segmentación en la siguiente actualización (a más tardar al día
+                siguiente).
+              </>,
+              <>
+                <strong>Medición de la tienda</strong> (páginas y productos vistos, búsquedas y pasos
+                del carrito, con un identificador aleatorio que se borra al cerrar la pestaña): solo
+                si eliges &ldquo;Aceptar medición&rdquo; en el aviso de cookies. Se usa en forma
+                agregada para mejorar el catálogo y el proceso de compra. Base de licitud: tu
+                consentimiento, que puedes cambiar en la{' '}
+                <Link href="/legal/cookies" className="font-medium text-rust-ink hover:underline">
+                  Política de Cookies
+                </Link>
+                .
               </>,
             ],
           },
@@ -146,6 +170,12 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 incidentes no contiene datos personales de clientes y se conserva como evidencia
                 auditable.
               </>,
+              <>
+                <strong>Suscripción a promociones</strong>: mientras sigas suscrito. Si no confirmas
+                la suscripción, tu correo se elimina automáticamente a los <strong>30 días</strong>.
+                Si te das de baja, conservamos solo el registro de tu baja, para no volver a
+                escribirte.
+              </>,
             ],
           },
         ],
@@ -173,8 +203,9 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 exclusivamente para el despacho.
               </>,
               <>
-                <strong>Proveedores de infraestructura y correo transaccional</strong> (alojamiento
-                del sitio, base de datos y envío de correos de pedidos): pueden implicar transferencia
+                <strong>Proveedores de infraestructura y correo</strong> (alojamiento del sitio,
+                base de datos, almacenamiento de imágenes y envío de correos de pedidos y de
+                promociones): pueden implicar transferencia
                 internacional de datos a proveedores que ofrecen garantías adecuadas de seguridad.
               </>,
               <>
@@ -183,6 +214,24 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 necesario.
               </>,
             ],
+          },
+        ],
+      },
+      {
+        h: 'Menores de edad',
+        blocks: [
+          {
+            kind: 'p',
+            content: (
+              <>
+                Hachiko está dirigido a personas de <strong>14 años o más</strong>. Las personas
+                menores de 14 años no deben crear una cuenta, suscribirse ni comprar sin la
+                autorización de su padre, madre o representante legal, conforme a la Ley N° 21.719.
+                Si detectamos que recibimos datos de un menor de 14 años sin esa autorización, los
+                eliminaremos. Si eres padre, madre o representante y crees que un menor a tu cargo
+                nos entregó sus datos, escríbenos a {mailto}.
+              </>
+            ),
           },
         ],
       },
@@ -263,7 +312,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
               <>
                 Usamos únicamente cookies esenciales para el funcionamiento del sitio: mantener tu
                 sesión iniciada y tu carrito de compras. Más detalle en la{' '}
-                <Link href="/legal/cookies" className="font-medium text-rust hover:underline">
+                <Link href="/legal/cookies" className="font-medium text-rust-ink hover:underline">
                   Política de Cookies
                 </Link>
                 . Si modificamos esta política publicaremos la nueva versión en esta página con su
@@ -281,7 +330,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'devoluciones',
     label: 'Cambios y devoluciones',
     title: 'Cambios y devoluciones',
-    meta: 'Última actualización: 10 de junio de 2026',
+    meta: 'Última actualización: 20 de octubre de 2026',
     intro:
       'Si algo llegó con falla o no era lo que esperabas, lo resolvemos. Tus derechos se rigen por la Ley del Consumidor.',
     law: 'Ley N° 19.496 · Protección de los Derechos de los Consumidores',
@@ -298,7 +347,8 @@ const POLICIES: Record<PolicySlug, Policy> = {
               <>
                 Todos los productos cuentan con la garantía legal que establece la Ley N° 19.496 sobre
                 Protección de los Derechos de los Consumidores. Si un producto llega con fallas, dañado
-                o no corresponde a lo que compraste, tienes derecho a su cambio, reparación o a la
+                o no corresponde a lo que compraste, dentro de los <strong>6 meses</strong> siguientes a
+                su recepción <strong>tú eliges</strong> entre su cambio, su reparación gratuita o la
                 devolución de lo pagado.
               </>
             ),
@@ -306,17 +356,21 @@ const POLICIES: Record<PolicySlug, Policy> = {
         ],
       },
       {
-        h: 'Plazo para solicitarlo',
+        h: 'Plazos para solicitarlo',
         blocks: [
           {
-            kind: 'p',
-            content: (
+            kind: 'list',
+            items: [
               <>
-                Puedes solicitar un cambio o devolución dentro de los <strong>10 días corridos</strong>{' '}
-                siguientes a la recepción de tu pedido. Para productos con falla, la garantía legal
-                rige por los plazos que establece la ley aunque hayan pasado esos 10 días.
-              </>
-            ),
+                <strong>Derecho a retracto:</strong> como compraste a distancia, puedes arrepentirte
+                dentro de los <strong>10 días corridos</strong> siguientes a la recepción de tu pedido
+                y pedir el cambio o la devolución del dinero.
+              </>,
+              <>
+                <strong>Garantía legal (producto con falla):</strong> hasta <strong>6 meses</strong>{' '}
+                desde la recepción, aunque hayan pasado los 10 días.
+              </>,
+            ],
           },
         ],
       },
@@ -343,9 +397,19 @@ const POLICIES: Record<PolicySlug, Policy> = {
           {
             kind: 'steps',
             items: [
-              <>Escríbenos a {mailto} indicando tu número de pedido y el motivo.</>,
-              <>Te confirmamos si corresponde cambio, reparación o devolución del dinero.</>,
-              <>Coordinamos contigo el retiro o el reenvío del producto a través de Starken.</>,
+              <>
+                En <strong>Mis pedidos</strong>, toca &ldquo;Solicitar cambio o devolución&rdquo; en el
+                pedido, elige los productos, el motivo y la opción que prefieres. Si no tienes cuenta o
+                prefieres el correo, escríbenos a {mailto} con tu número de pedido.
+              </>,
+              <>
+                Revisamos tu solicitud y te escribimos con las instrucciones para entregarnos el
+                producto (en la tienda o por despacho). Puedes seguir el estado en Mis pedidos.
+              </>,
+              <>
+                Cuando lo recibimos, hacemos el cambio, la reparación o la devolución del dinero. Si
+                la solicitud no corresponde, te explicamos el motivo por escrito.
+              </>,
             ],
           },
         ],
@@ -387,9 +451,9 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'despacho',
     label: 'Envíos a Chile',
     title: 'Envíos a Chile',
-    meta: 'Última actualización: 10 de junio de 2026',
+    meta: 'Última actualización: 20 de octubre de 2026',
     intro:
-      'Despachamos a todo Chile desde Recoleta, vía Starken. Sin cargos ocultos: el valor que ves en el resumen es el total final.',
+      'Despachamos a todo Chile desde Recoleta, vía Starken o Correos de Chile, o lo retiras en tienda. Sin cargos ocultos: el valor que ves en el resumen es el total final.',
     law: null,
     metaTitle: 'Envíos a Chile — Hachiko',
     metaDescription:
@@ -402,10 +466,34 @@ const POLICIES: Record<PolicySlug, Policy> = {
             kind: 'p',
             content: (
               <>
-                Despachamos a todo Chile a través de <strong>Starken</strong>. Puedes elegir entrega a
-                domicilio o retiro en la sucursal Starken más cercana al momento de finalizar tu compra.
+                Despachamos a todo Chile a través de <strong>Starken</strong> o{' '}
+                <strong>Correos de Chile</strong>, a elección tuya al finalizar la compra. También
+                puedes retirar tu pedido sin costo en nuestra tienda de Recoleta.
               </>
             ),
+          },
+        ],
+      },
+      {
+        h: 'Retiro en tienda',
+        blocks: [
+          {
+            kind: 'list',
+            items: [
+              <>
+                Te avisamos por correo cuando tu pedido esté <strong>listo para retiro</strong>. Trae tu
+                nombre y el número de pedido.
+              </>,
+              <>
+                Tienes <strong>15 días corridos</strong> desde ese aviso para retirarlo. Te enviamos
+                recordatorios a los 3 y a los 10 días.
+              </>,
+              <>
+                Si no lo retiras dentro del plazo, cancelamos el pedido y te{' '}
+                <strong>devolvemos el dinero completo</strong> por el mismo medio de pago. No cobramos
+                bodegaje.
+              </>,
+            ],
           },
         ],
       },
@@ -470,7 +558,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 Cuando tu pedido es despachado te enviamos un correo con el número de seguimiento de
                 Starken para que puedas revisar el estado del envío. También puedes ver el estado de
                 tus pedidos en{' '}
-                <Link href="/pedidos" className="font-medium text-rust hover:underline">
+                <Link href="/pedidos" className="font-medium text-rust-ink hover:underline">
                   Mi cuenta → Mis pedidos
                 </Link>
                 .
@@ -489,7 +577,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
                 Si tu pedido se retrasa más de lo informado, llega dañado o no lo recibes, escríbenos a{' '}
                 {mailto} indicando tu número de pedido y te ayudamos a resolverlo. Revisa también
                 nuestra{' '}
-                <Link href="/legal/devoluciones" className="font-medium text-rust hover:underline">
+                <Link href="/legal/devoluciones" className="font-medium text-rust-ink hover:underline">
                   política de cambios y devoluciones
                 </Link>
                 .
@@ -590,7 +678,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
             content: (
               <>
                 Los plazos, costos y cobertura de envío se detallan en la política de{' '}
-                <Link href="/legal/despacho" className="font-medium text-rust hover:underline">
+                <Link href="/legal/despacho" className="font-medium text-rust-ink hover:underline">
                   Envíos a Chile
                 </Link>
                 .
@@ -608,7 +696,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
               <>
                 Tus derechos de retracto, cambio y garantía legal se rigen por la Ley N° 19.496 y se
                 detallan en la política de{' '}
-                <Link href="/legal/devoluciones" className="font-medium text-rust hover:underline">
+                <Link href="/legal/devoluciones" className="font-medium text-rust-ink hover:underline">
                   Cambios y devoluciones
                 </Link>
                 .
@@ -625,7 +713,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
             content: (
               <>
                 El tratamiento de tus datos se rige por nuestra{' '}
-                <Link href="/legal/privacidad" className="font-medium text-rust hover:underline">
+                <Link href="/legal/privacidad" className="font-medium text-rust-ink hover:underline">
                   Política de Privacidad
                 </Link>
                 , elaborada conforme a la Ley N° 21.719. Los contenidos del sitio (textos, imágenes,
@@ -659,13 +747,13 @@ const POLICIES: Record<PolicySlug, Policy> = {
     slug: 'cookies',
     label: 'Cookies',
     title: 'Política de Cookies',
-    meta: 'Última actualización: 10 de junio de 2026',
+    meta: 'Última actualización: 14 de octubre de 2026',
     intro:
-      'Usamos solo lo indispensable para que el sitio funcione. Nada de publicidad ni seguimiento de terceros.',
+      'Usamos lo indispensable para que el sitio funcione y, solo si nos dejas, una medición anónima de la tienda. Nada de publicidad ni seguimiento de terceros.',
     law: null,
     metaTitle: 'Política de Cookies — Hachiko',
     metaDescription:
-      'Qué cookies usa Hachiko. Solo usamos cookies esenciales para la sesión y el carrito.',
+      'Qué cookies usa Hachiko: esenciales para la sesión y el carrito, y una medición opcional y propia de la tienda.',
     sections: [
       {
         h: 'Qué son las cookies',
@@ -710,10 +798,32 @@ const POLICIES: Record<PolicySlug, Policy> = {
             kind: 'note',
             content: (
               <>
-                No usamos cookies de publicidad ni de seguimiento de terceros, ni elaboramos perfiles
-                con fines comerciales.
+                No usamos cookies de publicidad ni de seguimiento de terceros.
               </>
             ),
+          },
+        ],
+      },
+      {
+        h: 'Medición de la tienda (opcional)',
+        blocks: [
+          {
+            kind: 'p',
+            content: (
+              <>
+                Si eliges <strong>&ldquo;Aceptar medición&rdquo;</strong>, registramos qué páginas y
+                productos se ven, qué se busca y cuántos carritos llegan a pagarse, para saber qué
+                mejorar. No es una cookie: usamos un identificador aleatorio guardado en tu pestaña
+                (sessionStorage), que se borra al cerrarla. Los datos se quedan en Hachiko, no se
+                comparten con terceros y se analizan en forma agregada. Si eliges{' '}
+                <strong>&ldquo;Solo esenciales&rdquo;</strong> no se mide nada. Si tu navegador envía
+                la señal Global Privacy Control, la medición nunca se asocia a tu cuenta.
+              </>
+            ),
+          },
+          {
+            kind: 'p',
+            content: <CookiePreferencesButton />,
           },
         ],
       },
@@ -755,7 +865,7 @@ const POLICIES: Record<PolicySlug, Policy> = {
             content: (
               <>
                 El tratamiento de datos asociado se describe en nuestra{' '}
-                <Link href="/legal/privacidad" className="font-medium text-rust hover:underline">
+                <Link href="/legal/privacidad" className="font-medium text-rust-ink hover:underline">
                   Política de Privacidad
                 </Link>
                 . Ante cualquier duda, escríbenos a {mailto}.

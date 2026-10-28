@@ -14,7 +14,7 @@ export default function LogoutButton({ className }: { className?: string }) {
   return (
     <button
       onClick={handleLogout}
-      className={className ?? 'text-sm text-gray-500 hover:text-red-600 hover:underline'}
+      className={className ?? 'text-sm text-taupe hover:text-alert hover:underline'}
     >
       Cerrar sesión
     </button>

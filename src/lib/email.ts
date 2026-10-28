@@ -5,10 +5,12 @@ import { shippingLabel, trackingUrlFor } from '@/src/lib/shipping';
 // rompe el flujo que lo dispara (un webhook de pago no puede caerse porque
 // Resend esté abajo) — por eso sendEmail captura y solo registra el error.
 
-interface EmailInput {
+export interface EmailInput {
   to: string;
   subject: string;
   html: string;
+  /** Cabeceras extra (p. ej. List-Unsubscribe en los correos de promociones). */
+  headers?: Record<string, string>;
 }
 
 export async function sendEmail(input: EmailInput): Promise<boolean> {
@@ -28,6 +30,7 @@ export async function sendEmail(input: EmailInput): Promise<boolean> {
       to: input.to,
       subject: input.subject,
       html: input.html,
+      ...(input.headers ? { headers: input.headers } : {}),
     });
     if (error) {
       console.error(`[email] Error de Resend: ${error.message}`);
@@ -38,6 +41,58 @@ export async function sendEmail(input: EmailInput): Promise<boolean> {
     console.error('[email] Fallo al enviar', e);
     return false;
   }
+}
+
+export interface BatchResult {
+  sent: number;
+  failed: number;
+  /** NOT_CONFIGURED: falta RESEND_API_KEY, no se intentó enviar nada. */
+  reason?: 'NOT_CONFIGURED';
+}
+
+// Resend acepta hasta 100 correos por llamada de lote.
+const BATCH_SIZE = 100;
+
+// Envío masivo (promociones). Igual que sendEmail, nunca lanza: informa cuántos
+// salieron y cuántos fallaron, para dejarlo registrado en la campaña.
+export async function sendEmailBatch(messages: EmailInput[]): Promise<BatchResult> {
+  const apiKey = process.env['RESEND_API_KEY'];
+  const from = process.env['EMAIL_FROM'] ?? 'Hachiko <hola@hachiko.cl>';
+
+  if (!apiKey) {
+    console.warn(`[email] RESEND_API_KEY no configurada; lote de ${messages.length} correos omitido`);
+    return { sent: 0, failed: messages.length, reason: 'NOT_CONFIGURED' };
+  }
+
+  const { Resend } = await import('resend');
+  const resend = new Resend(apiKey);
+  let sent = 0;
+  let failed = 0;
+
+  for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+    const chunk = messages.slice(i, i + BATCH_SIZE);
+    try {
+      const { error } = await resend.batch.send(
+        chunk.map((m) => ({
+          from,
+          to: m.to,
+          subject: m.subject,
+          html: m.html,
+          ...(m.headers ? { headers: m.headers } : {}),
+        })),
+      );
+      if (error) {
+        console.error(`[email] Error de Resend en lote: ${error.message}`);
+        failed += chunk.length;
+      } else {
+        sent += chunk.length;
+      }
+    } catch (e) {
+      console.error('[email] Fallo al enviar lote', e);
+      failed += chunk.length;
+    }
+  }
+  return { sent, failed };
 }
 
 // ─── Layout común ─────────────────────────────────────────
@@ -53,7 +108,7 @@ function layout(title: string, body: string): string {
         ${body}
       </div>
       <p style="font-size:12px;color:#9ca3af;margin-top:20px;">
-        Hachiko — productos coreanos · Santiago, Chile · contacto@hachiko.cl
+        Hachiko — productos coreanos · Santiago, Chile · hachiko.store.contacto@gmail.com
       </p>
     </div>
   </body>
@@ -158,6 +213,8 @@ export function orderShippedEmail(input: {
   orderNumber: number;
   shippingMethod: ShippingMethod;
   trackingNumber: string | null;
+  /** Retiro en tienda: hasta cuándo se puede retirar */
+  pickupDeadline?: Date;
 }): { subject: string; html: string } {
   // Retiro en tienda: el "despacho" significa que está listo para retirar
   if (input.shippingMethod === 'PICKUP') {
@@ -166,7 +223,8 @@ export function orderShippedEmail(input: {
       html: layout(
         `Pedido #${input.orderNumber} listo para retiro`,
         `<p style="font-size:14px;line-height:1.6;">¡Tu pedido ya está listo! Puedes pasar a retirarlo en nuestra
-          tienda de Recoleta, Santiago. Trae tu nombre y este número de pedido.</p>`
+          tienda de Recoleta, Santiago. Trae tu nombre y este número de pedido.</p>
+        ${input.pickupDeadline ? `<p style="font-size:14px;line-height:1.6;">Tienes plazo hasta el <strong>${longDate(input.pickupDeadline)}</strong>. Si no alcanzas a venir, cancelamos el pedido y te devolvemos el dinero completo.</p>` : ''}`
       ),
     };
   }
@@ -185,5 +243,136 @@ export function orderShippedEmail(input: {
            : ''
        }`
     ),
+  };
+}
+
+export function orderRefundedEmail(input: {
+  orderNumber: number;
+  amountCLP: number;
+  viaProvider: boolean;
+}): { subject: string; html: string } {
+  const amount = `$${input.amountCLP.toLocaleString('es-CL')}`;
+  return {
+    subject: `Te devolvimos ${amount} del pedido #${input.orderNumber}`,
+    html: layout(
+      `Reembolso del pedido #${input.orderNumber}`,
+      `<p style="font-size:14px;line-height:1.6;">Recibimos tu pago, pero no pudimos completar este pedido
+         (se canceló o se agotó un producto mientras pagabas). Ya hicimos la devolución de
+         <strong>${amount}</strong>.</p>
+       <p style="font-size:14px;line-height:1.6;">${
+         input.viaProvider
+           ? 'Según tu banco o tarjeta, puede tardar algunos días hábiles en verse reflejada.'
+           : 'Si tienes dudas sobre cómo te llegó la devolución, respóndenos este correo.'
+       }</p>`
+    ),
+  };
+}
+
+// Se envía a quien intenta registrarse con un correo que YA tiene cuenta. Junto
+// con la respuesta genérica del endpoint, evita confirmarle a un tercero si un
+// correo está registrado (anti-enumeración), y a la vez avisa al dueño legítimo.
+export function accountExistsEmail(loginUrl: string, resetUrl: string): { subject: string; html: string } {
+  return {
+    subject: 'Ya tienes una cuenta en Hachiko',
+    html: layout(
+      'Intento de registro con tu correo',
+      `<p style="font-size:14px;line-height:1.6;">Alguien intentó crear una cuenta en Hachiko con este correo,
+         pero ya tienes una. Si fuiste tú, inicia sesión normalmente.</p>
+       ${button(loginUrl, 'Iniciar sesión')}
+       <p style="font-size:14px;line-height:1.6;">¿Olvidaste tu contraseña? Puedes
+         <a href="${resetUrl}" style="color:#e11d48;">restablecerla aquí</a>.</p>
+       <p style="font-size:13px;line-height:1.6;color:#6b7280;">Si no fuiste tú, puedes ignorar este correo:
+         no se creó ninguna cuenta nueva ni se cambió nada en la tuya.</p>`
+    ),
+  };
+}
+
+// ─── Retiro en tienda ─────────────────────────────────────
+
+const longDate = (d: Date) =>
+  d.toLocaleDateString('es-CL', { timeZone: 'America/Santiago', weekday: 'long', day: 'numeric', month: 'long' });
+
+export function pickupReminderEmail(input: {
+  orderNumber: number;
+  deadline: Date;
+  lastReminder: boolean;
+}): { subject: string; html: string } {
+  return {
+    subject: input.lastReminder
+      ? `Último aviso: tu pedido #${input.orderNumber} te espera hasta el ${longDate(input.deadline)}`
+      : `Tu pedido #${input.orderNumber} te está esperando`,
+    html: layout(
+      `Pedido #${input.orderNumber} listo para retiro`,
+      `<p style="font-size:14px;line-height:1.6;">Tu pedido sigue esperándote en nuestra tienda de Recoleta, Santiago.
+         Puedes pasar a buscarlo hasta el <strong>${longDate(input.deadline)}</strong>. Trae tu nombre y este número de pedido.</p>
+       <p style="font-size:14px;line-height:1.6;">Si no alcanzas a retirarlo dentro del plazo, cancelamos el pedido y te
+         devolvemos el dinero completo por el mismo medio de pago.</p>`
+    ),
+  };
+}
+
+export function notPickedUpEmail(input: { orderNumber: number }): { subject: string; html: string } {
+  return {
+    subject: `Cancelamos tu pedido #${input.orderNumber} y te devolveremos el dinero`,
+    html: layout(
+      `Pedido #${input.orderNumber} no retirado`,
+      `<p style="font-size:14px;line-height:1.6;">Venció el plazo para retirar tu pedido en tienda, así que lo cancelamos.
+         Te devolveremos el dinero completo por el mismo medio de pago; según tu banco, puede tardar algunos días hábiles
+         en verse reflejado.</p>
+       <p style="font-size:14px;line-height:1.6;">Si fue un error o todavía lo quieres, respóndenos este correo y lo vemos.</p>`
+    ),
+  };
+}
+
+// ─── Cambios y devoluciones ───────────────────────────────
+
+const RESOLUTION_TEXT = { EXCHANGE: 'cambio del producto', REFUND: 'devolución del dinero', REPAIR: 'reparación' } as const;
+
+export function returnRequestedEmail(input: {
+  requestNumber: number;
+  orderNumber: number;
+  resolution: keyof typeof RESOLUTION_TEXT;
+}): { subject: string; html: string } {
+  return {
+    subject: `Recibimos tu solicitud #${input.requestNumber} (pedido #${input.orderNumber})`,
+    html: layout(
+      `Solicitud de ${RESOLUTION_TEXT[input.resolution]} recibida`,
+      `<p style="font-size:14px;line-height:1.6;">Recibimos tu solicitud de <strong>${RESOLUTION_TEXT[input.resolution]}</strong>
+         del pedido #${input.orderNumber}. La revisamos y te escribimos con los pasos a seguir.</p>
+       <p style="font-size:14px;line-height:1.6;">Puedes ver el estado en cualquier momento en <strong>Mis pedidos</strong>.</p>`
+    ),
+  };
+}
+
+export function returnUpdateEmail(input: {
+  requestNumber: number;
+  orderNumber: number;
+  status: 'APPROVED' | 'REJECTED' | 'RECEIVED' | 'RESOLVED';
+  resolution: keyof typeof RESOLUTION_TEXT;
+  note?: string | null;
+  refundCLP?: number | null;
+}): { subject: string; html: string } {
+  const note = input.note ? `<p style="font-size:14px;line-height:1.6;background:#fafafa;border-radius:8px;padding:12px;">${esc(input.note)}</p>` : '';
+  const what = RESOLUTION_TEXT[input.resolution];
+  const body = {
+    APPROVED: `<p style="font-size:14px;line-height:1.6;">Aprobamos tu solicitud de <strong>${what}</strong>. Estos son los pasos para entregarnos el producto:</p>${note}`,
+    REJECTED: `<p style="font-size:14px;line-height:1.6;">Revisamos tu solicitud y esta vez no corresponde. Te contamos por qué:</p>${note}
+       <p style="font-size:14px;line-height:1.6;">Si no estás de acuerdo, respóndenos este correo. También puedes acudir al SERNAC.</p>`,
+    RECEIVED: `<p style="font-size:14px;line-height:1.6;">Recibimos el producto. Ahora gestionamos el <strong>${what}</strong> y te avisamos apenas esté listo.</p>`,
+    RESOLVED:
+      input.resolution === 'REFUND'
+        ? `<p style="font-size:14px;line-height:1.6;">Te devolvimos <strong>$${(input.refundCLP ?? 0).toLocaleString('es-CL')}</strong>
+             por el mismo medio de pago. Según tu banco, puede tardar algunos días hábiles en verse reflejado.</p>${note}`
+        : `<p style="font-size:14px;line-height:1.6;">Tu <strong>${what}</strong> está listo.</p>${note}`,
+  }[input.status];
+  const title = {
+    APPROVED: 'Solicitud aprobada',
+    REJECTED: 'Solicitud no aprobada',
+    RECEIVED: 'Recibimos tu producto',
+    RESOLVED: 'Solicitud resuelta',
+  }[input.status];
+  return {
+    subject: `${title} · solicitud #${input.requestNumber} (pedido #${input.orderNumber})`,
+    html: layout(title, body),
   };
 }

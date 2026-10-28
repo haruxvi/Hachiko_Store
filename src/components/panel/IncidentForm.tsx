@@ -47,7 +47,7 @@ export default function IncidentForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">
+    <form method="post" onSubmit={handleSubmit} className="max-w-2xl space-y-4">
       {error && (
         <div className="rounded-btn border border-alert/30 bg-alert/10 px-4 py-3 text-sm text-alert">
           {error}
@@ -118,7 +118,7 @@ export default function IncidentForm() {
         </label>
         {affectsPersonalData && (
           <>
-            <p className="text-xs font-normal text-rust-dark">
+            <p className="text-xs font-normal text-rust-ink">
               Ley 21.719: la vulneración de datos personales debe notificarse a la Agencia de
               Protección de Datos Personales y, si hay riesgo para los titulares, también a los
               afectados.

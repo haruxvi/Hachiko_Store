@@ -3,6 +3,7 @@ import { getSession } from '@/src/lib/auth/session';
 import { requireRole } from '@/src/lib/auth/rbac';
 import { buildIncidentReport } from '@/src/lib/services/security.service';
 import { writeAudit } from '@/src/lib/services/audit.service';
+import { clientIpFrom } from '@/src/lib/rate-limit';
 
 export async function GET(
   req: NextRequest,
@@ -28,7 +29,8 @@ export async function GET(
     action: 'SECURITY_REPORT_EXPORTED',
     targetType: 'SecurityIncident',
     targetId: id,
-    ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined,
+    // IP confiable del proxy: el extremo izquierdo de X-Forwarded-For lo escribe el cliente
+    ip: clientIpFrom(req.headers),
     userAgent: req.headers.get('user-agent') ?? undefined,
   });
 

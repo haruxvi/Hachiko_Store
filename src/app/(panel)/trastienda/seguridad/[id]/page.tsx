@@ -37,7 +37,7 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
         </Link>
         <div className="mt-2 flex items-start justify-between gap-6">
           <div>
-            <div className="price-mono text-sm text-rust"># {incident.incidentNumber}</div>
+            <div className="price-mono text-sm text-rust-ink"># {incident.incidentNumber}</div>
             <h1 className="mt-1 font-display text-[28px] font-bold leading-[1.15] tracking-[-0.015em] text-soot">
               {incident.title}
             </h1>
@@ -107,7 +107,7 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
           </h2>
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              chain.valid ? 'bg-mint text-mint-deep' : 'bg-alert/15 text-alert'
+              chain.valid ? 'bg-mint text-mint-ink' : 'bg-alert/15 text-alert'
             }`}
           >
             {chain.valid

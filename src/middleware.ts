@@ -18,14 +18,25 @@ function buildCsp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
     "font-src 'self' fonts.gstatic.com",
-    "img-src 'self' data: blob:",
-    `connect-src 'self' webpay3g.transbank.cl api.mercadopago.com${isDev ? ' ws://localhost:3000' : ''}`,
+    // https: permite fotos de catálogo servidas desde Vercel Blob y URLs de
+    // imagen externas (pegar link). Las imágenes son contenido pasivo: no ejecutan
+    // código, y la defensa anti-XSS vive en script-src (nonce + strict-dynamic).
+    "img-src 'self' data: blob: https:",
+    `connect-src 'self' webpay3g.transbank.cl api.mercadopago.com${isDev ? ' ws://localhost:3000 ws://127.0.0.1:3000' : ''}`,
+    // PWA: service worker y manifiesto solo desde el propio origen. Se declaran
+    // explícitos porque worker-src caería en script-src, donde 'strict-dynamic'
+    // ignora 'self'.
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     // El checkout hace POST del token_ws directo a Transbank (prod e integración)
     "form-action 'self' webpay3g.transbank.cl webpay3gint.transbank.cl",
-    'upgrade-insecure-requests',
+    // Solo en producción (siempre HTTPS). En desarrollo el sitio se abre por HTTP
+    // desde la IP de la red local (demo en el teléfono); con esta directiva el
+    // navegador pediría los scripts por HTTPS, que ahí no existe.
+    ...(isDev ? [] : ['upgrade-insecure-requests']),
   ].join('; ');
 }
 

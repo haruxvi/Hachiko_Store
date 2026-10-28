@@ -1,5 +1,7 @@
 import { db } from '@/src/lib/db';
+import type { Prisma } from '@prisma/client';
 import type { z } from 'zod';
+import { fetchPage } from '@/src/lib/panel-list';
 import type { CategorySchema, ProductSchema } from '@/src/lib/validation/schemas';
 
 // ─── Categories ───────────────────────────────────────────
@@ -9,6 +11,39 @@ export async function getCategories(activeOnly = true) {
     where: activeOnly ? { active: true } : undefined,
     orderBy: [{ order: 'asc' }, { name: 'asc' }],
   });
+}
+
+export async function listCategoriesForPanel(opts: {
+  q: string;
+  archived: boolean;
+  page: number;
+  perPage: number;
+}) {
+  const where: Prisma.CategoryWhereInput = {
+    archivedAt: opts.archived ? { not: null } : null,
+    ...(opts.q
+      ? {
+          OR: [
+            { name: { contains: opts.q, mode: 'insensitive' } },
+            { slug: { contains: opts.q, mode: 'insensitive' } },
+            { description: { contains: opts.q, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
+  return fetchPage(
+    opts.page,
+    opts.perPage,
+    () => db.category.count({ where }),
+    (skip, take) =>
+      db.category.findMany({
+        where,
+        include: { _count: { select: { products: { where: { archivedAt: null } } } } },
+        orderBy: [{ order: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+        skip,
+        take,
+      }),
+  );
 }
 
 export async function getCategoryBySlug(slug: string) {
@@ -27,6 +62,13 @@ export async function archiveCategory(id: string) {
   return db.category.update({
     where: { id },
     data: { archivedAt: new Date(), active: false },
+  });
+}
+
+export async function restoreCategory(id: string) {
+  return db.category.update({
+    where: { id },
+    data: { archivedAt: null, active: true },
   });
 }
 
@@ -114,11 +156,57 @@ export async function getProductById(id: string) {
 }
 
 // Listado completo para la trastienda — incluye archivados e inactivos
-export async function listProductsForPanel() {
-  return db.product.findMany({
-    include: { category: { select: { name: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+export type PanelProductStatus = 'activos' | 'archivados';
+export type PanelProductSort = 'recientes' | 'nombre' | 'precio-asc' | 'precio-desc' | 'stock-asc';
+
+// El id al final desempata: sin él, dos productos con el mismo precio podrían
+// saltar de una página a otra entre consultas.
+const PANEL_PRODUCT_ORDER: Record<PanelProductSort, Prisma.ProductOrderByWithRelationInput[]> = {
+  recientes: [{ createdAt: 'desc' }, { id: 'asc' }],
+  nombre: [{ name: 'asc' }, { id: 'asc' }],
+  'precio-asc': [{ priceCLP: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+  'precio-desc': [{ priceCLP: 'desc' }, { name: 'asc' }, { id: 'asc' }],
+  'stock-asc': [{ stock: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+};
+
+/** Búsqueda por nombre (también en coreano) o SKU, sin distinguir mayúsculas. */
+export function productSearchWhere(q: string): Prisma.ProductWhereInput {
+  if (!q) return {};
+  return {
+    OR: [
+      { name: { contains: q, mode: 'insensitive' } },
+      { nameKorean: { contains: q, mode: 'insensitive' } },
+      { sku: { contains: q, mode: 'insensitive' } },
+    ],
+  };
+}
+
+export async function listProductsForPanel(opts: {
+  q: string;
+  categoryId?: string;
+  status: PanelProductStatus;
+  sort: PanelProductSort;
+  page: number;
+  perPage: number;
+}) {
+  const where: Prisma.ProductWhereInput = {
+    ...productSearchWhere(opts.q),
+    ...(opts.categoryId ? { categoryId: opts.categoryId } : {}),
+    archivedAt: opts.status === 'archivados' ? { not: null } : null,
+  };
+  return fetchPage(
+    opts.page,
+    opts.perPage,
+    () => db.product.count({ where }),
+    (skip, take) =>
+      db.product.findMany({
+        where,
+        include: { category: { select: { name: true } } },
+        orderBy: PANEL_PRODUCT_ORDER[opts.sort],
+        skip,
+        take,
+      }),
+  );
 }
 
 export async function getProductSummary(id: string) {

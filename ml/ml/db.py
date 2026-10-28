@@ -66,3 +66,38 @@ def execute_many(sql: str, rows: list[dict]) -> None:
     with engine.begin() as conn:
         for i in range(0, len(rows), 500):
             conn.execute(text(sql), rows[i : i + 500])
+
+
+def replace_rows(delete_sql: str, insert_sql: str, rows: list[dict]) -> None:
+    """Borra los resultados anteriores e inserta los nuevos en UNA transacción.
+
+    Si algo falla a mitad de camino, Postgres deshace todo y el panel sigue
+    mostrando la corrida anterior (antes quedaba vacío hasta la siguiente).
+    """
+    with engine.begin() as conn:
+        conn.execute(text(delete_sql))
+        for i in range(0, len(rows), 500):
+            conn.execute(text(insert_sql), rows[i : i + 500])
+
+
+# ── Definiciones compartidas por todos los jobs ──────────────────────────────
+
+# Una venta válida: pagada y NO cancelada. Una orden cancelada después de pagar
+# se reembolsa; contarla como venta inflaba ingresos, márgenes y modelos.
+SALE_SQL = "o.\"paymentStatus\" = 'PAID' AND o.status <> 'CANCELLED'"
+
+# La tienda opera en Chile. Las fechas se guardan en UTC (sin zona); para meses,
+# días y horas "de verdad" se convierten a la hora de Santiago.
+TZ = "America/Santiago"
+
+
+def to_local(s: pd.Series) -> pd.Series:
+    """UTC (naive, como lo guarda Prisma) → hora de Santiago, sin zona."""
+    s = pd.to_datetime(s)
+    if s.dt.tz is None:
+        s = s.dt.tz_localize("UTC")
+    return s.dt.tz_convert(TZ).dt.tz_localize(None)
+
+
+def local_now() -> pd.Timestamp:
+    return pd.Timestamp.now(tz=TZ).tz_localize(None)

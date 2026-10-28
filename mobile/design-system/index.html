@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hachiko · Sistema de diseño de la app</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+/* cromo de la guía (solo maquetación de esta página; tokens y componentes viven en styles.css) */
+body{font-family:var(--font-body);color:var(--on-surface);background:var(--bg);display:flex}
+nav.side{position:sticky;top:0;align-self:flex-start;height:100vh;width:220px;flex:0 0 220px;background:var(--surface-container-low);border-right:1px solid var(--border);padding:22px 14px;overflow:auto}
+nav.side .brand{font:700 20px var(--font-display);color:var(--on-surface);margin-bottom:4px}
+nav.side .brand-sub{font:600 12px var(--font-body);color:var(--muted);margin-bottom:16px}
+nav.side a{display:block;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none}
+nav.side a:hover{background:var(--surface-container-high);color:var(--on-surface)}
+nav.side a.concept-link{margin:0 0 6px;padding:11px 12px;font-weight:700;color:var(--on-primary);background:var(--primary);border-radius:12px}
+nav.side .grp{font-size:11px;font-weight:700;color:var(--subtle);margin:16px 0 4px 10px}
+main{flex:1;padding:36px 44px 120px;max-width:1080px;min-width:0}
+section{margin-bottom:56px;scroll-margin-top:20px}
+h2.sec{font:700 24px var(--font-display);color:var(--on-surface);margin-bottom:6px}
+h3.cat{font:700 13px var(--font-body);color:var(--on-primary-container);margin:64px 0 18px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.sec-desc{color:var(--muted);font-size:14px;margin-bottom:20px;max-width:700px;line-height:1.6}
+.stage{background:var(--surface);border:1px solid var(--border);border-radius:var(--shape-lg);padding:26px;display:flex;flex-wrap:wrap;gap:28px;align-items:center}
+.stage--col{flex-direction:column;align-items:stretch}
+.cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+.spec{font:600 11px ui-monospace,monospace;color:var(--subtle)}
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(164px,1fr));gap:12px}
+.sw{border:1px solid var(--border);border-radius:var(--shape-md);overflow:hidden;background:var(--surface-container-lowest)}
+.sw .c{height:64px;display:flex;align-items:flex-end;padding:8px 10px;font:700 13px var(--font-body)}
+.sw .m{padding:8px 10px}.sw .n{font-size:12px;font-weight:700}.sw .v{font:11px ui-monospace,monospace;color:var(--subtle)}
+.typerow{display:flex;align-items:baseline;gap:18px;padding:10px 0;border-bottom:1px solid var(--border)}
+.typerow .tk{width:150px;flex:0 0 150px;font:11px ui-monospace,monospace;color:var(--subtle)}
+.sprow{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.sprow .bar{background:var(--primary);height:12px;border-radius:3px}.sprow .lbl{width:150px;font:12px ui-monospace,monospace;color:var(--muted)}
+.tiles{display:flex;flex-wrap:wrap;gap:18px}
+.tile{width:120px;height:88px;background:var(--surface-container-low);display:flex;align-items:flex-end;padding:10px;font:11px ui-monospace,monospace;color:var(--muted)}
+.iconGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.iconGrid .it{background:var(--surface-container-lowest);border:1px solid var(--border);border-radius:var(--shape-md);padding:14px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--on-surface)}
+.iconGrid .it .nm{font:11px ui-monospace,monospace;color:var(--subtle)}
+.phone{width:360px;border-radius:24px;overflow:hidden;border:1px solid var(--border);background:var(--surface);position:relative}
+table.contrast{border-collapse:collapse;font-size:13px}table.contrast td{padding:6px 12px;border-bottom:1px solid var(--border)}
+/* controles superiores + Dev Mode + Inspector + Copy-as-prompt */
+#topctl{position:fixed;top:16px;right:20px;z-index:50;display:flex;gap:8px;align-items:center}
+#langSel,#themeSel{font:700 12px var(--font-body);border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface-container-lowest);color:var(--muted)}
+.ds-btn{font:700 12px var(--font-body);background:var(--surface-container-lowest);border:1px solid var(--primary-strong);color:var(--on-primary-container);border-radius:8px;padding:8px 12px;cursor:pointer}
+#devToggle{font:700 12px var(--font-body);background:var(--surface-container-lowest);border:1px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;color:var(--muted)}
+#devToggle.on{background:var(--primary);border-color:var(--primary-strong);color:var(--on-primary)}
+.sec-prompt{font:700 11px var(--font-body);border:1px solid var(--primary-strong);background:var(--surface-container-lowest);color:var(--on-primary-container);border-radius:8px;padding:3px 9px;margin-left:12px;cursor:pointer;vertical-align:middle}
+body.dev [data-insp]:hover{outline:2px dashed var(--primary-strong);outline-offset:3px;cursor:pointer}
+.insp-sel{outline:2px solid var(--primary-strong)!important;outline-offset:3px}
+#inspector{position:fixed;top:0;right:0;width:340px;height:100vh;background:var(--surface-container-low);border-left:1px solid var(--border);box-shadow:var(--elev-4);transform:translateX(100%);transition:transform .28s var(--ease);z-index:49;overflow:auto;padding:58px 20px 40px}
+body.inspecting #inspector{transform:translateX(0)} body.inspecting main{margin-right:340px}
+#inspector .iclose{position:absolute;top:16px;right:16px;border:none;background:none;font-size:18px;color:var(--muted);cursor:pointer}
+#inspector .nm{font:700 20px var(--font-display)} #inspector .file{font:12px ui-monospace,monospace;color:var(--subtle);margin-top:2px}
+#inspector .desc{font-size:13px;color:var(--muted);line-height:1.6;margin-top:10px}
+#inspector h4{font-size:12px;font-weight:700;color:var(--subtle);margin:20px 0 8px}
+.prop{padding:8px 0;border-bottom:1px solid var(--border)}.prop .pn{font:600 13px ui-monospace,monospace}.prop .pt{font:11px ui-monospace,monospace;color:var(--on-primary-container)}.prop .pdef{font:11px ui-monospace,monospace;color:var(--subtle)}
+.tok{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer}.tok:hover{background:var(--surface-container-high)}
+.tok .tsw{width:22px;height:22px;border-radius:6px;border:1px solid var(--border);flex:0 0 22px}.tok .tn{font:600 12px ui-monospace,monospace}.tok .tr{font-size:11px;color:var(--muted)}.tok .tv{margin-left:auto;font:11px ui-monospace,monospace;color:var(--subtle)}
+.metric{display:flex;justify-content:space-between;font:12px ui-monospace,monospace;padding:5px 0;border-bottom:1px dashed var(--border)}.metric .mk{color:var(--muted)}
+.copyprompt{width:100%;margin-top:16px;font:700 13px var(--font-body);background:var(--primary);color:var(--on-primary);border:none;border-radius:999px;padding:12px;cursor:pointer}
+.copied{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--inverse-surface);color:var(--inverse-on-surface);font-size:12px;padding:8px 16px;border-radius:8px;opacity:0;transition:.2s;z-index:60;pointer-events:none}.copied.show{opacity:.95}
+</style>
+</head>
+<body>
+<!-- SPRITE copiado de icons.html (autocontenido bajo file://) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-4h4v4"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8M7.5 5.5l9 5"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 12H5"/><path d="m11 5-7 7 7 7"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+  <symbol id="i-minus-line" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 6-2.5 8-2.5 8h17S18 15 18 9"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-more-v" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M7 8v8M10 8v8M13 8v8M17 8v8"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5L20 16M20 20v-4h-4"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-paw" viewBox="0 0 24 24"><ellipse cx="7" cy="9" rx="1.8" ry="2.3"/><ellipse cx="17" cy="9" rx="1.8" ry="2.3"/><ellipse cx="9.6" cy="5.2" rx="1.6" ry="2"/><ellipse cx="14.4" cy="5.2" rx="1.6" ry="2"/><path d="M12 11.5c-3 0-5.5 3.2-5.5 5.6 0 1.8 1.6 2.4 3 2.1 1-.2 1.6-.6 2.5-.6s1.5.4 2.5.6c1.4.3 3-.3 3-2.1 0-2.4-2.5-5.6-5.5-5.6z"/></symbol>
+</svg>
+
+<div id="topctl">
+  <select id="themeSel" title="Tema"><option value="system">Tema del sistema</option><option value="light">Claro</option><option value="dark">Noche</option></select>
+  <button class="ds-btn" onclick="copyFullSystem()" title="Prompt para instalar o actualizar todo el sistema">⤓ Instalar sistema</button>
+  <select id="langSel" title="Lenguaje del prompt"></select>
+  <button id="devToggle" onclick="toggleDev()">◧ Dev Mode</button>
+</div>
+<aside id="inspector"><button class="iclose" onclick="closeInspector()" aria-label="Cerrar">✕</button><div id="inspectorBody"></div></aside>
+<div class="copied" id="copied">Copiado</div>
+
+<nav class="side">
+  <div class="brand">hachiko</div>
+  <div class="brand-sub">Sistema de diseño · app</div>
+  <a class="concept-link" href="concept.html">◳ &nbsp;Ver pantallas de muestra →</a>
+  <div class="grp">Fundamentos</div>
+  <a href="#colors">Color</a><a href="#type">Tipografía</a><a href="#shape">Forma</a><a href="#elevation">Elevación</a><a href="#states">Capas de estado</a><a href="#spacing">Espaciado</a><a href="#motion">Movimiento</a><a href="#icons">Íconos</a>
+  <div class="grp">Acciones</div>
+  <a href="#button">Botón</a><a href="#iconbutton">Botón de ícono</a><a href="#fab">FAB</a><a href="#segmented">Botones segmentados</a>
+  <div class="grp">Comunicación</div>
+  <a href="#badge">Insignia</a><a href="#progress">Progreso</a><a href="#snackbar">Snackbar</a><a href="#tooltip">Tooltip</a>
+  <div class="grp">Contenedores</div>
+  <a href="#card">Tarjeta</a><a href="#carousel">Carrusel</a><a href="#divider">Divisor</a><a href="#list">Lista</a><a href="#sheet">Hoja inferior</a><a href="#dialog">Diálogo</a>
+  <div class="grp">Navegación</div>
+  <a href="#appbar">Barra superior</a><a href="#navbar">Barra de navegación</a><a href="#rail">Riel de navegación</a><a href="#drawer">Cajón de navegación</a><a href="#tabs">Pestañas</a><a href="#search">Búsqueda</a><a href="#menu">Menú</a>
+  <div class="grp">Selección</div>
+  <a href="#checkbox">Casilla</a><a href="#chip">Chips</a><a href="#radio">Radio</a><a href="#switch">Interruptor</a><a href="#slider">Slider</a><a href="#datepicker">Selector de fecha</a><a href="#timepicker">Selector de hora</a>
+  <div class="grp">Entradas de texto</div>
+  <a href="#textfield">Campo de texto</a>
+  <div class="grp">Extensiones de la marca</div>
+  <a href="#product">Tarjeta de producto</a><a href="#stamp">Timbre</a>
+</nav>
+
+<main>
+  <header style="margin-bottom:28px">
+    <div class="display-s">Vitrina Shiba, en el bolsillo</div>
+    <p class="sec-desc" style="margin-top:10px">Tokens y componentes de la app de Hachiko. Estructura de <b>Material 3</b> (Android primero); apariencia de la marca: crema, mantequilla, naranja Shiba y tinta café, con modo noche café cálido. Todo vive en <code>styles.css</code>. Activa <b>Dev Mode</b> para inspeccionar un componente y usa <b>Copy as prompt</b> para implementarlo en React Native.</p>
+  </header>
+
+  <!-- =================== FUNDAMENTOS =================== -->
+  <section id="colors"><h2 class="sec">Color</h2>
+    <p class="sec-desc">Roles de Material 3. Cada relleno viene con su texto pareado (<code>--on-*</code>) y el contraste está calculado con la fórmula WCAG, no a ojo. Los neutros van teñidos de café. Cambia el tema arriba a la derecha para ver el modo noche.</p>
+    <div class="colors" id="colorGrid"></div>
+    <p class="sec-desc" style="margin-top:20px">Contraste verificado (claro → noche):</p>
+    <table class="contrast" id="contrastTable"></table>
+  </section>
+
+  <section id="type"><h2 class="sec">Tipografía</h2>
+    <p class="sec-desc">Escala Material de 15 estilos. Títulos en <b>Zen Maru Gothic</b> (redonda y amable, con soporte para coreano); texto en <b>Quicksand</b>. Los precios usan cifras tabulares para que no salten al cambiar.</p>
+    <div id="typeList"></div></section>
+
+  <section id="shape"><h2 class="sec">Forma</h2><p class="sec-desc">Escala Material. Botones y chips de navegación en píldora; tarjetas en 16; hojas y diálogos en 28.</p>
+    <div class="tiles" id="shapeList"></div></section>
+
+  <section id="elevation"><h2 class="sec">Elevación</h2><p class="sec-desc">Niveles 0–5: sombra de contacto + sombra ambiental, teñidas de café (en noche, la profundidad la dan los contenedores más claros).</p>
+    <div class="tiles" id="elevList"></div></section>
+
+  <section id="states"><h2 class="sec">Capas de estado</h2><p class="sec-desc">Un velo del color del contenido: presionado 10 %, foco 10 % + anillo de 2 px con separación, arrastre 16 %. Deshabilitado: contenido al 38 %, contenedor al 12 %.</p>
+    <div class="stage">
+      <div class="cell"><span class="btn btn--filled st">Normal</span><div class="spec">enabled</div></div>
+      <div class="cell"><span class="btn btn--filled st is-pressed">Presionado</span><div class="spec">pressed · .10</div></div>
+      <div class="cell"><span class="btn btn--filled st is-focus">Con foco</span><div class="spec">focus · anillo</div></div>
+      <div class="cell"><span class="btn btn--filled st is-disabled">Deshabilitado</span><div class="spec">disabled · .38/.12</div></div>
+    </div></section>
+
+  <section id="spacing"><h2 class="sec">Espaciado</h2><p class="sec-desc">Grilla de 4 dp. Márgenes de pantalla: 16. Separación entre secciones: 24–32. Áreas táctiles mínimas de 48 × 48.</p><div id="spacingList"></div></section>
+
+  <section id="motion"><h2 class="sec">Movimiento</h2><p class="sec-desc">Curvas de Material: estándar para casi todo; enfatizada al entrar una hoja o una pantalla; resorte suave solo para respuestas táctiles (agregar al carrito, interruptor). Se respeta "reducir movimiento" del sistema.</p>
+    <table class="contrast"><tr><td><code>--ease-standard</code></td><td>cubic-bezier(.2,0,0,1)</td><td>cambios de estado</td></tr><tr><td><code>--ease-emphasized-decel</code></td><td>cubic-bezier(.05,.7,.1,1)</td><td>entra una hoja / pantalla</td></tr><tr><td><code>--ease-spring</code></td><td>cubic-bezier(.34,1.4,.5,1)</td><td>agregar al carrito, interruptor</td></tr><tr><td><code>--dur-short / medium / long</code></td><td>150 / 300 / 500 ms</td><td></td></tr></table></section>
+
+  <section id="icons"><h2 class="sec">Íconos</h2><p class="sec-desc">Sprite SVG en línea, contorno estilo Material (trazo 2). Toma el color del texto. Nunca emoji. <a href="icons.html" style="color:var(--on-primary-container)">Ver todos</a></p><div class="iconGrid" id="iconGrid"></div></section>
+
+  <!-- =================== ACCIONES =================== -->
+  <h3 class="cat">Acciones</h3>
+  <section id="button"><h2 class="sec">Botón</h2><p class="sec-desc">Variantes de Material: filled (acción principal, una por pantalla), tonal (secundaria fuerte), elevated, outlined y text. El texto sobre naranja es café, nunca blanco (5.8:1).</p>
+    <div class="stage">
+      <div class="cell"><span class="btn btn--filled st" data-insp="button">Agregar al carrito</span><div class="spec">filled</div></div>
+      <div class="cell"><span class="btn btn--tonal st" data-insp="button">Ver mis pedidos</span><div class="spec">tonal</div></div>
+      <div class="cell"><span class="btn btn--elevated st" data-insp="button">Seguir comprando</span><div class="spec">elevated</div></div>
+      <div class="cell"><span class="btn btn--outlined st" data-insp="button"><svg class="ico"><use href="#i-share"/></svg>Compartir</span><div class="spec">outlined + ícono</div></div>
+      <div class="cell"><span class="btn btn--text st" data-insp="button">Ver todo</span><div class="spec">text</div></div>
+    </div>
+    <div class="stage" style="margin-top:12px">
+      <div class="cell"><span class="btn btn--filled st is-hover" data-insp="button">Pagar $24.970</span><div class="spec">hover</div></div>
+      <div class="cell"><span class="btn btn--filled st is-pressed" data-insp="button">Pagar $24.970</span><div class="spec">pressed</div></div>
+      <div class="cell"><span class="btn btn--filled st is-focus" data-insp="button">Pagar $24.970</span><div class="spec">focus</div></div>
+      <div class="cell"><span class="btn btn--filled st is-disabled" data-insp="button">Sin stock</span><div class="spec">disabled</div></div>
+    </div></section>
+
+  <section id="iconbutton"><h2 class="sec">Botón de ícono</h2><p class="sec-desc">Standard, filled, tonal y outlined; área táctil de 48. El de favorito funciona como toggle.</p>
+    <div class="stage">
+      <div class="cell"><span class="icon-btn st" data-insp="iconbutton" aria-label="Buscar"><svg class="ico"><use href="#i-search"/></svg></span><div class="spec">standard</div></div>
+      <div class="cell"><span class="icon-btn icon-btn--filled st" data-insp="iconbutton"><svg class="ico"><use href="#i-plus"/></svg></span><div class="spec">filled</div></div>
+      <div class="cell"><span class="icon-btn icon-btn--tonal st" data-insp="iconbutton"><svg class="ico"><use href="#i-sliders"/></svg></span><div class="spec">tonal</div></div>
+      <div class="cell"><span class="icon-btn icon-btn--outlined st" data-insp="iconbutton"><svg class="ico"><use href="#i-share"/></svg></span><div class="spec">outlined</div></div>
+      <div class="cell"><span class="icon-btn st" data-insp="iconbutton"><svg class="ico"><use href="#i-heart"/></svg></span><div class="spec">toggle · off</div></div>
+      <div class="cell"><span class="icon-btn st is-selected" data-insp="iconbutton"><svg class="ico"><use href="#i-heart"/></svg></span><div class="spec">toggle · on</div></div>
+    </div></section>
+
+  <section id="fab"><h2 class="sec">FAB</h2><p class="sec-desc">Botón flotante para la acción más frecuente de una pantalla. En la app: "Escanear código" en el inventario del vendedor.</p>
+    <div class="stage">
+      <div class="cell"><span class="fab fab--sm st" data-insp="fab"><svg class="ico"><use href="#i-plus"/></svg></span><div class="spec">small</div></div>
+      <div class="cell"><span class="fab st" data-insp="fab"><svg class="ico"><use href="#i-scan"/></svg></span><div class="spec">regular</div></div>
+      <div class="cell"><span class="fab fab--lg st" data-insp="fab"><svg class="ico"><use href="#i-scan"/></svg></span><div class="spec">large</div></div>
+      <div class="cell"><span class="fab fab--ext fab--primary st" data-insp="fab"><svg class="ico"><use href="#i-scan"/></svg>Escanear</span><div class="spec">extended</div></div>
+    </div></section>
+
+  <section id="segmented"><h2 class="sec">Botones segmentados</h2><p class="sec-desc">Para elegir entre 2–4 opciones relacionadas, a la vista. Simple (entrega) o múltiple (filtros).</p>
+    <div class="stage stage--col">
+      <div class="segmented" data-insp="segmented"><span class="seg st is-selected"><svg class="ico"><use href="#i-check"/></svg>Despacho</span><span class="seg st">Retiro en tienda</span></div>
+      <div class="segmented" data-insp="segmented"><span class="seg st is-selected"><svg class="ico"><use href="#i-check"/></svg>Snacks</span><span class="seg st is-selected"><svg class="ico"><use href="#i-check"/></svg>Skincare</span><span class="seg st">K-pop</span><span class="seg st">Sopas</span></div>
+    </div></section>
+
+  <!-- =================== COMUNICACIÓN =================== -->
+  <h3 class="cat">Comunicación</h3>
+  <section id="badge"><h2 class="sec">Insignia</h2><p class="sec-desc">Punto (hay algo nuevo) o número (cuántos). Siempre sobre un ícono.</p>
+    <div class="stage">
+      <div class="cell"><span class="badge-host icon-btn" data-insp="badge"><svg class="ico"><use href="#i-bell"/></svg><span class="badge badge--dot"></span></span><div class="spec">small · punto</div></div>
+      <div class="cell"><span class="badge-host icon-btn" data-insp="badge"><svg class="ico"><use href="#i-bag"/></svg><span class="badge">3</span></span><div class="spec">large · número</div></div>
+      <div class="cell"><span class="badge-host icon-btn" data-insp="badge"><svg class="ico"><use href="#i-package"/></svg><span class="badge">12</span></span><div class="spec">large · 2 dígitos</div></div>
+    </div></section>
+
+  <section id="progress"><h2 class="sec">Indicadores de progreso</h2><p class="sec-desc">Lineal y circular; determinado (subiendo fotos 64 %) e indeterminado (cargando el catálogo).</p>
+    <div class="stage">
+      <div class="cell" style="width:220px" data-insp="progress"><div class="progress" style="width:100%"><i style="width:64%"></i></div><div class="spec">linear · 64 %</div></div>
+      <div class="cell" style="width:220px" data-insp="progress"><div class="progress progress--indet" style="width:100%"><i></i></div><div class="spec">linear · indeterminado</div></div>
+      <div class="cell" data-insp="progress"><svg class="spinner" viewBox="0 0 40 40"><circle class="track" cx="20" cy="20" r="16"/><circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="36" transform="rotate(-90 20 20)"/></svg><div class="spec">circular · 64 %</div></div>
+      <div class="cell" data-insp="progress"><svg class="spinner spinner--indet" viewBox="0 0 40 40"><circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="40 100"/></svg><div class="spec">circular · indeterminado</div></div>
+    </div></section>
+
+  <section id="snackbar"><h2 class="sec">Snackbar</h2><p class="sec-desc">Confirma algo que ya pasó, abajo de la pantalla, unos segundos. Con acción solo si es útil deshacer.</p>
+    <div class="stage stage--col">
+      <div class="snackbar" data-insp="snackbar">Ramen Buldak 2x se agregó a tu carrito</div>
+      <div class="snackbar" data-insp="snackbar">Quitaste Pepero Almendra del carrito<span class="act">Deshacer</span></div>
+    </div></section>
+
+  <section id="tooltip"><h2 class="sec">Tooltip</h2><p class="sec-desc">Simple (nombra un ícono al mantener presionado) o enriquecido (explica algo con un título corto).</p>
+    <div class="stage">
+      <div class="cell"><span class="tooltip" data-insp="tooltip">Agregar a favoritos</span><div class="spec">plain</div></div>
+      <div class="cell"><span class="tooltip tooltip--rich" data-insp="tooltip"><b>Envío gratis desde $50.000</b>Te faltan $12.030 para no pagar despacho en este pedido.</span><div class="spec">rich</div></div>
+    </div></section>
+
+  <!-- =================== CONTENEDORES =================== -->
+  <h3 class="cat">Contenedores</h3>
+  <section id="card"><h2 class="sec">Tarjeta</h2><p class="sec-desc">Elevated (destacar), filled (agrupar sin ruido) y outlined (listas densas).</p>
+    <div class="stage">
+      <div class="card card--elevated" data-insp="card" style="width:220px"><div class="title-m">Pedido #1042</div><div class="body-m muted" style="margin-top:4px">Va en camino con Starken. Llega entre el jueves y el viernes.</div></div>
+      <div class="card card--filled" data-insp="card" style="width:220px"><div class="title-m">Envío gratis</div><div class="body-m muted" style="margin-top:4px">En compras desde $50.000 a todo Chile.</div></div>
+      <div class="card card--outlined" data-insp="card" style="width:220px"><div class="title-m">Retiro en Recoleta</div><div class="body-m muted" style="margin-top:4px">Te avisamos por correo cuando esté listo.</div></div>
+    </div></section>
+
+  <section id="carousel"><h2 class="sec">Carrusel</h2><p class="sec-desc">Ítems que se deslizan con imán; uno destacado más ancho al inicio (carrusel "hero").</p>
+    <div class="stage" data-insp="carousel"><div class="carousel" style="width:100%">
+      <div class="item item--hero paper">Lo nuevo de Seúl</div>
+      <div class="item" style="background:var(--primary-container);color:var(--on-primary-container)">Snacks</div>
+      <div class="item" style="background:var(--tertiary-container);color:var(--on-tertiary-container)">Skincare</div>
+      <div class="item" style="background:var(--info-container);color:var(--on-info-container)">K-pop</div>
+      <div class="item" style="background:var(--surface-container-highest);color:var(--on-surface)">Papelería</div>
+    </div></div></section>
+
+  <section id="divider"><h2 class="sec">Divisor</h2><p class="sec-desc">Completo (separa grupos) o con sangría (separa filas de una lista).</p>
+    <div class="stage stage--col" data-insp="divider"><div class="body-m">Completo</div><hr class="divider"><div class="body-m">Con sangría</div><hr class="divider divider--inset"></div></section>
+
+  <section id="list"><h2 class="sec">Lista</h2><p class="sec-desc">Filas de una, dos y tres líneas, con elemento al inicio (ícono, avatar o miniatura) y al final (dato o control).</p>
+    <div class="stage">
+      <ul class="list" data-insp="list" style="width:360px">
+        <li class="li st"><span class="lead"><svg class="ico"><use href="#i-package"/></svg></span><div class="txt"><div class="hl">Mis pedidos</div></div><svg class="ico muted"><use href="#i-chevron-right"/></svg></li>
+        <hr class="divider divider--inset">
+        <li class="li li--2 st"><span class="lead"><svg class="ico"><use href="#i-truck"/></svg></span><div class="txt"><div class="hl">#1042 · En camino</div><div class="sup">Starken · llega el viernes</div></div><span class="trail price">$24.970</span></li>
+        <hr class="divider divider--inset">
+        <li class="li li--3 st"><span class="lead lead--sq" style="background:var(--primary-container)"></span><div class="txt"><div class="hl">Ramen Buldak 2x</div><div class="sup">Picante coreano, paquete doble. Quedan 4 unidades en bodega.</div></div><span class="trail price">$2.990</span></li>
+      </ul>
+    </div></section>
+
+  <section id="sheet"><h2 class="sec">Hoja inferior</h2><p class="sec-desc">Estándar (convive con la pantalla, p. ej. filtros) o modal (tapa con un velo; p. ej. elegir cantidad). Se arrastra desde la manija.</p>
+    <div class="stage">
+      <div class="phone" data-insp="sheet" style="height:300px;background:var(--scrim)"><div class="sheet" style="position:absolute;left:0;right:0;bottom:0">
+        <div class="handle"></div><div class="title-l">Filtrar</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0"><span class="chip chip--filter is-selected"><svg class="ico"><use href="#i-check"/></svg>Disponible ahora</span><span class="chip chip--filter">Snacks</span><span class="chip chip--filter">Skincare</span></div>
+        <span class="btn btn--filled btn--block">Ver 18 productos</span></div></div>
+    </div></section>
+
+  <section id="dialog"><h2 class="sec">Diálogo</h2><p class="sec-desc">Básico (confirmar algo que no se puede deshacer) y pantalla completa (formularios largos en el celular).</p>
+    <div class="stage" style="align-items:flex-start">
+      <div class="dialog" data-insp="dialog"><div class="dt">¿Cancelar el pedido #1042?</div><div class="db">Te devolvemos $24.970 al mismo medio de pago. Esto no se puede deshacer.</div><div class="da"><span class="btn btn--text st">Volver</span><span class="btn btn--text st" style="color:var(--error)">Cancelar pedido</span></div></div>
+      <div class="dialog dialog--full phone" data-insp="dialog"><div class="appbar appbar--surface"><span class="icon-btn"><svg class="ico"><use href="#i-close"/></svg></span><span class="ttl title-l" style="font-family:var(--font-body)">Nueva dirección</span><span class="btn btn--text">Guardar</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:16px"><div class="field field--outlined is-filled"><div class="box"><span class="lbl">Calle</span><span class="val">Av. Recoleta</span></div></div><div class="field field--outlined"><div class="box"><span class="lbl">Número</span></div></div></div></div>
+    </div></section>
+
+  <!-- =================== NAVEGACIÓN =================== -->
+  <h3 class="cat">Navegación</h3>
+  <section id="appbar"><h2 class="sec">Barra superior</h2><p class="sec-desc">Mantequilla con tinta café, como el header de la web. Centrada, pequeña, mediana y grande (el título grande se achica al hacer scroll).</p>
+    <div class="stage stage--col">
+      <div class="phone" data-insp="appbar"><div class="appbar appbar--center"><span class="icon-btn st"><svg class="ico"><use href="#i-menu"/></svg></span><span class="ttl">hachiko</span><span class="icon-btn st badge-host"><svg class="ico"><use href="#i-bag"/></svg><span class="badge">3</span></span></div></div>
+      <div class="phone" data-insp="appbar"><div class="appbar"><span class="icon-btn st"><svg class="ico"><use href="#i-back"/></svg></span><span class="ttl title-l" style="font-family:var(--font-body)">Mis pedidos</span><span class="icon-btn st"><svg class="ico"><use href="#i-search"/></svg></span></div></div>
+      <div class="phone" data-insp="appbar"><div class="appbar appbar--medium appbar--surface"><span class="icon-btn st"><svg class="ico"><use href="#i-back"/></svg></span><span class="spacer"></span><span class="icon-btn st"><svg class="ico"><use href="#i-more-v"/></svg></span><span class="ttl">Por despachar</span></div></div>
+      <div class="phone" data-insp="appbar"><div class="appbar appbar--large appbar--surface"><span class="icon-btn st"><svg class="ico"><use href="#i-back"/></svg></span><span class="spacer"></span><span class="icon-btn st"><svg class="ico"><use href="#i-sliders"/></svg></span><span class="ttl">Skincare coreano</span></div></div>
+    </div></section>
+
+  <section id="navbar"><h2 class="sec">Barra de navegación</h2><p class="sec-desc">3–5 destinos principales, abajo. Cliente: Inicio, Buscar, Carrito, Cuenta. Vendedor: Hoy, Pedidos, Inventario, Más.</p>
+    <div class="stage stage--col">
+      <div class="phone" data-insp="navbar"><div class="navbar">
+        <span class="ni is-selected"><span class="pill"><svg class="ico"><use href="#i-home"/></svg></span>Inicio</span>
+        <span class="ni"><span class="pill"><svg class="ico"><use href="#i-search"/></svg></span>Buscar</span>
+        <span class="ni"><span class="pill badge-host"><svg class="ico"><use href="#i-bag"/></svg><span class="badge" style="top:-2px;right:8px">3</span></span>Carrito</span>
+        <span class="ni"><span class="pill"><svg class="ico"><use href="#i-user"/></svg></span>Cuenta</span></div></div>
+      <div class="phone" data-insp="navbar"><div class="navbar">
+        <span class="ni"><span class="pill"><svg class="ico"><use href="#i-chart"/></svg></span>Hoy</span>
+        <span class="ni is-selected"><span class="pill badge-host"><svg class="ico"><use href="#i-package"/></svg><span class="badge" style="top:-2px;right:8px">7</span></span>Pedidos</span>
+        <span class="ni"><span class="pill"><svg class="ico"><use href="#i-list"/></svg></span>Inventario</span>
+        <span class="ni"><span class="pill"><svg class="ico"><use href="#i-menu"/></svg></span>Más</span></div></div>
+    </div></section>
+
+  <section id="rail"><h2 class="sec">Riel de navegación</h2><p class="sec-desc">El mismo menú, vertical, para tablets o el celular en horizontal. <i>Aún sin uso en la primera versión.</i></p>
+    <div class="stage"><div class="rail" data-insp="rail" style="height:300px">
+      <span class="fab fab--sm"><svg class="ico"><use href="#i-scan"/></svg></span>
+      <span class="ni is-selected"><span class="pill"><svg class="ico"><use href="#i-package"/></svg></span>Pedidos</span>
+      <span class="ni"><span class="pill"><svg class="ico"><use href="#i-list"/></svg></span>Inventario</span>
+      <span class="ni"><span class="pill"><svg class="ico"><use href="#i-chart"/></svg></span>Hoy</span></div></div></section>
+
+  <section id="drawer"><h2 class="sec">Cajón de navegación</h2><p class="sec-desc">Estándar (siempre visible, tablet) o modal (se abre sobre la pantalla). En la app del vendedor agrupa "Más": inteligencia, promociones, seguridad.</p>
+    <div class="stage" style="align-items:flex-start">
+      <div class="drawer drawer--modal" data-insp="drawer"><div class="dh">Trastienda</div>
+        <div class="di is-selected"><svg class="ico"><use href="#i-package"/></svg>Por despachar<span class="ct">7</span></div>
+        <div class="di"><svg class="ico"><use href="#i-list"/></svg>Inventario</div>
+        <div class="di"><svg class="ico"><use href="#i-tag"/></svg>Productos</div>
+        <hr class="divider" style="margin:8px 16px">
+        <div class="dh">Inteligencia</div>
+        <div class="di"><svg class="ico"><use href="#i-chart"/></svg>Métricas</div>
+        <div class="di"><svg class="ico"><use href="#i-truck"/></svg>Qué reponer<span class="ct">2</span></div>
+        <div class="di"><svg class="ico"><use href="#i-alert"/></svg>Riesgo</div></div>
+    </div></section>
+
+  <section id="tabs"><h2 class="sec">Pestañas</h2><p class="sec-desc">Primarias (vistas del mismo nivel, indicador corto) y secundarias (dentro de una vista, indicador completo). Fijas o desplazables.</p>
+    <div class="stage stage--col">
+      <div class="phone" data-insp="tabs"><div class="tabs tabs--primary"><span class="tab is-selected">Por empacar</span><span class="tab">Enviadas</span><span class="tab">Retiro</span></div></div>
+      <div class="phone" data-insp="tabs"><div class="tabs tabs--secondary tabs--scroll"><span class="tab is-selected">Todo</span><span class="tab">Snacks</span><span class="tab">Skincare</span><span class="tab">Papelería</span><span class="tab">K-pop</span><span class="tab">Bebestibles</span><span class="tab">Sopas</span></div></div>
+    </div></section>
+
+  <section id="search"><h2 class="sec">Búsqueda</h2><p class="sec-desc">Barra (en reposo) y vista (al tocarla: búsquedas recientes y sugerencias).</p>
+    <div class="stage" style="align-items:flex-start">
+      <div style="width:328px" data-insp="search"><div class="search"><svg class="ico"><use href="#i-search"/></svg><span class="q">Buscar ramen, mascarillas, álbumes…</span><span class="icon-btn"><svg class="ico"><use href="#i-scan"/></svg></span></div></div>
+      <div class="search-view" style="width:328px" data-insp="search"><div class="search"><svg class="ico"><use href="#i-back"/></svg><span class="q typed">ramen<span class="caret"></span></span><span class="icon-btn"><svg class="ico"><use href="#i-close"/></svg></span></div>
+        <div class="li st"><svg class="ico muted"><use href="#i-clock"/></svg><div class="txt body-l">ramen buldak</div></div>
+        <div class="li st"><svg class="ico muted"><use href="#i-search"/></svg><div class="txt body-l">ramyun samyang</div></div>
+        <div class="li st"><svg class="ico muted"><use href="#i-search"/></svg><div class="txt body-l">ramyun jin</div></div></div>
+    </div></section>
+
+  <section id="menu"><h2 class="sec">Menú</h2><p class="sec-desc">Lista de acciones que se despliega desde un botón (⋮).</p>
+    <div class="stage"><div class="menu" data-insp="menu">
+      <div class="mi st"><svg class="ico"><use href="#i-edit"/></svg>Editar producto</div>
+      <div class="mi st"><svg class="ico"><use href="#i-plus"/></svg>Ajustar stock</div>
+      <div class="mi st"><svg class="ico"><use href="#i-share"/></svg>Compartir enlace</div>
+      <hr class="divider" style="margin:8px 0">
+      <div class="mi st" style="color:var(--error)"><svg class="ico" style="color:var(--error)"><use href="#i-trash"/></svg>Archivar</div></div></div></section>
+
+  <!-- =================== SELECCIÓN =================== -->
+  <h3 class="cat">Selección</h3>
+  <section id="checkbox"><h2 class="sec">Casilla</h2><p class="sec-desc">Marcada, sin marcar, indeterminada (algunos de un grupo) y con error. Área táctil de 48.</p>
+    <div class="stage">
+      <div class="cell"><span class="tap48" data-insp="checkbox"><span class="check"></span></span><div class="spec">off</div></div>
+      <div class="cell"><span class="tap48" data-insp="checkbox"><span class="check is-on"><svg class="ico"><use href="#i-check"/></svg></span></span><div class="spec">on</div></div>
+      <div class="cell"><span class="tap48" data-insp="checkbox"><span class="check is-indet"><svg class="ico"><use href="#i-minus-line"/></svg></span></span><div class="spec">indeterminada</div></div>
+      <div class="cell"><span class="tap48" data-insp="checkbox"><span class="check is-error"></span></span><div class="spec">error</div></div>
+      <div class="cell"><span class="tap48" data-insp="checkbox" style="opacity:.38"><span class="check is-on"><svg class="ico"><use href="#i-check"/></svg></span></span><div class="spec">deshabilitada</div></div>
+    </div></section>
+
+  <section id="chip"><h2 class="sec">Chips</h2><p class="sec-desc">Assist (acción sugerida), filter (filtro activable), input (algo que ingresaste y se puede quitar) y suggestion (búsqueda sugerida).</p>
+    <div class="stage">
+      <div class="cell"><span class="chip chip--assist st" data-insp="chip"><svg class="ico"><use href="#i-truck"/></svg>Seguir envío</span><div class="spec">assist</div></div>
+      <div class="cell"><span class="chip chip--assist chip--elevated st" data-insp="chip"><svg class="ico"><use href="#i-pin"/></svg>Retiro en Recoleta</span><div class="spec">assist · elevated</div></div>
+      <div class="cell"><span class="chip chip--filter st" data-insp="chip">Disponible ahora</span><div class="spec">filter · off</div></div>
+      <div class="cell"><span class="chip chip--filter st is-selected" data-insp="chip"><svg class="ico"><use href="#i-check"/></svg>Snacks</span><div class="spec">filter · on</div></div>
+      <div class="cell"><span class="chip chip--input st" data-insp="chip">“ramen”<svg class="ico x"><use href="#i-close"/></svg></span><div class="spec">input</div></div>
+      <div class="cell"><span class="chip chip--suggestion st" data-insp="chip">mascarilla caracol</span><div class="spec">suggestion</div></div>
+      <div class="cell"><span class="chip chip--filter is-disabled" data-insp="chip">Sopas</span><div class="spec">deshabilitado</div></div>
+    </div></section>
+
+  <section id="radio"><h2 class="sec">Radio</h2><p class="sec-desc">Una sola opción de un grupo (p. ej. courier).</p>
+    <div class="stage" style="flex-direction:column;align-items:flex-start;gap:0" data-insp="radio">
+      <div class="li" style="width:300px"><span class="tap48"><span class="radio is-on"></span></span><div class="txt"><div class="hl">Starken</div><div class="sup">2–5 días hábiles</div></div><span class="trail price">$3.990</span></div>
+      <div class="li" style="width:300px"><span class="tap48"><span class="radio"></span></span><div class="txt"><div class="hl">Correos de Chile</div><div class="sup">3–6 días hábiles</div></div><span class="trail price">$3.990</span></div>
+      <div class="li" style="width:300px;opacity:.38"><span class="tap48"><span class="radio"></span></span><div class="txt"><div class="hl">Retiro express</div><div class="sup">Pronto</div></div></div>
+    </div></section>
+
+  <section id="switch"><h2 class="sec">Interruptor</h2><p class="sec-desc">Activa o desactiva algo al instante, sin botón Guardar.</p>
+    <div class="stage">
+      <div class="cell"><span class="switch" data-insp="switch" role="switch" aria-checked="false"></span><div class="spec">off</div></div>
+      <div class="cell"><span class="switch is-on" data-insp="switch" role="switch" aria-checked="true"></span><div class="spec">on</div></div>
+      <div class="cell"><span class="switch is-on is-disabled" data-insp="switch"></span><div class="spec">deshabilitado</div></div>
+      <div class="li" style="width:320px;background:var(--surface-container-lowest);border-radius:16px"><div class="txt"><div class="hl">Avisos de mis pedidos</div><div class="sup">Cuando se despacha o está listo</div></div><span class="switch is-on"></span></div>
+    </div></section>
+
+  <section id="slider"><h2 class="sec">Slider</h2><p class="sec-desc">Continuo y discreto; de un valor o de rango (filtro de precio).</p>
+    <div class="stage stage--col" style="gap:20px">
+      <div data-insp="slider"><div class="label-l muted">Umbral de stock bajo · 5</div><div class="slider"><span class="tr"></span><span class="fl" style="left:0;width:30%"></span><span class="th" style="left:30%"></span></div></div>
+      <div data-insp="slider"><div class="label-l muted">Discreto · cantidad 3</div><div class="slider"><span class="tr"></span><span class="fl" style="left:0;width:50%"></span><span class="tick" style="left:16.6%"></span><span class="tick" style="left:33.3%"></span><span class="tick" style="left:66.6%"></span><span class="tick" style="left:83.3%"></span><span class="th" style="left:50%"></span></div></div>
+      <div data-insp="slider"><div class="label-l muted">Precio · $2.000 a $15.000</div><div class="slider"><span class="tr"></span><span class="fl" style="left:10%;width:55%"></span><span class="th" style="left:10%"></span><span class="th" style="left:65%"></span></div></div>
+    </div></section>
+
+  <section id="datepicker"><h2 class="sec">Selector de fecha</h2><p class="sec-desc">Para el vendedor: filtrar ventas o elegir un período. <i>Aún sin uso en la primera versión.</i></p>
+    <div class="stage"><div class="datepicker" data-insp="datepicker"><div class="dh">Elige una fecha</div><div class="dbig">Jue, 8 oct</div>
+      <div class="grid"><span class="wd">L</span><span class="wd">M</span><span class="wd">M</span><span class="wd">J</span><span class="wd">V</span><span class="wd">S</span><span class="wd">D</span>
+      <span></span><span></span><span></span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span class="sel">8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px"><span class="btn btn--text">Cancelar</span><span class="btn btn--text">Aceptar</span></div></div></div></section>
+
+  <section id="timepicker"><h2 class="sec">Selector de hora</h2><p class="sec-desc">Para el vendedor: programar el envío de una promoción. <i>Aún sin uso en la primera versión.</i></p>
+    <div class="stage"><div class="timepicker" data-insp="timepicker"><div class="label-l muted" style="margin-bottom:16px">Enviar promoción a las</div>
+      <div class="tp"><span class="seg is-selected">10</span><span class="colon">:</span><span class="seg">30</span><span class="ampm"><span class="is-selected">AM</span><span>PM</span></span></div></div></div></section>
+
+  <!-- =================== ENTRADAS DE TEXTO =================== -->
+  <h3 class="cat">Entradas de texto</h3>
+  <section id="textfield"><h2 class="sec">Campo de texto</h2><p class="sec-desc">Filled (formularios en hojas y tarjetas) y outlined (pantallas de formulario). Estados: vacío, con foco, completo, error y deshabilitado; con etiqueta, ayuda, error e íconos.</p>
+    <div class="stage" style="align-items:flex-start;gap:20px">
+      <div class="field field--filled" data-insp="textfield"><div class="box"><span class="lbl">Correo</span></div><div class="help">El que usaste al registrarte</div></div>
+      <div class="field field--filled is-focus" data-insp="textfield"><div class="box"><span class="lbl">Correo</span><span class="val">sofia@correo<span class="caret"></span></span></div></div>
+      <div class="field field--filled is-filled" data-insp="textfield"><div class="box"><span class="lbl">Correo</span><span class="val">sofia@correo.cl</span><svg class="ico"><use href="#i-check"/></svg></div></div>
+      <div class="field field--outlined has-lead is-filled is-error" data-insp="textfield"><div class="box"><svg class="ico"><use href="#i-lock"/></svg><span class="lbl">Contraseña</span><span class="val">••••••</span><svg class="ico"><use href="#i-eye"/></svg></div><div class="help">Debe tener al menos 12 caracteres</div></div>
+      <div class="field field--outlined is-focus" data-insp="textfield"><div class="box"><span class="lbl">Comuna</span><span class="val">Recol<span class="caret"></span></span></div></div>
+      <div class="field field--outlined is-disabled" data-insp="textfield"><div class="box"><span class="lbl">Región</span></div><div class="help">Elige primero la comuna</div></div>
+    </div></section>
+
+  <!-- =================== EXTENSIONES =================== -->
+  <h3 class="cat">Extensiones de la marca</h3>
+  <section id="product"><h2 class="sec">Tarjeta de producto</h2><p class="sec-desc">Extensión de Card para la vitrina: foto cuadrada (mientras no haya foto, un cartón punteado con el nombre en coreano), nombre, precio en cifras tabulares y botón rápido de agregar. Etiqueta de "Quedan 4" cuando el stock está bajo.</p>
+    <div class="stage" style="align-items:flex-start">
+      <div class="product" data-insp="product" style="width:160px"><div class="ph"><span class="ph-kr">불닭</span><span class="add icon-btn icon-btn--filled"><svg class="ico"><use href="#i-plus"/></svg></span></div><div class="nm">Ramen Buldak 2x</div><div class="pr">$2.990</div></div>
+      <div class="product" data-insp="product" style="width:160px"><div class="ph" style="background:var(--paper-dots) 0 0/12px 12px,linear-gradient(140deg,var(--tertiary-container),var(--secondary-container))"><span class="ph-kr">달팽이</span><span class="chip" style="position:absolute;top:8px;left:8px;background:var(--error-container);color:var(--on-error-container);border:0;height:24px;padding:0 8px;font-size:12px">Quedan 4</span><span class="add icon-btn icon-btn--filled"><svg class="ico"><use href="#i-plus"/></svg></span></div><div class="nm">Crema Caracol</div><div class="pr">$14.990</div></div>
+    </div></section>
+
+  <section id="stamp"><h2 class="sec">Timbre</h2><p class="sec-desc">El sello del carnet de socio de la web, como único momento expresivo en pantallas clave: pedido confirmado, cuenta verificada. Aparece con un pequeño "golpe" (resorte) y se respeta "reducir movimiento".</p>
+    <div class="stage">
+      <div class="card paper" data-insp="stamp" style="width:300px;position:relative;padding:24px;border-radius:28px">
+        <div class="hangul body-m" style="opacity:.75">주문 완료</div>
+        <div class="headline-m" style="margin-top:28px;max-width:11ch">¡Pedido confirmado!</div>
+        <div class="body-m" style="margin-top:8px;opacity:.85">#1042 · $24.970</div>
+        <svg class="stamp" viewBox="0 0 120 120" style="position:absolute;right:10px;top:16px" aria-hidden="true"><defs><path id="arc" d="M60,60 m-41,0 a41,41 0 1,1 82,0 a41,41 0 1,1 -82,0"/></defs><g fill="none" stroke="currentColor"><circle cx="60" cy="60" r="56" stroke-width="3"/><circle cx="60" cy="60" r="31" stroke-width="1.6"/></g><text><textPath href="#arc">PAGO RECIBIDO ✶ HACHIKO ✶</textPath></text><use href="#i-paw" x="44" y="44" width="32" height="32" style="stroke:currentColor;stroke-width:1.6"/></svg>
+      </div>
+    </div></section>
+</main>
+
+<script>
+/* ===== Tema: sistema / claro / noche ===== */
+const mq=matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(v){const dark=v==='dark'||(v==='system'&&mq.matches);document.documentElement.dataset.theme=dark?'dark':'light';try{localStorage.setItem('hk-theme',v)}catch{} renderColors();}
+themeSel.value=(()=>{try{return localStorage.getItem('hk-theme')||'system'}catch{return 'system'}})();
+themeSel.onchange=()=>applyTheme(themeSel.value); mq.addEventListener('change',()=>applyTheme(themeSel.value));
+
+/* ===== Fundamentos ===== */
+const COLOR_ROLES=[['primary','on-primary'],['primary-container','on-primary-container'],['secondary','on-secondary'],['secondary-container','on-secondary-container'],['tertiary','on-tertiary'],['tertiary-container','on-tertiary-container'],['error','on-error'],['error-container','on-error-container'],['info-container','on-info-container'],['surface','on-surface'],['surface-variant','on-surface-variant'],['surface-container-lowest','on-surface'],['surface-container-low','on-surface'],['surface-container','on-surface'],['surface-container-high','on-surface'],['surface-container-highest','on-surface'],['inverse-surface','inverse-on-surface'],['brand-bar','on-brand-bar']];
+const OUTLINES=['outline','outline-variant','primary-strong','inverse-primary'];
+const hex=n=>getComputedStyle(document.documentElement).getPropertyValue('--'+n).trim();
+const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=0.03928?v/12.92:((v+0.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+const ratio=(a,b)=>{const[x,y]=[lum(a),lum(b)].sort((p,q)=>q-p);return (x+.05)/(y+.05)};
+function renderColors(){
+  colorGrid.innerHTML=COLOR_ROLES.map(([f,o])=>`<div class="sw"><div class="c" style="background:var(--${f});color:var(--${o})">Aa</div><div class="m"><div class="n">${f}</div><div class="v">${hex(f)} · on ${hex(o)}</div></div></div>`).join('')+
+    OUTLINES.map(n=>`<div class="sw"><div class="c" style="background:var(--surface);border-bottom:3px solid var(--${n})"></div><div class="m"><div class="n">${n}</div><div class="v">${hex(n)}</div></div></div>`).join('');
+  contrastTable.innerHTML=COLOR_ROLES.map(([f,o])=>{const r=ratio(hex(f),hex(o));return `<tr><td><code>${f}</code> / <code>${o}</code></td><td><b>${r.toFixed(2)}:1</b></td><td>${r>=4.5?'AA texto':'revisar'}</td></tr>`}).join('')+
+    OUTLINES.slice(0,1).concat('primary-strong').map(n=>{const r=ratio(hex(n),hex('surface'));return `<tr><td><code>${n}</code> sobre <code>surface</code></td><td><b>${r.toFixed(2)}:1</b></td><td>${r>=3?'AA borde/UI':'revisar'}</td></tr>`}).join('');
+}
+const TYPE=[['display-l','Zen Maru Gothic 700 / 57 · 64'],['display-m','Zen Maru Gothic 700 / 45 · 52'],['display-s','Zen Maru Gothic 700 / 36 · 44'],['headline-l','Zen Maru Gothic 700 / 32 · 40'],['headline-m','Zen Maru Gothic 700 / 28 · 36'],['headline-s','Zen Maru Gothic 700 / 24 · 32'],['title-l','Quicksand 700 / 22 · 28'],['title-m','Quicksand 700 / 16 · 24'],['title-s','Quicksand 700 / 14 · 20'],['body-l','Quicksand 500 / 16 · 24'],['body-m','Quicksand 500 / 14 · 20'],['body-s','Quicksand 500 / 12 · 16'],['label-l','Quicksand 700 / 14 · 20'],['label-m','Quicksand 700 / 12 · 16'],['label-s','Quicksand 700 / 11 · 16']];
+const SAMPLE={display:'Lo nuevo de Seúl',headline:'Tu pedido va en camino',title:'Ramen Buldak 2x',body:'Picante coreano en paquete doble. Llega en 2 a 5 días hábiles.',label:'Agregar al carrito'};
+typeList.innerHTML=TYPE.map(([n,m])=>`<div class="typerow"><div class="tk">${n}<br>${m}</div><div class="${n}">${SAMPLE[n.split('-')[0]]}</div></div>`).join('');
+shapeList.innerHTML=[['none','0'],['xs','4'],['sm','8'],['md','12'],['lg','16'],['xl','28'],['full','999']].map(([n,v])=>`<div class="tile" style="border-radius:var(--shape-${n});border:1px solid var(--outline-variant)">shape-${n} · ${v}</div>`).join('');
+elevList.innerHTML=[0,1,2,3,4,5].map(n=>`<div class="tile" style="box-shadow:var(--elev-${n});border-radius:var(--shape-lg);background:var(--surface-container-low)">elev-${n}</div>`).join('');
+const SPACING=[['sp-2',2],['sp-4',4],['sp-8',8],['sp-12',12],['sp-16',16],['sp-20',20],['sp-24',24],['sp-32',32],['sp-40',40],['sp-48',48],['sp-64',64]];
+spacingList.innerHTML=SPACING.map(([n,v])=>`<div class="sprow"><div class="lbl">${n} · ${v}dp</div><div class="bar" style="width:${v*4}px"></div></div>`).join('');
+const ICONS=['home','search','bag','heart','user','store','package','truck','tag','receipt','list','chart','back','close','check','plus','minus','sliders','bell','scan','pin','alert','moon','paw'];
+iconGrid.innerHTML=ICONS.map(n=>`<div class="it"><svg class="ico ico--lg"><use href="#i-${n}"/></svg><div class="nm">i-${n}</div></div>`).join('');
+
+/* ===== SPECS: un componente por clave (Inspector + Copy as prompt) ===== */
+const C=n=>({r:n,n,v:hex(n),c:hex(n)});
+const T=(r,n,v)=>({r,n,v});
+const SPECS={
+ button:{name:'Button',file:'mobile/src/ui/Button.tsx',desc:'Botón común de Material 3 en píldora. Variantes filled (acción principal: una por pantalla), tonal, elevated, outlined, text. Estados enabled/pressed/focus/disabled. Texto sobre naranja SIEMPRE café (on-primary), nunca blanco.',
+  props:[{n:'label',t:'string'},{n:'onPress',t:'() => void'},{n:'variant',t:'filled|tonal|elevated|outlined|text',def:'filled'},{n:'icon',t:'IconName?'},{n:'size',t:'md|lg',def:'md'},{n:'block',t:'boolean',def:'false'},{n:'loading',t:'boolean',def:'false'},{n:'disabled',t:'boolean',def:'false'}],
+  tokens:[C('primary'),C('on-primary'),C('secondary'),C('on-secondary'),C('on-primary-container'),C('outline'),T('forma','shape-full','999'),T('tipo','label 700/15','Quicksand')],
+  metrics:[['altura','48 (lg 56)'],['padding','h 24 (text 12)'],['radio','full'],['pressed','scale .98 + velo .10'],['haptic','light impact al confirmar']]},
+ iconbutton:{name:'IconButton',file:'mobile/src/ui/IconButton.tsx',desc:'Botón solo-ícono con área táctil de 48 y accessibilityLabel obligatorio. standard/filled/tonal/outlined; toggle con estado seleccionado.',
+  props:[{n:'icon',t:'IconName'},{n:'label',t:'string (accesibilidad)'},{n:'variant',t:'standard|filled|tonal|outlined',def:'standard'},{n:'selected',t:'boolean?'},{n:'badge',t:'number|"dot"?'}],
+  tokens:[C('on-surface-variant'),C('primary'),C('on-primary'),C('secondary-container'),C('primary-container')],metrics:[['tamaño','48×48'],['ícono','24']]},
+ fab:{name:'FAB',file:'mobile/src/ui/Fab.tsx',desc:'Acción flotante más frecuente de la pantalla (vendedor: escanear código). small/regular/large/extended.',
+  props:[{n:'icon',t:'IconName'},{n:'label',t:'string?',d:'si viene, es extended'},{n:'size',t:'sm|md|lg',def:'md'}],
+  tokens:[C('primary-container'),C('on-primary-container'),T('elevación','elev-3','sombra')],metrics:[['regular','56, radio 16'],['small','40, radio 12'],['large','96, radio 28']]},
+ segmented:{name:'SegmentedButtons',file:'mobile/src/ui/Segmented.tsx',desc:'2–4 opciones relacionadas a la vista; selección simple o múltiple, con check en la seleccionada.',
+  props:[{n:'options',t:'{value,label,icon?}[]'},{n:'value',t:'string | string[]'},{n:'multi',t:'boolean',def:'false'},{n:'onChange',t:'(v) => void'}],
+  tokens:[C('outline'),C('secondary'),C('on-secondary'),C('on-surface')],metrics:[['altura','40'],['radio','full']]},
+ badge:{name:'Badge',file:'mobile/src/ui/Badge.tsx',desc:'Punto (hay algo nuevo) o número (cuántos; 99+ como máximo). Siempre anclado a un ícono.',
+  props:[{n:'value',t:'number|"dot"'}],tokens:[C('error'),C('on-error')],metrics:[['punto','8'],['número','alto 16, mín 16']]},
+ progress:{name:'Progress',file:'mobile/src/ui/Progress.tsx',desc:'Lineal y circular, determinado o indeterminado. Indeterminado solo si la espera es > 300 ms; para listas usar esqueletos.',
+  props:[{n:'kind',t:'linear|circular',def:'linear'},{n:'value',t:'number 0–1?',d:'sin valor = indeterminado'}],tokens:[C('primary'),C('surface-container-highest')],metrics:[['lineal','4 de alto'],['circular','40, trazo 4']]},
+ snackbar:{name:'Snackbar',file:'mobile/src/ui/Snackbar.tsx',desc:'Confirma algo que ya pasó (agregado al carrito). 4 s, sobre la barra de navegación. Acción opcional (Deshacer).',
+  props:[{n:'message',t:'string'},{n:'action',t:'{label,onPress}?'},{n:'duration',t:'ms',def:'4000'}],tokens:[C('inverse-surface'),C('inverse-on-surface'),C('inverse-primary')],metrics:[['alto mín','48'],['radio','4'],['ancho máx','344']]},
+ tooltip:{name:'Tooltip',file:'mobile/src/ui/Tooltip.tsx',desc:'Plain: nombra un ícono al mantener presionado. Rich: título + explicación corta.',
+  props:[{n:'text',t:'string'},{n:'title',t:'string?',d:'si viene, es rich'}],tokens:[C('inverse-surface'),C('surface-container')],metrics:[['plain','radio 4, padding 4/8'],['rich','radio 12, máx 280']]},
+ card:{name:'Card',file:'mobile/src/ui/Card.tsx',desc:'Contenedor. elevated (destacar), filled (agrupar sin ruido), outlined (listas densas). Presionable si recibe onPress.',
+  props:[{n:'variant',t:'elevated|filled|outlined',def:'elevated'},{n:'onPress',t:'() => void?'},{n:'children',t:'ReactNode'}],tokens:[C('surface-container-low'),C('surface-container-highest'),C('surface-container-lowest'),C('outline-variant'),T('elevación','elev-1','sombra café')],metrics:[['radio','16'],['padding','16']]},
+ carousel:{name:'Carousel',file:'mobile/src/ui/Carousel.tsx',desc:'Ítems horizontales con snap; el primero puede ser "hero" (más ancho). Reserva espacio inferior para que no se corten sombras.',
+  props:[{n:'items',t:'T[]'},{n:'renderItem',t:'(T) => ReactNode'},{n:'hero',t:'boolean',def:'true'}],tokens:[C('secondary'),C('primary-container'),C('tertiary-container')],metrics:[['ítem','148×196'],['hero','232'],['radio','28'],['gap','8']]},
+ divider:{name:'Divider',file:'mobile/src/ui/Divider.tsx',desc:'Completo (separa grupos) o con sangría 16 (separa filas).',props:[{n:'inset',t:'boolean',def:'false'}],tokens:[C('outline-variant')],metrics:[['grosor','1 (hairline)']]},
+ list:{name:'ListItem',file:'mobile/src/ui/ListItem.tsx',desc:'Fila de 1, 2 o 3 líneas con leading (ícono, avatar, miniatura) y trailing (dato, chevron, control).',
+  props:[{n:'title',t:'string'},{n:'subtitle',t:'string?'},{n:'lines',t:'1|2|3',def:'1'},{n:'leading',t:'ReactNode?'},{n:'trailing',t:'ReactNode?'},{n:'onPress',t:'() => void?'}],tokens:[C('on-surface'),C('on-surface-variant'),C('secondary-container'),C('surface-container-lowest')],metrics:[['alto','56 / 72 / 88'],['padding','h 16'],['leading','40 (miniatura 56)']]},
+ sheet:{name:'BottomSheet',file:'mobile/src/ui/BottomSheet.tsx',desc:'Estándar o modal (con velo). Se arrastra desde la manija; se cierra con gesto, velo o atrás del sistema.',
+  props:[{n:'open',t:'boolean'},{n:'onClose',t:'() => void'},{n:'modal',t:'boolean',def:'true'},{n:'children',t:'ReactNode'}],tokens:[C('surface-container-low'),T('velo','scrim','café .45'),C('outline')],metrics:[['radio sup.','28'],['manija','32×4'],['padding','h 24']]},
+ dialog:{name:'Dialog',file:'mobile/src/ui/Dialog.tsx',desc:'Básico: confirma algo irreversible, con la acción nombrada ("Cancelar pedido", no "Aceptar"). Pantalla completa: formularios largos.',
+  props:[{n:'title',t:'string'},{n:'body',t:'string'},{n:'confirmLabel',t:'string'},{n:'destructive',t:'boolean',def:'false'},{n:'fullScreen',t:'boolean',def:'false'}],tokens:[C('surface-container-high'),C('on-surface-variant'),C('error')],metrics:[['ancho','312'],['radio','28'],['padding','24']]},
+ appbar:{name:'TopAppBar',file:'mobile/src/ui/TopAppBar.tsx',desc:'Mantequilla con tinta café (como el header web). center/small/medium/large; el título grande colapsa al hacer scroll.',
+  props:[{n:'title',t:'string'},{n:'variant',t:'center|small|medium|large',def:'small'},{n:'onBack',t:'() => void?'},{n:'actions',t:'IconButton[]'}],tokens:[C('brand-bar'),C('on-brand-bar'),C('surface')],metrics:[['alto','64 / 112 / 152'],['título','headline-s / headline-m / headline-l']]},
+ navbar:{name:'NavigationBar',file:'mobile/src/ui/NavigationBar.tsx',desc:'Barra inferior con 3–5 destinos. Pastilla mantequilla en el seleccionado. Cliente: Inicio/Buscar/Carrito/Cuenta. Vendedor: Hoy/Pedidos/Inventario/Más.',
+  props:[{n:'items',t:'{key,label,icon,badge?}[]'},{n:'value',t:'string'},{n:'onChange',t:'(key) => void'}],tokens:[C('surface-container'),C('secondary'),C('on-secondary'),C('on-surface-variant')],metrics:[['alto','80 + área segura'],['pastilla','64×32']]},
+ rail:{name:'NavigationRail',file:'mobile/src/ui/NavigationRail.tsx',desc:'El mismo menú en vertical para tablet/horizontal. Aún sin uso en v1.',props:[{n:'items',t:'NavItem[]'},{n:'fab',t:'ReactNode?'}],tokens:[C('surface'),C('secondary')],metrics:[['ancho','80'],['pastilla','56×32']]},
+ drawer:{name:'NavigationDrawer',file:'mobile/src/ui/Drawer.tsx',desc:'Estándar o modal. Agrupa secciones del vendedor (Trastienda, Inteligencia).',props:[{n:'sections',t:'{title,items[]}[]'},{n:'value',t:'string'}],tokens:[C('surface-container-low'),C('secondary'),C('on-secondary')],metrics:[['ancho','280'],['ítem','56, radio full']]},
+ tabs:{name:'Tabs',file:'mobile/src/ui/Tabs.tsx',desc:'Primarias (indicador corto) y secundarias (indicador completo). Fijas o desplazables.',props:[{n:'tabs',t:'{key,label}[]'},{n:'value',t:'string'},{n:'kind',t:'primary|secondary',def:'primary'},{n:'scrollable',t:'boolean',def:'false'}],tokens:[C('primary'),C('on-primary-container'),C('on-surface-variant'),C('outline-variant')],metrics:[['alto','48'],['indicador','3 (primario) / 2']]},
+ search:{name:'Search',file:'mobile/src/ui/SearchBar.tsx',desc:'Barra en reposo y vista al enfocar (recientes + sugerencias). Busca al escribir con debounce de 300 ms.',props:[{n:'value',t:'string'},{n:'onChange',t:'(q) => void'},{n:'placeholder',t:'string'},{n:'onScan',t:'() => void?'}],tokens:[C('surface-container-high'),C('on-surface-variant')],metrics:[['alto','56'],['radio','full']]},
+ menu:{name:'Menu',file:'mobile/src/ui/Menu.tsx',desc:'Acciones desplegadas desde ⋮. La acción destructiva va al final, separada y en color error.',props:[{n:'items',t:'{label,icon,onPress,destructive?}[]'}],tokens:[C('surface-container'),C('on-surface'),C('error')],metrics:[['ítem','48'],['ancho mín','200']]},
+ checkbox:{name:'Checkbox',file:'mobile/src/ui/Checkbox.tsx',desc:'Marcada / sin marcar / indeterminada / error. Toda la fila es tocable.',props:[{n:'value',t:'boolean|"indeterminate"'},{n:'onChange',t:'(v) => void'},{n:'error',t:'boolean',def:'false'}],tokens:[C('primary'),C('on-primary'),C('on-surface-variant'),C('error')],metrics:[['caja','18'],['área táctil','48']]},
+ chip:{name:'Chip',file:'mobile/src/ui/Chip.tsx',desc:'assist / filter / input / suggestion; filter seleccionado en mantequilla con check.',props:[{n:'label',t:'string'},{n:'kind',t:'assist|filter|input|suggestion',def:'filter'},{n:'selected',t:'boolean?'},{n:'icon',t:'IconName?'},{n:'onRemove',t:'() => void?'}],tokens:[C('outline'),C('secondary'),C('on-secondary'),C('on-surface-variant')],metrics:[['alto','32 (área 48)'],['radio','8']]},
+ radio:{name:'Radio',file:'mobile/src/ui/Radio.tsx',desc:'Una opción de un grupo (courier). La fila completa es tocable.',props:[{n:'selected',t:'boolean'},{n:'onPress',t:'() => void'}],tokens:[C('primary-strong'),C('on-surface-variant')],metrics:[['círculo','20'],['punto','10'],['área','48']]},
+ switch:{name:'Switch',file:'mobile/src/ui/Switch.tsx',desc:'Cambia algo al instante (avisos de pedidos, modo noche). Pulgar con resorte.',props:[{n:'value',t:'boolean'},{n:'onChange',t:'(v) => void'},{n:'disabled',t:'boolean',def:'false'}],tokens:[C('primary'),C('on-primary'),C('outline'),C('surface-container-highest')],metrics:[['pista','52×32'],['pulgar','16 → 24']]},
+ slider:{name:'Slider',file:'mobile/src/ui/Slider.tsx',desc:'Continuo/discreto, valor o rango (precio). Muestra el valor al arrastrar.',props:[{n:'value',t:'number | [number, number]'},{n:'min',t:'number'},{n:'max',t:'number'},{n:'step',t:'number?'}],tokens:[C('primary'),C('secondary-container'),C('primary-strong')],metrics:[['pista','16'],['pulgar','4×44']]},
+ datepicker:{name:'DatePicker',file:'mobile/src/ui/DatePicker.tsx',desc:'Modal de calendario (vendedor). Aún sin uso en v1: se usa el nativo de Android si hace falta.',props:[{n:'value',t:'Date'},{n:'onChange',t:'(d) => void'}],tokens:[C('surface-container-high'),C('primary'),C('on-primary'),C('primary-strong')],metrics:[['ancho','328'],['día','40'],['radio','28']]},
+ timepicker:{name:'TimePicker',file:'mobile/src/ui/TimePicker.tsx',desc:'Hora para programar promociones. Aún sin uso en v1.',props:[{n:'value',t:'{h,m}'},{n:'onChange',t:'(t) => void'}],tokens:[C('primary-container'),C('on-primary-container'),C('tertiary-container')],metrics:[['segmento','96×80'],['radio','28']]},
+ textfield:{name:'TextField',file:'mobile/src/ui/TextField.tsx',desc:'filled / outlined; etiqueta flotante, ayuda, error, íconos. El error dice qué pasó y cómo arreglarlo. Teclado correcto por tipo (email, numérico, teléfono).',
+  props:[{n:'label',t:'string'},{n:'value',t:'string'},{n:'onChangeText',t:'(s) => void'},{n:'variant',t:'filled|outlined',def:'outlined'},{n:'helper',t:'string?'},{n:'error',t:'string?'},{n:'leading',t:'IconName?'},{n:'trailing',t:'IconName?'},{n:'keyboardType',t:'KeyboardType?'},{n:'secure',t:'boolean?'}],
+  tokens:[C('surface-container-highest'),C('outline'),C('primary-strong'),C('error'),C('on-surface-variant')],metrics:[['alto','56'],['radio','4 (filled: solo arriba)'],['borde foco','2']]},
+ product:{name:'ProductCard',file:'mobile/src/features/catalog/ProductCard.tsx',desc:'Vitrina: foto 1:1 (o cartón punteado con el nombre en coreano), nombre, precio tabular, botón rápido "+" que agrega con resorte y snackbar. "Quedan N" si el stock está bajo.',
+  props:[{n:'product',t:'{slug,name,nameKorean?,priceCLP,image?,stock,lowStockThreshold}'},{n:'onPress',t:'() => void'},{n:'onAdd',t:'() => void'}],tokens:[C('secondary'),C('primary-container'),C('on-surface'),C('error-container'),C('on-error-container')],metrics:[['foto','1:1, radio 12'],['botón +','40 (área 48)'],['gap','8']]},
+ stamp:{name:'Stamp',file:'mobile/src/ui/Stamp.tsx',desc:'Timbre de la marca: único momento expresivo en pedido confirmado y cuenta verificada. Entra con un golpe (resorte 560 ms) y respeta "reducir movimiento".',
+  props:[{n:'text',t:'string',def:'"PAGO RECIBIDO ✶ HACHIKO ✶"'},{n:'animate',t:'boolean',def:'true'}],tokens:[C('stamp-ink'),C('secondary'),T('textura','paper-dots','puntos café 9 %')],metrics:[['tamaño','112'],['rotación','-11°']]},
+};
+
+/* ===== Copy-as-prompt (React Native primero: es el framework de la app) ===== */
+const LANGS=['React Native (Expo + TypeScript)','Jetpack Compose (Kotlin)','React (TypeScript + CSS)','SwiftUI','Flutter (Dart)','HTML + CSS'];
+let promptLang=LANGS[0];
+langSel.innerHTML=LANGS.map(l=>`<option${l===promptLang?' selected':''}>${l}</option>`).join('');
+langSel.onchange=()=>promptLang=langSel.value;
+const TOKEN_GROUPS={
+ 'Color (cada relleno con su --on-*)':['--primary','--on-primary','--primary-container','--on-primary-container','--secondary','--on-secondary','--secondary-container','--on-secondary-container','--tertiary','--on-tertiary','--tertiary-container','--on-tertiary-container','--error','--on-error','--error-container','--on-error-container','--info-container','--on-info-container','--background','--surface','--on-surface','--surface-variant','--on-surface-variant','--surface-container-lowest','--surface-container-low','--surface-container','--surface-container-high','--surface-container-highest','--outline','--outline-variant','--primary-strong','--inverse-surface','--inverse-on-surface','--inverse-primary','--scrim','--brand-bar','--on-brand-bar','--stamp-ink'],
+ 'Espaciado':['--sp-2','--sp-4','--sp-8','--sp-12','--sp-16','--sp-20','--sp-24','--sp-32','--sp-40','--sp-48','--sp-64'],
+ 'Forma':['--shape-none','--shape-xs','--shape-sm','--shape-md','--shape-lg','--shape-xl','--shape-full'],
+ 'Elevación':['--elev-1','--elev-2','--elev-3','--elev-4','--elev-5'],
+ 'Capas de estado':['--state-hover','--state-focus','--state-pressed','--state-dragged','--disabled-content','--disabled-container'],
+ 'Tipografía':['--font-display','--font-body','--font-hangul'],
+ 'Movimiento':['--dur-short','--dur-medium','--dur-long','--ease-standard','--ease-emphasized-decel','--ease-emphasized-accel','--ease-spring'],
+ 'Íconos':['--icon-size','--icon-stroke']};
+function tokenLines(){const cs=getComputedStyle(document.documentElement);const out=[`(tema actual: ${document.documentElement.dataset.theme}; el otro tema está en styles.css → :root[data-theme='dark'])`];
+ for(const[g,names]of Object.entries(TOKEN_GROUPS)){const rows=names.map(n=>{const v=cs.getPropertyValue(n).trim();return v?`- ${n} = ${v}`:null}).filter(Boolean);if(rows.length)out.push(`### ${g}`,...rows,'');}
+ return out;}
+function foundationsBody(){const L=['## Fundamentos — tokens (única fuente de verdad)',`Define cada token como constante con nombre en UN archivo de tema, idiomático para ${promptLang}, con variante clara y noche (sigue el ajuste del sistema y se puede forzar). Los componentes usan tokens por nombre, nunca valores sueltos.`,'',...tokenLines(),'### Escala tipográfica'];
+ TYPE.forEach(([n,m])=>L.push(`- ${n}: ${m}`));
+ L.push('','### Reglas','- Cada relleno con su --on-* (WCAG ≥ 4.5:1 texto, ≥ 3:1 bordes). Texto sobre naranja es café, nunca blanco.','- Neutros y sombras teñidos de café. Áreas táctiles ≥ 48dp. Respetar "reducir movimiento" y el tamaño de letra del sistema.');
+ return L.join('\n');}
+function buildPrompt(k){const s=SPECS[k];const L=[`# Agregar o actualizar el componente \`${s.name}\` — ${promptLang}`,'','Si un componente con este rol YA EXISTE, modifícalo en su lugar para que calce con esta especificación (es la fuente de verdad) y anota los cambios incompatibles. Si no existe, créalo reutilizando los tokens del tema.','','## Qué es',s.desc,'','## Props'];
+ s.props.forEach(p=>L.push(`- \`${p.n}\`: ${p.t}${p.def?` (por defecto ${p.def})`:''}${p.d?` — ${p.d}`:''}`));
+ L.push('','## Tokens (definidos en el tema; nunca valores sueltos)');s.tokens.forEach(t=>L.push(`- ${t.n} = ${t.v}   // ${t.r}`));
+ L.push('','## Medidas');s.metrics.forEach(([a,b])=>L.push(`- ${a}: ${b}`));
+ L.push('','## Requisitos','- Todas las variantes y estados listados, en claro y noche.','- accessibilityRole/Label correctos; área táctil ≥ 48dp.',`- Código completo en ${promptLang} + un ejemplo de uso.`);return L.join('\n');}
+function copyPrompt(k){copyText(buildPrompt(k));toast(`Copiado: ${SPECS[k].name} → ${promptLang}`);}
+function fullSystemPrompt(){const keys=Object.keys(SPECS);const L=[`# Instalar o actualizar TODO el sistema de diseño — ${promptLang}`,'','Si no existe, créalo desde cero; si existe en parte, actualízalo para que calce (sin duplicar).','','## Orden','1. Capa de tokens (tema claro + noche).','2. Componentes: cada uno importa el tema compartido; nunca redefinir colores ni medidas localmente.','3. Un índice/barrel de componentes y una revisión de que todo usa tokens por nombre.','','---','',foundationsBody(),'','---','',`## Componentes (${keys.length})`];
+ keys.forEach(k=>{const s=SPECS[k];L.push('',`### ${s.name} — \`${s.file}\``,s.desc,`- props: ${s.props.map(p=>p.n+':'+p.t).join(', ')}`,`- tokens: ${s.tokens.map(t=>t.n).join(', ')}`,`- medidas: ${s.metrics.map(m=>m[0]+' '+m[1]).join(', ')}`);});
+ return L.join('\n');}
+function copyFullSystem(){copyText(fullSystemPrompt());toast(`Copiado: sistema completo (${Object.keys(SPECS).length} componentes) → ${promptLang}`);}
+function copyText(t){navigator.clipboard&&navigator.clipboard.writeText(t);}
+document.querySelectorAll('main section[id]').forEach(sec=>{const k=sec.id;if(!SPECS[k])return;const h=sec.querySelector('h2.sec');if(!h||h.querySelector('.sec-prompt'))return;
+ const b=document.createElement('button');b.className='sec-prompt';b.type='button';b.textContent='Copy as prompt';b.addEventListener('click',()=>copyPrompt(k));h.appendChild(b);});
+
+/* ===== Dev Mode + Inspector ===== */
+function toggleDev(){const on=document.body.classList.toggle('dev');devToggle.classList.toggle('on',on);devToggle.textContent=on?'◧ Dev Mode · ON':'◧ Dev Mode';if(!on)closeInspector();}
+function closeInspector(){document.body.classList.remove('inspecting');document.querySelectorAll('.insp-sel').forEach(e=>e.classList.remove('insp-sel'));}
+document.addEventListener('click',e=>{if(e.target.closest('#inspector')||e.target.closest('#topctl'))return;if(!document.body.classList.contains('dev'))return;
+ const el=e.target.closest('[data-insp]');if(el&&SPECS[el.dataset.insp]){e.preventDefault();selectComp(el,el.dataset.insp);}});
+function selectComp(el,k){document.querySelectorAll('.insp-sel').forEach(x=>x.classList.remove('insp-sel'));el.classList.add('insp-sel');document.body.classList.add('inspecting');const s=SPECS[k];
+ s.tokens.forEach(t=>{if(t.c){t.v=hex(t.n);t.c=t.v;}});
+ const props=s.props.map(p=>`<div class="prop"><span class="pn">${p.n}</span> <span class="pt">${p.t}</span>${p.def?` <span class="pdef">= ${p.def}</span>`:''}</div>`).join('');
+ const toks=s.tokens.map(t=>`<div class="tok" onclick="copyVal('${t.v}')"><div class="tsw" style="background:${t.c||'var(--surface-container)'}"></div><div><div class="tn">${t.n}</div><div class="tr">${t.r}</div></div><div class="tv">${t.v}</div></div>`).join('');
+ const mets=s.metrics.map(([a,b])=>`<div class="metric"><span class="mk">${a}</span><span>${b}</span></div>`).join('');
+ inspectorBody.innerHTML=`<div class="nm">${s.name}</div><div class="file">${s.file}</div><div class="desc">${s.desc}</div><h4>Props</h4>${props}<h4>Tokens · clic para copiar</h4>${toks}<h4>Medidas</h4>${mets}<button class="copyprompt" onclick="copyPrompt('${k}')">Copy as prompt</button>`;}
+function copyVal(v){navigator.clipboard&&navigator.clipboard.writeText(v);toast('Copiado '+v);}
+function toast(m){const c=document.getElementById('copied');c.textContent=m;c.classList.add('show');setTimeout(()=>c.classList.remove('show'),1300);}
+applyTheme(themeSel.value);
+</script>
+</body>
+</html>

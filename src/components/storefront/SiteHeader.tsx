@@ -39,7 +39,7 @@ export default async function SiteHeader() {
       <ul className="hidden items-center gap-7 text-sm font-semibold lg:flex lg:ml-6">
         {categories.slice(0, 5).map((c) => (
           <li key={c.id}>
-            <Link href={`/catalogo?categoria=${c.slug}`} className="text-soot hover:text-rust">
+            <Link href={`/catalogo?categoria=${c.slug}`} className="text-soot hover:text-rust-ink">
               {c.name}
             </Link>
           </li>
@@ -63,9 +63,17 @@ export default async function SiteHeader() {
           
         </form>
 
+        {/* Atajo solo de navegación: el rol sale de la sesión verificada en el
+            servidor (JWE), no de estado del cliente. El acceso real a /trastienda
+            lo siguen controlando el middleware, el layout del panel y cada acción. */}
         {session?.role === 'SELLER' && (
-          <Link href="/trastienda" className="btn-ghost btn-sm hidden sm:inline-flex">
-            Trastienda
+          <Link
+            href="/trastienda"
+            aria-label="Ir a la trastienda"
+            className="btn-outline btn-sm !px-2.5 sm:!px-3.5"
+          >
+            <Icon name="grid" size={16} />
+            <span className="hidden sm:inline">Trastienda</span>
           </Link>
         )}
         <Link

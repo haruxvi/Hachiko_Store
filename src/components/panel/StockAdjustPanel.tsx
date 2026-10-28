@@ -59,7 +59,7 @@ export default function StockAdjustPanel({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-[13px] font-medium text-rust transition hover:text-rust-dark hover:underline"
+        className="text-[13px] font-medium text-rust-ink transition hover:text-rust-ink hover:underline"
       >
         Ajustar
       </button>
@@ -82,7 +82,7 @@ export default function StockAdjustPanel({
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form method="post" onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.04em] text-taupe">
                   Nuevo stock total
