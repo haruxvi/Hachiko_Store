@@ -1,0 +1,9 @@
+{
+  "name": "deepmerge",
+  "version": "4.3.1-hachiko.1",
+  "description": "deepmerge 4.3.1 con el parche de prototype poisoning (GHSA-gcqx-w48m-w2h4), que aún no tiene versión corregida publicada.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "private": true
+}

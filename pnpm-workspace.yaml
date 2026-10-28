@@ -51,13 +51,21 @@ overrides:
   # baseline-browser-mapping <2.11.0: DoS por terminación de proceso con input
   # inválido (vía next). Fix en 2.11.0.
   'baseline-browser-mapping@<2.11.0': ^2.11.0
+  # follow-redirects <1.16.1 (vía transbank-sdk > axios, ruta de PAGO): cabeceras
+  # de credenciales expuestas al redirigir (GHSA de 2026-10).
+  follow-redirects: ^1.16.1
+  # zod <4.6.6: agota memoria validando colecciones gigantes con límites
+  # (GHSA-mrhx-c7xc-m3w5). Es la validación de TODAS las entradas de la API; la
+  # dependencia directa ya va en 4.6.7 y esto cubre las copias transitivas
+  # (@vercel/blob > @vercel/oidc, eslint-plugin-react-hooks).
+  'zod@<4.6.6': ^4.6.6
+  # undici <6.29.1 (vía @vercel/blob, subida de fotos): DoS por content-encodings
+  # excesivos y memoria sin límite en EventSource, entre otros
+  # (GHSA-xjj6-f33q-929c, GHSA-4qv8-2p9j-2685). Se queda en la línea v6 que pide @vercel/blob.
+  'undici@>=4.0.0 <6.29.1': ^6.29.1
+  # deepmerge (sin versión corregida) entraba por resend > @react-email/render >
+  # html-to-text. No usamos React Email (los correos son HTML): desde resend 6.35
+  # ese paquete es opcional y ya no se instala, así que no hace falta override.
 
-# Riesgo aceptado y documentado (no silenciado a ciegas):
-# braces <=3.0.3 (GHSA-vfj7-8cjw-p6xm) NO tiene versión corregida publicada.
-# Solo entra por herramientas de build/desarrollo (tailwindcss > chokidar/fast-glob,
-# eslint-config-next > fast-glob), no está en el árbol de producción
-# (`pnpm why braces --prod` vacío) y solo procesa patrones de archivos propios del
-# repo, nunca entrada de usuarios. Revisar y quitar esta excepción cuando exista fix.
-auditConfig:
-  ignoreGhsas:
-    - GHSA-vfj7-8cjw-p6xm
+# Sin excepciones de auditoría: la de braces (GHSA-vfj7-8cjw-p6xm) se quitó en
+# 2026-10 porque el registro de npm ya no reporta ese aviso para braces 3.0.3.

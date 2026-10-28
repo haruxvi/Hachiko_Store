@@ -45,9 +45,9 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-hook-form": "^7.81.0",
-    "resend": "6.17.2",
+    "resend": "6.35.0",
     "transbank-sdk": "6.1.1",
-    "zod": "4.4.3",
+    "zod": "4.6.7",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -98,12 +98,9 @@
       "brace-expansion@>=2.0.0 <2.1.7": "^2.1.7",
       "brace-expansion@>=4.0.0 <5.0.12": "^5.0.12",
       "source-map-js@<1.2.2": "^1.2.2",
-      "postcss-selector-parser@<7.1.6": "^7.1.6"
-    },
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-vfj7-8cjw-p6xm"
-      ]
+      "postcss-selector-parser@<7.1.6": "^7.1.6",
+      "zod@<4.6.6": "^4.6.6",
+      "undici@>=4.0.0 <6.29.1": "^6.29.1"
     }
   }
 }

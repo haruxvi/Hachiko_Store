@@ -48,5 +48,9 @@
     "lint": "expo lint",
     "doctor": "expo-doctor"
   },
+  "overrides": {
+    "zod": "^4.6.7",
+    "deepmerge": "file:./vendor/deepmerge"
+  },
   "private": true
 }

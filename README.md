@@ -334,7 +334,7 @@ Los mismos comandos que bloquean el CI en cada push:
 ```bash
 pnpm typecheck          # 0 errores de tipos
 pnpm lint               # 0 errores de ESLint
-pnpm test               # 229 tests unitarios (Vitest)
+pnpm test               # 233 tests unitarios (Vitest)
 pnpm audit              # CVE moderadas o superiores
 pnpm build              # build de producción
 ```
