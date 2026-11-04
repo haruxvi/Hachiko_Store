@@ -233,10 +233,18 @@ mermas, sobre-stock (capital inmovilizado), packs sugeridos, anomalías de venta
 (demanda y costo de envío por región, SLA por courier), recompra/churn, alertas automáticas
 (KPI fuera de rango) y reporte imprimible a PDF.
 
-**Elasticidad-precio (preparada):** el vendedor edita precios desde Trastienda → Productos.
-Cada cambio se registra en `PriceHistory` (append-only, con auditoría del actor), de modo que
-el historial real de precios se acumula con el uso y habilita el análisis de elasticidad-precio
-más adelante — sin datos inventados.
+**Elasticidad-precio (BI descriptiva, con datos reales):** el vendedor edita precios desde
+Trastienda → Productos y cada cambio queda en `PriceHistory` (append-only, con auditoría del
+actor). [`elasticity.service.ts`](../src/lib/services/elasticity.service.ts) compara las ventas
+válidas por día en los 28 días antes y después de cada cambio (ventanas cortadas en el cambio
+anterior o siguiente) y calcula la **elasticidad de arco** (punto medio):
+`((q1 − q0) / ((q1 + q0) / 2)) / ((p1 − p0) / ((p1 + p0) / 2))`. Lectura: `|e| > 1,1` elástica,
+`< 0,9` inelástica, en medio unitaria, y signo positivo = atípica (otro factor pesó más que el
+precio). No se publica un número sin evidencia: si la ventana posterior aún no completa 14 días
+queda **en observación**, y con menos de 10 unidades entre ambas ventanas, **sin datos
+suficientes**. Se ve por producto en su ficha (debajo de cada cambio de precio) y en conjunto
+en Inteligencia → Demanda. Es descriptiva, no causal: no controla estacionalidad ni promociones,
+y así se rotula en pantalla. Pruebas en [`elasticity.test.ts`](../tests/unit/elasticity.test.ts).
 
 ### 8.5 Fases 4 y 5
 
@@ -362,7 +370,7 @@ Más de 40 capacidades en total.
 | Vista | Página (Next) | Lectura (servicio) | Entrenamiento (Python) |
 |---|---|---|---|
 | Métricas | `src/app/(panel)/trastienda/metricas/page.tsx` | `getMetricsDashboard`, `getAlerts`, `getSalesAnomalies` | `ml/jobs/kpi_snapshots.py` |
-| Demanda | `.../trastienda/demanda/page.tsx` | `getDemandForecast`, `getProductTrends` | `ml/jobs/forecast_demand.py` |
+| Demanda | `.../trastienda/demanda/page.tsx` | `getDemandForecast`, `getProductTrends`, `getElasticityOverview` (en `elasticity.service.ts`) | `ml/jobs/forecast_demand.py` (la elasticidad es BI, sin job) |
 | Qué reponer | `.../trastienda/reponer/page.tsx` | `getRestockSuggestions`, `getShrinkage`, `getDeadStock` | `ml/jobs/restock.py` |
 | Logística | `.../trastienda/logistica/page.tsx` | `getLogistics` | — (BI) |
 | Recomendaciones | `.../trastienda/recomendaciones/page.tsx` | `getRecommendations`, `getBundles` | `ml/jobs/market_basket.py` |
@@ -412,6 +420,7 @@ cd ml && .venv/Scripts/python -m jobs.fraud_detection    # solo uno (p. ej. el I
 - **Riesgo de quiebre**: marca los productos cuyo pronóstico supera el stock. **ML**
 - **Productos en alza / en baja**: crecimiento de los últimos 90 días vs. los 90 anteriores. **BI**
 - **Ganancia esperada del próximo mes**: Σ (unidades pronosticadas × margen unitario). Cruza el forecast (ML) con el margen real `price − cost`. Se lee con `getExpectedProfit` y se muestra en Demanda y en el Reporte. **ML + BI**
+- **Elasticidad-precio de arco** por cambio de precio, sobre `PriceHistory` y ventas reales: en Demanda (todos los productos) y en la ficha de cada producto. Sin cifra con menos de 14 días posteriores o 10 unidades. **BI**
 
 ### Qué reponer — predicción + BI
 - **Sugerencia de reposición**: cuánto comprar (forecast + lead time + cobertura). **ML**
@@ -461,7 +470,6 @@ cd ml && .venv/Scripts/python -m jobs.fraud_detection    # solo uno (p. ej. el I
 - **Resumen ejecutivo imprimible a PDF**: KPIs de 12 meses, productos estrella (clase A), acciones sugeridas y estado de seguridad. **BI**
 
 ### Preparadas / de infraestructura
-- **Elasticidad-precio** habilitada: `PriceHistory` acumula el historial real de precios con el uso. **ML (futuro)**
 - **Analítica temporal de operaciones**: `OrderStatusHistory` habilita tiempo en cada estado, cuellos de botella y SLA. **BI**
 
 ---

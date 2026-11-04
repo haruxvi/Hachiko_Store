@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getDemandForecast, getProductTrends, getExpectedProfit } from '@/src/lib/services/intelligence.service';
+import { getElasticityOverview, MIN_WINDOW_DAYS, READING_LABEL, type ElasticityOverview } from '@/src/lib/services/elasticity.service';
 import IntelligencePlaceholder from '@/src/components/panel/IntelligencePlaceholder';
 import { PageHeader, Eyebrow, Stat, clp, num, pct, monthLabel } from '@/src/components/panel/intelligence-ui';
 import {
@@ -24,22 +25,27 @@ export default async function DemandaPage({ searchParams }: { searchParams: Prom
   const period = parsePeriod(params.periodo ?? params.tablePeriod ?? params.unitsPeriod ?? params.profitPeriod);
 
   // Una sola lectura del pronóstico: toda la página deriva del mismo dato mensual.
-  const [forecast, trends, profit] = await Promise.all([
+  const [forecast, trends, profit, elasticity] = await Promise.all([
     getDemandForecast(),
     getProductTrends(),
     getExpectedProfit(),
+    getElasticityOverview(),
   ]);
 
+  // La elasticidad no depende del modelo: se muestra aunque el pronóstico aún no exista.
   if (!forecast.hasData) {
     return (
-      <IntelligencePlaceholder
-        icon="arrow"
-        title="Demanda"
-        description="Pronóstico de demanda por producto con estacionalidad, para anticipar las compras."
-        phase="Fase 2 · Núcleo predictivo"
-        count={0}
-        countLabel="pronósticos"
-      />
+      <div className="space-y-8">
+        <IntelligencePlaceholder
+          icon="arrow"
+          title="Demanda"
+          description="Pronóstico de demanda por producto con estacionalidad, para anticipar las compras."
+          phase="Fase 2 · Núcleo predictivo"
+          count={0}
+          countLabel="pronósticos"
+        />
+        <ElasticitySection data={elasticity} />
+      </div>
     );
   }
 
@@ -175,7 +181,74 @@ export default async function DemandaPage({ searchParams }: { searchParams: Prom
           </div>
         </section>
       )}
+
+      <ElasticitySection data={elasticity} />
     </div>
+  );
+}
+
+/** Cómo reaccionaron las ventas a los cambios de precio reales (PriceHistory). */
+function ElasticitySection({ data }: { data: ElasticityOverview }) {
+  const signed = (f: number) => `${f > 0 ? '+' : ''}${(f * 100).toFixed(0)} %`;
+  return (
+    <section className="card-hs shadow-soft p-6">
+      <Eyebrow>Elasticidad-precio</Eyebrow>
+      <p className="mt-1 text-[12px] text-taupe">
+        Cómo cambiaron las ventas por día después de cada cambio de precio real (hasta 28 días antes y después, solo ventas
+        pagadas). Es descriptivo: también influyen la temporada, las promociones y el stock.
+      </p>
+
+      {data.changes === 0 ? (
+        <p className="mt-4 text-sm text-taupe">
+          Todavía no hay cambios de precio. Cuando edites un precio en Productos, aquí verás cómo reaccionaron las ventas
+          después de {MIN_WINDOW_DAYS} días.
+        </p>
+      ) : (
+        <>
+          {data.measured.length > 0 && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-sand text-left text-taupe">
+                    <th className="py-2 pr-3 text-[12px] font-medium">Producto</th>
+                    <th className="py-2 pr-3 text-right text-[12px] font-medium">Precio</th>
+                    <th className="py-2 pr-3 text-right text-[12px] font-medium">Ventas/día</th>
+                    <th className="py-2 pr-3 text-right text-[12px] font-medium">Elasticidad</th>
+                    <th className="py-2 text-[12px] font-medium">Lectura</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.measured.map(({ productId, name, sku, effect: e }) => (
+                    <tr key={productId} className="border-b border-sand/40 last:border-0 hover:bg-sand/10">
+                      <td className="py-2.5 pr-3">
+                        <Link href={`/trastienda/productos/${productId}`} className="font-medium text-soot hover:text-rust-ink">
+                          {name}
+                        </Link>
+                        <span className="block text-[11px] text-taupe">{sku}</span>
+                      </td>
+                      <td className="price-mono whitespace-nowrap py-2.5 pr-3 text-right text-soot">
+                        {clp(e.previousCLP)} → {clp(e.newCLP)} <span className="text-taupe">({signed(e.priceChange)})</span>
+                      </td>
+                      <td className="price-mono py-2.5 pr-3 text-right text-soot">{signed(e.unitsChange)}</td>
+                      <td className="price-mono py-2.5 pr-3 text-right font-medium text-soot">
+                        {e.elasticity.toLocaleString('es-CL', { maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-2.5 text-[12px] text-taupe">{READING_LABEL[e.reading]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="mt-4 text-[12px] text-taupe">
+            {num(data.changes)} {data.changes === 1 ? 'cambio de precio registrado' : 'cambios de precio registrados'}
+            {data.measured.length > 0 && ` · ${num(data.measured.length)} con medición`}
+            {data.pending > 0 && ` · ${num(data.pending)} en espera de ${MIN_WINDOW_DAYS} días de ventas`}
+            {data.insufficient > 0 && ` · ${num(data.insufficient)} sin datos suficientes`}.
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 
