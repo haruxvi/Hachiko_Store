@@ -39,7 +39,7 @@ genérica no trae:
 
 | | |
 |---|---|
-| **210 tests automatizados** | 157 unitarios (20 archivos) + 53 de integración contra Postgres real (4 archivos) |
+| **308 tests automatizados** | 240 unitarios (24 archivos) + 53 de integración contra Postgres real (4 archivos) + 15 e2e en navegador real (Playwright, escritorio y móvil) |
 | **34/34 verificaciones de pentest** | Autenticación, IDOR, pagos, inyección, rate limit y DoS, en entorno aislado ([informe](docs/pentest-local-2026-10.md)) |
 | **10 vistas de inteligencia** | Métricas, Demanda, Qué reponer, Logística, Recomendaciones, Clientes, Conversión, Riesgo, Modelos y Reporte |
 | **3 interfaces, 1 backend** | Web, PWA instalable y app Expo, todas por la misma API, la misma base y las mismas reglas |
@@ -334,7 +334,7 @@ Los mismos comandos que bloquean el CI en cada push:
 ```bash
 pnpm typecheck          # 0 errores de tipos
 pnpm lint               # 0 errores de ESLint
-pnpm test               # 233 tests unitarios (Vitest)
+pnpm test               # 240 tests unitarios (Vitest)
 pnpm audit              # CVE moderadas o superiores
 pnpm build              # build de producción
 ```
@@ -351,6 +351,19 @@ $env:DATABASE_URL=$env:TEST_DATABASE_URL; $env:DIRECT_URL=$env:TEST_DATABASE_URL
 pnpm exec prisma db push --skip-generate
 pnpm test:integration   # 53 tests: checkout, reembolsos, retiro/devoluciones, seguridad y analítica
 docker rm -f hachiko-test-db
+```
+
+**Tests e2e** con Playwright en un navegador real, contra el [Docker local](docs/despliegue-local-docker.md)
+(también corren en el CI con el mismo Docker): vitrina, carrito, aviso de cookies, páginas legales,
+compra como invitado y con cuenta (validaciones incluidas), acceso al panel por rol, Demanda con
+elasticidad y cabeceras de seguridad. La vitrina se recorre además en un teléfono emulado. Se niegan a
+correr contra un host que no sea local, y el pago se intercepta justo antes de salir a Transbank
+(`E2E_PAYMENTS=1` lo deja llegar al formulario del ambiente de integración):
+
+```bash
+docker compose up -d --build
+pnpm exec playwright install chromium   # solo la primera vez
+pnpm test:e2e           # 15 tests
 ```
 
 ---
@@ -387,7 +400,7 @@ src/
 mobile/                 app Expo / React Native
 ml/                     pipeline Python (jobs/ + trazabilidad ModelRun)
 prisma/                 esquema y seeds (base, sintético, seguridad, analítica)
-tests/                  unit/ e integration/
+tests/                  unit/, integration/ y e2e/ (Playwright)
 docs/                   documentación viva
 ```
 
@@ -414,13 +427,23 @@ docs/                   documentación viva
 - [x] Módulo de seguridad con bitácora encadenada por hash
 - [x] Carga masiva de productos, PWA y app móvil
 - [x] Pentest local con hallazgos corregidos
+- [x] Elasticidad-precio de arco sobre `PriceHistory` y ventas reales (Demanda y ficha de producto)
+- [x] Tests e2e con Playwright: compra, panel por rol y seguridad, en escritorio y móvil, también en el CI
 
-**Pendiente**
-- [ ] Integración de despacho con tracking (proveedor en evaluación)
-- [ ] Pagos en producción
-- [ ] Boleta electrónica (SII)
-- [ ] Tests e2e con Playwright sobre el flujo de compra
-- [ ] Elasticidad-precio, a medida que se acumula `PriceHistory` real
+**Para operar en producción (trámite comercial, no código)**
+- [ ] **Pagos productivos.** El código ya está listo (`TBK_ENV=production` y las credenciales
+  productivas de Mercado Pago). Falta que el comercio firme con Transbank, apruebe su validación y
+  cargue las llaves. Hoy ambas pasarelas corren en su ambiente de integración.
+
+**Fuera del alcance del Capstone (decisión documentada)**
+- **Tracking automático del despacho.** Las APIs de Starken, Correos de Chile y Blue Express son de
+  pago, exigen un contrato con cada empresa y ninguna ofrece un ambiente gratuito para desarrollo.
+  Lo que sí está: el vendedor registra el número de seguimiento al despachar, el cliente recibe el
+  correo y ve en *Mis pedidos* el enlace directo a la página pública de seguimiento del courier.
+- **Boleta electrónica (SII).** Emitirla exige el certificado digital del contribuyente y pasar la
+  certificación del SII, o contratar un proveedor de facturación electrónica (de pago). Cada pedido
+  ya guarda el detalle y los totales que la boleta necesita, así que la integración es un paso
+  acotado cuando exista el contribuyente.
 
 ---
 
