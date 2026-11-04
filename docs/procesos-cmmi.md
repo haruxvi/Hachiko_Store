@@ -37,8 +37,10 @@ en este proyecto. La meta práctica: que el proceso esté **definido y estandari
 
 - **Métricas cuantitativas de proceso** (nivel 4): hoy se miden resultados (CVE, tests), no
   rendimiento estadístico del proceso. Razonable a esta escala.
-- **E2E automatizado en CI**: Playwright está preparado pero los flujos críticos aún se
-  validan con la guía manual. Pendiente antes del go-live.
+- **E2E con pagos reales en CI**: Playwright ya recorre en el CI la compra, el panel por rol
+  y la seguridad (workflow `e2e.yml`), pero el pago se intercepta antes de salir a Transbank.
+  El pago completo en el ambiente de integración se valida con `E2E_PAYMENTS=1` o con la guía
+  manual.
 - **Revisión de pares formal**: con un solo desarrollador, la revisión de PR la cubre
   parcialmente el pipeline + self-review contra la DoD. Si el equipo crece, activar
   required reviews en GitHub.

@@ -55,7 +55,7 @@ Reglas de diseño (verificables en revisión de código):
 |---|---|---|
 | Unitario | Lógica pura: totales/envío, inventario, TOTP, cifrado PII, cadena de integridad, RBAC | Vitest (`tests/unit/**`) |
 | Integración manual | Flujos completos con pasarelas en ambiente de integración | `docs/guia-de-pruebas.md` |
-| E2E (preparado) | Flujos de navegador | Playwright (`pnpm test:e2e`) |
+| E2E | Compra (invitado y con cuenta), panel por rol, cookies, legales y cabeceras, en escritorio y móvil | Playwright (`pnpm test:e2e`, workflow `e2e.yml`) |
 | Aceptación | Checklist end-to-end en despliegue de prueba | `docs/deploy.md` §1.7 |
 
 ### 1.5 Despliegue

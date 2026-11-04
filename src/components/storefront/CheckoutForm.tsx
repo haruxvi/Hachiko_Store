@@ -21,18 +21,23 @@ const FormSchema = ShippingAddressSchema.extend({
   paymentProvider: z.enum(['WEBPAY', 'MERCADOPAGO'], {
     error: 'Elige un método de pago',
   }),
-}).superRefine((data, ctx) => {
-  if (data.shippingMethod === 'PICKUP') return;
-  for (const field of ['street', 'number', 'commune', 'region'] as const) {
-    if (!data[field]?.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        path: [field],
-        message: 'Requerido para despacho a domicilio',
-      });
+}).superRefine(
+  (data, ctx) => {
+    if (data.shippingMethod === 'PICKUP') return;
+    for (const field of ['street', 'number', 'commune', 'region'] as const) {
+      if (!data[field]?.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [field],
+          message: 'Requerido para despacho a domicilio',
+        });
+      }
     }
-  }
-});
+  },
+  // Zod 4 se salta el refinamiento si ya hay otros errores (nombre, teléfono):
+  // la dirección faltante aparecería recién en un segundo intento. Así salen todas juntas.
+  { when: ({ value }) => typeof value === 'object' && value !== null },
+);
 
 type FormValues = z.infer<typeof FormSchema>;
 

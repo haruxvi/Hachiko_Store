@@ -64,8 +64,9 @@ Complementos: pre-commit con husky/lint-staged (feedback inmediato) y
   cubiertas hoy: totales y envío, inventario, TOTP, cifrado PII, cadena de integridad, RBAC.
 - **Integración** (manual, guiada): `docs/guia-de-pruebas.md` con pasarelas en ambiente de
   integración.
-- **E2E** (Playwright): reservado para los flujos críticos (compra completa, login con 2FA)
-  antes del go-live.
+- **E2E** (Playwright, `tests/e2e/`): compra como invitado y con cuenta hasta el pago, acceso
+  al panel por rol, cookies, páginas legales y cabeceras de seguridad; corre en el CI contra el
+  Docker local. Pendiente: login con 2FA y el pago real en integración (`E2E_PAYMENTS=1`).
 - Regla de regresión: todo bug corregido en lógica de negocio deja un test que lo habría
   detectado.
 
