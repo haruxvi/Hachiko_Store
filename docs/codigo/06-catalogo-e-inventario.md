@@ -60,7 +60,7 @@ Cuando un vendedor cambia el precio de un producto, se guarda una fila con preci
 precio nuevo, vendedor y fecha (`updateProduct` en
 [catalog.service.ts](../../src/lib/services/catalog.service.ts)). La tabla es **append-only**:
 no se edita ni se borra. Sirve como auditoría y como base de la elasticidad-precio (ver
-[machine-learning.md](../machine-learning.md)).
+[09-inteligencia.md](09-inteligencia.md)).
 
 ## Carga masiva (CSV o Excel)
 

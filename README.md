@@ -379,7 +379,7 @@ pnpm test:e2e           # 15 tests
 | **Manual** | [Probar Hachiko en tu casa: web y app en el teléfono](docs/manual-demo-telefono.md) (equipo y comisión) |
 | **Operación** | [Despliegue](docs/deploy.md) · [Docker local](docs/despliegue-local-docker.md) · [Carga masiva](docs/carga-masiva.md) · [Guía de pruebas](docs/guia-de-pruebas.md) |
 | **App móvil** | [mobile/README.md](mobile/README.md) |
-| **Cómo funciona** | [El código por dentro](docs/codigo/README.md) · [Teoría y preguntas de la comisión](docs/teoria/README.md) |
+| **Cómo funciona** | [Arquitectura, backend, frontend, app y cada flujo por dentro](docs/codigo/README.md) · [Teoría (decisiones de arquitectura, concurrencia, seguridad, pagos, ML, leyes, calidad) y preguntas de la comisión](docs/teoria/README.md) |
 | **Capstone** | Evidencias académicas en [`Capstone/`](Capstone/) |
 
 ---

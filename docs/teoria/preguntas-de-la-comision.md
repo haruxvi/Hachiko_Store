@@ -106,8 +106,10 @@ contenido, detecta si alguien lo alteró. *Mostrar:* `src/lib/crypto/pii.ts`.
 
 **¿Cómo frenan un XSS?**
 Con una Content-Security-Policy con *nonce* por respuesta y `strict-dynamic`: solo se ejecutan
-los scripts que el servidor firmó en esa respuesta. En producción no hay `unsafe-inline` ni
-`unsafe-eval`. Se suman `frame-ancestors 'none'` contra *clickjacking*, cookies `HttpOnly` y
+los scripts que el servidor firmó en esa respuesta. Para los scripts no hay `unsafe-inline`, y en
+producción tampoco `unsafe-eval` (solo se habilita en desarrollo para la recarga en caliente).
+Los estilos sí permiten `unsafe-inline`: un estilo inyectado no ejecuta código, y el riesgo de XSS
+está en los scripts. Se suman `frame-ancestors 'none'` contra *clickjacking*, cookies `HttpOnly` y
 `SameSite=Strict`. *Mostrar:* `buildCsp` en `src/middleware.ts`.
 
 **¿Qué garantiza la bitácora de incidencias?**

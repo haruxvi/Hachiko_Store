@@ -10,18 +10,33 @@ modelos, leyes), está en [`../teoria/`](../teoria/README.md).
 
 ## Orden de lectura sugerido
 
+**Visión general**
+
 | # | Documento | Qué responde |
 |---|---|---|
-| 1 | [Panorama general](01-panorama.md) | Qué es Hachiko, cómo se arma, el recorrido de una petición y dónde está cada cosa |
+| 1 | [Panorama y arquitectura](01-panorama.md) | Qué es Hachiko, sus capas y planos de datos, el recorrido de una petición y dónde está cada cosa |
+| 7 | [El backend](07-backend.md) | Puertas de entrada, servicios, acceso a datos, validación, formato de errores, límites de frecuencia, correos y crons |
+| 8 | [El frontend web](08-frontend.md) | Server y Client Components, rutas y layouts, estado, sistema visual, PWA y accesibilidad |
+| 11 | [La app móvil](11-app-movil.md) | Estructura Expo, modos cliente y vendedor, sesión, caché de datos y cómo paga |
+
+**Flujos de negocio**
+
+| # | Documento | Qué responde |
+|---|---|---|
 | 2 | [Cuentas, sesiones y roles](02-autenticacion.md) | Registro, login, 2FA, sesiones, renovación, bloqueo e invitados |
 | 3 | [Del carrito al pedido](03-compra.md) | Catálogo, carrito, checkout, reserva de stock y el puente app → web |
 | 4 | [Pagos y reembolsos](04-pagos-y-reembolsos.md) | Webpay, Mercado Pago, confirmación atómica, idempotencia y la cola de reembolsos |
 | 5 | [Despacho y postventa](05-despacho-y-postventa.md) | Estados del pedido, despacho, seguimiento, retiro en tienda, cambios y devoluciones |
 | 6 | [Catálogo e inventario](06-catalogo-e-inventario.md) | Stock, reservas, libro de movimientos, historial de precios, carga masiva e imágenes |
+| 9 | [Inteligencia (BI y ML)](09-inteligencia.md) | Del pipeline de Python a la trastienda, qué es ML y qué es BI, alertas y elasticidad |
 
-**Por escribir:** trastienda y API v1, inteligencia, seguridad y privacidad en el código, app
-móvil, operación y pruebas. Mientras tanto, esos temas están cubiertos por los documentos de la
-tabla siguiente.
+**Transversales**
+
+| # | Documento | Qué responde |
+|---|---|---|
+| 10 | [Seguridad y privacidad](10-seguridad-y-privacidad.md) | Mapa de controles, qué se cifra, bitácora, incidencias, derechos ARCOP, retención y consentimiento |
+| 12 | [Operación](12-operacion.md) | Dónde corre cada pieza, workflows, crons, variables de entorno y Docker |
+| 13 | [Pruebas](13-pruebas.md) | Qué demuestra cada nivel de pruebas y dónde está cada caso |
 
 ## Documentos que ya existían y se complementan
 

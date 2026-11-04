@@ -1,4 +1,4 @@
-# 1. Panorama general
+# 1. Panorama general y arquitectura
 
 ## Qué es
 
@@ -76,7 +76,7 @@ lógica de negocio distinta para la app.
 La trastienda **lee** el plano analítico con
 [intelligence.service.ts](../../src/lib/services/intelligence.service.ts). El pipeline de Python
 nunca toca las tablas operacionales: solo las lee. El detalle está en
-[machine-learning.md](../machine-learning.md).
+[09-inteligencia.md](09-inteligencia.md).
 
 ## Recorrido de una petición: "un cliente paga su carrito"
 

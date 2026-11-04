@@ -31,7 +31,7 @@ Archivos centrales: [catalog.service.ts](../../src/lib/services/catalog.service.
 
 ## 3. Checkout
 
-- [checkout/page.tsx](../../src/app/(checkout)/checkout/page.tsx):
+- [checkout/page.tsx](../../src/app/%28checkout%29/checkout/page.tsx):
   - **Sin sesión**, muestra la puerta de "iniciar sesión, crear cuenta o continuar como
     invitado".
   - **Con sesión**, precarga la última dirección usada.
@@ -82,7 +82,7 @@ las dos transacciones Serializable y **aborta una**. `withSerializableRetry` la 
 y responde "Stock insuficiente". La prueba de integración lanza **5 compras simultáneas de la
 última unidad** y exige que exista exactamente una reserva
 ([checkout-flow.test.ts](../../tests/integration/checkout-flow.test.ts)). La teoría está en
-[../teoria/preguntas-de-la-comision.md](../teoria/preguntas-de-la-comision.md).
+[../teoria/02-concurrencia-y-transacciones.md](../teoria/02-concurrencia-y-transacciones.md).
 
 ### Qué pasa con las reservas vencidas
 
@@ -104,7 +104,7 @@ La app no implementa pagos. En el carrito de la app, el botón de pagar abre en 
 seguro del teléfono (`WebBrowser.openAuthSessionAsync`)
 `/carrito/desde-app?i=slug:cantidad,…`.
 
-Esa página ([desde-app/page.tsx](../../src/app/(storefront)/carrito/desde-app/page.tsx)) hace
+Esa página ([desde-app/page.tsx](../../src/app/%28storefront%29/carrito/desde-app/page.tsx)) hace
 lo siguiente:
 
 - Valida el formato: como máximo 30 líneas y cantidades de 1 a 99.

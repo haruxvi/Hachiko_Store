@@ -119,7 +119,7 @@ flujos:
 | Capa | Qué protege | Dónde |
 |---|---|---|
 | Middleware | Páginas: `/trastienda/*` exige SELLER; `/perfil`, `/pedidos` y `/datos` exigen sesión | [middleware.ts](../../src/middleware.ts) |
-| Layout del panel | Vuelve a exigir SELLER al renderizar | [trastienda/layout.tsx](../../src/app/(panel)/trastienda/layout.tsx) |
+| Layout del panel | Vuelve a exigir SELLER al renderizar | [trastienda/layout.tsx](../../src/app/%28panel%29/trastienda/layout.tsx) |
 | Cada acción o ruta | Cada Server Action y route handler revisa sesión y rol por su cuenta (`requireSession`, `requireRole`) | `src/actions/*`, [v1.ts](../../src/lib/api/v1.ts), [rbac.ts](../../src/lib/auth/rbac.ts) |
 
 El middleware no corre en `/api`: cada endpoint se protege a sí mismo. Si alguien olvidara una
