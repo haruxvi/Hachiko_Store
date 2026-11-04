@@ -51,9 +51,10 @@ overrides:
   # baseline-browser-mapping <2.11.0: DoS por terminación de proceso con input
   # inválido (vía next). Fix en 2.11.0.
   'baseline-browser-mapping@<2.11.0': ^2.11.0
-  # follow-redirects <1.16.1 (vía transbank-sdk > axios, ruta de PAGO): cabeceras
-  # de credenciales expuestas al redirigir (GHSA de 2026-10).
-  follow-redirects: ^1.16.1
+  # follow-redirects <1.16.2 (vía transbank-sdk > axios, ruta de PAGO): cabeceras
+  # de credenciales expuestas al redirigir (GHSA de 2026-10) y, en 1.16.1, los
+  # sensitiveHeaders de otro realm se descartaban (GHSA-mrwp-f3q8-3g9p).
+  follow-redirects: ^1.16.2
   # zod <4.6.6: agota memoria validando colecciones gigantes con límites
   # (GHSA-mrhx-c7xc-m3w5). Es la validación de TODAS las entradas de la API; la
   # dependencia directa ya va en 4.6.7 y esto cubre las copias transitivas
@@ -63,9 +64,22 @@ overrides:
   # excesivos y memoria sin límite en EventSource, entre otros
   # (GHSA-xjj6-f33q-929c, GHSA-4qv8-2p9j-2685). Se queda en la línea v6 que pide @vercel/blob.
   'undici@>=4.0.0 <6.29.1': ^6.29.1
+  # minimatch >=7.0.0 <11.0.1: DoS por amplificación de globParts en
+  # firstPhasePreProcess() (GHSA-g3hv-75wg-m249). La única copia afectada era la
+  # 10.2.5 de @typescript-eslint (dev-only). Las líneas 3.x y 5.x (vía exceljs >
+  # archiver/unzipper) NO se tocan: no tienen ese código y glob 7 se rompe con la v11.
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.1
   # deepmerge (sin versión corregida) entraba por resend > @react-email/render >
   # html-to-text. No usamos React Email (los correos son HTML): desde resend 6.35
   # ese paquete es opcional y ya no se instala, así que no hace falta override.
 
-# Sin excepciones de auditoría: la de braces (GHSA-vfj7-8cjw-p6xm) se quitó en
-# 2026-10 porque el registro de npm ya no reporta ese aviso para braces 3.0.3.
+# Única excepción, un falso positivo verificado: el aviso revisado de GitHub para
+# minimatch (GHSA-g3hv-75wg-m249) cubre >=7.0.0 <11.0.1, pero el registro de npm
+# todavía publica <11.0.1 y marca las 3.1.5 y 5.1.9 de exceljs, que no tienen
+# firstPhasePreProcess ni optimizationLevel (aparecen en la v7). Ninguna copia
+# afectada puede instalarse mientras exista el override de arriba. Quitar la
+# excepción cuando `pnpm audit` deje de marcarlas sin ella.
+# (La de braces, GHSA-vfj7-8cjw-p6xm, se quitó en 2026-10.)
+auditConfig:
+  ignoreGhsas:
+    - GHSA-g3hv-75wg-m249
