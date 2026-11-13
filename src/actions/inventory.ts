@@ -75,8 +75,9 @@ export async function adjustStockAction(
 export async function createProductAction(
   input: z.input<typeof CreateProductSchema>,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  if (!(await isSeller())) return FORBIDDEN;
-  return createProductAs(input);
+  const session = await isSeller();
+  if (!session) return FORBIDDEN;
+  return createProductAs(input, session.sub);
 }
 
 export async function updateProductAction(

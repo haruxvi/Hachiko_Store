@@ -136,6 +136,20 @@ describe("CSV de productos", () => {
         parseProductCsv(header + "\n" + line, cats).issues.length,
       ).toBeGreaterThan(0);
   });
+  it("una comilla mal puesta se informa en la fila donde está, no en la 1", () => {
+    const csv = [header, row, row.replace("SKU-1", "SKU-2"), row.replace("Snack,", 'Sna"ck,')].join("\n");
+    const { issues } = parseProductCsv(csv, cats);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]!.row).toBe(4);
+    expect(issues[0]!.message).toMatch(/^Comillas incorrectas/);
+  });
+  it("los errores de datos salen en español, con el nombre de la columna y sin repetirse", () => {
+    const csv = [header, row.replace("Descripcion", ""), row.replace("SKU-1", "SKU-3").replace("1990", "-500")].join("\n");
+    const messages = parseProductCsv(csv, cats).issues.map((i) => i.message);
+    expect(messages).toContain("descripcion: es obligatorio.");
+    expect(messages.filter((m) => m.startsWith("precio_clp:"))).toHaveLength(1);
+    expect(messages.join(" ")).not.toMatch(/Too small|expected/);
+  });
   it("rechaza archivos vacíos y excesivos", () => {
     for (const csv of [
       "",

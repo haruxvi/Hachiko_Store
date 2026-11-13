@@ -49,5 +49,5 @@ export const GET = api(async (req: NextRequest) => {
 export const POST = api(async (req: NextRequest) => {
   const session = await requireSession(req, 'SELLER');
   await limit(req, 'seller-write', 30, 60_000, session.sub);
-  return ok(settled(await createProductAs(await jsonBody(req, 32 * 1024))));
+  return ok(settled(await createProductAs(await jsonBody(req, 32 * 1024), session.sub)));
 });

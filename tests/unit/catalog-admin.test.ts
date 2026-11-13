@@ -50,6 +50,16 @@ describe('Altas y cambios del catálogo (panel web y app)', () => {
     expect(mocks.updateProduct).toHaveBeenCalledWith('p1', { priceCLP: 3290 }, 'seller');
   });
 
+  it('editar la ficha no cambia el stock: eso se hace con un ajuste de inventario', async () => {
+    expect(await updateProductAs({ id: 'p1', priceCLP: 3290, stock: 999 }, 'seller')).toEqual({ ok: true });
+    expect(mocks.updateProduct).toHaveBeenCalledWith('p1', { priceCLP: 3290 }, 'seller');
+  });
+
+  it('al crear, el stock inicial se registra a nombre del vendedor', async () => {
+    expect(await createProductAs(product, 'seller')).toEqual({ ok: true, id: 'p1' });
+    expect(mocks.createProduct).toHaveBeenCalledWith(expect.objectContaining({ stock: 10 }), 'seller');
+  });
+
   it('editar una categoría sin mandar "activa" ni "orden" los deja como estaban', async () => {
     expect(await updateCategoryAs({ id: 'c1', name: 'Dulces' })).toEqual({ ok: true });
     expect(mocks.updateCategory).toHaveBeenCalledWith('c1', { name: 'Dulces' });

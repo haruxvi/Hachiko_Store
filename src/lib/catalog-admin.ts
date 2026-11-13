@@ -96,7 +96,9 @@ export const CreateProductSchema = ProductActionSchema.omit({ slug: true });
 // Zod 4 aplica los .default() incluso dentro de .partial(): la edición se arma
 // con los campos SIN valores por defecto, para que lo que no se envía quede como
 // estaba (antes, editar sin mandar las fotos las borraba).
-export const UpdateProductSchema = z.object(productFields).partial().extend({
+// Sin `stock`: el stock de un producto existente solo cambia con un ajuste de
+// inventario (motivo, nota y movimiento en el libro), nunca editando la ficha.
+export const UpdateProductSchema = z.object(productFields).omit({ stock: true }).partial().extend({
   id: idSchema,
 });
 
@@ -119,12 +121,12 @@ function revalidateProducts(id?: string) {
   revalidatePath('/catalogo');
 }
 
-export async function createProductAs(input: unknown): Promise<AdminResult<{ id: string }>> {
+export async function createProductAs(input: unknown, actorId: string | null = null): Promise<AdminResult<{ id: string }>> {
   const parsed = CreateProductSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
 
   try {
-    const product = await createProduct({ ...parsed.data, slug: productSlug(parsed.data.name) });
+    const product = await createProduct({ ...parsed.data, slug: productSlug(parsed.data.name) }, actorId);
     revalidateProducts();
     return { ok: true, id: product.id };
   } catch (e) {

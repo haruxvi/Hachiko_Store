@@ -106,7 +106,6 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
       description: fd.get('description') as string,
       priceCLP: Number(fd.get('priceCLP')),
       costCLP: fd.get('costCLP') ? Number(fd.get('costCLP')) : undefined,
-      stock: Number(fd.get('stock')),
       lowStockThreshold: Number(fd.get('lowStockThreshold')),
       weightGrams: Number(fd.get('weightGrams')),
       images,
@@ -119,7 +118,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
     if (isEdit && initial) {
       result = await updateProductAction({ id: initial.id, ...data });
     } else {
-      result = await createProductAction(data);
+      result = await createProductAction({ ...data, stock: Number(fd.get('stock')) });
     }
 
     if (result.ok) {
@@ -157,7 +156,22 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <Field label="Stock inicial" name="stock" type="number" defaultValue={v?.stock ?? 0} required />
+        {isEdit && initial ? (
+          // El stock de un producto existente se cambia con un ajuste de inventario
+          // (motivo y movimiento en el libro), no editando la ficha.
+          <div>
+            <Label>Stock en bodega</Label>
+            <p className="price-mono py-3 text-[15px] text-soot">{initial.stock} unidades</p>
+            <a
+              href={`/trastienda/inventario?q=${encodeURIComponent(initial.sku)}`}
+              className="text-[13px] font-medium text-rust-ink hover:underline"
+            >
+              Ajustar en Inventario →
+            </a>
+          </div>
+        ) : (
+          <Field label="Stock inicial" name="stock" type="number" defaultValue={0} required />
+        )}
         <Field label="Umbral bajo stock" name="lowStockThreshold" type="number" defaultValue={v?.lowStockThreshold ?? 5} required />
         <Field label="Peso (gramos)" name="weightGrams" type="number" defaultValue={v?.weightGrams} required />
       </div>

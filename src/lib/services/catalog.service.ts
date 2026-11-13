@@ -230,8 +230,27 @@ export async function restoreProduct(id: string) {
   });
 }
 
-export async function createProduct(input: z.infer<typeof ProductSchema>) {
-  return db.product.create({ data: input, include: { category: true } });
+// El stock con que nace el producto queda en el libro de movimientos como carga
+// inicial (igual que en la carga masiva): así el histórico cuadra desde el día uno.
+export async function createProduct(input: z.infer<typeof ProductSchema>, actorId: string | null = null) {
+  return db.$transaction(async (tx) => {
+    const product = await tx.product.create({ data: input, include: { category: true } });
+    if (product.stock > 0) {
+      await tx.stockMovement.create({
+        data: {
+          productId: product.id,
+          type: 'IN',
+          reason: 'INITIAL_LOAD',
+          quantity: product.stock,
+          previousStock: 0,
+          resultingStock: product.stock,
+          actorId,
+          notes: 'Alta del producto',
+        },
+      });
+    }
+    return product;
+  });
 }
 
 export async function updateProduct(

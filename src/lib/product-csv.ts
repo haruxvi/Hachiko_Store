@@ -37,13 +37,43 @@ function categoryKey(value: string) {
     .toLowerCase();
 }
 
+const COLUMN_OF_FIELD: Record<string, string> = {
+  sku: "sku",
+  slug: "slug",
+  name: "nombre",
+  description: "descripcion",
+  priceCLP: "precio_clp",
+  stock: "stock",
+  weightGrams: "peso_gramos",
+  costCLP: "costo_clp",
+  lowStockThreshold: "stock_minimo",
+  nameKorean: "nombre_coreano",
+  images: "imagenes",
+};
+
+function friendlyIssue(issue: { code: string; origin?: unknown }): string {
+  if (issue.code === "too_small") return issue.origin === "string" ? "es obligatorio." : "debe ser mayor que 0.";
+  if (issue.code === "too_big") return issue.origin === "string" ? "es demasiado largo." : "es demasiado grande.";
+  return "tiene un valor no válido.";
+}
+
+// Error de sintaxis con la línea del archivo donde empieza el registro, para que
+// el vendedor sepa qué fila corregir (antes todo se informaba como "Fila 1").
+class CsvSyntaxError extends Error {
+  constructor(message: string, readonly line: number) {
+    super(message);
+  }
+}
+
 // RFC-style quoted fields, including embedded separators, newlines and escaped quotes.
 function readCsv(text: string, delimiter: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [],
     field = "",
     quoted = false,
-    closed = false;
+    closed = false,
+    line = 1,
+    recordLine = 1;
   const pushField = () => {
     row.push(field.trim());
     field = "";
@@ -63,19 +93,27 @@ function readCsv(text: string, delimiter: string): string[][] {
       } else if (c === '"') {
         quoted = false;
         closed = true;
-      } else field += c;
+      } else {
+        if (c === "\n") line++;
+        field += c;
+      }
     } else if (c === delimiter) pushField();
     else if (c === "\n" || c === "\r") {
       if (c === "\r" && text[i + 1] === "\n") i++;
       pushRow();
+      line++;
+      recordLine = line;
     } else if (c === '"' && !field && !closed) quoted = true;
     else if (c === '"' || (closed && c.trim()))
-      throw new Error("Comillas incorrectas en el CSV.");
+      throw new CsvSyntaxError(
+        'Comillas incorrectas. Un texto con comillas debe ir entre comillas, con las internas duplicadas ("").',
+        recordLine,
+      );
     else if (!closed) field += c;
     if (rows.length > MAX_CSV_ROWS + 1)
       throw new Error(`Máximo ${MAX_CSV_ROWS} productos por archivo.`);
   }
-  if (quoted) throw new Error("Hay un campo con comillas sin cerrar.");
+  if (quoted) throw new CsvSyntaxError("Hay un campo con comillas sin cerrar.", recordLine);
   if (field || row.length || closed) pushRow();
   return rows;
 }
@@ -115,7 +153,8 @@ export function parseProductCsv(
     const header = text.split(/\r?\n/, 1)[0] ?? "";
     table = readCsv(text, header.includes(";") ? ";" : ",");
   } catch (e) {
-    return { rows, issues: [{ row: 1, message: (e as Error).message }] };
+    const row = e instanceof CsvSyntaxError ? e.line : 1;
+    return { rows, issues: [{ row, message: (e as Error).message }] };
   }
   const headers = table.shift()?.map((h) => h.toLowerCase()) ?? [];
   if (new Set(headers).size !== headers.length)
@@ -274,10 +313,11 @@ export function parseProductCsv(
       for (const issue of parsed.error.issues) {
         // La categoría desconocida ya se explicó arriba, con su nombre.
         if (!category && issue.path[0] === "categoryId") continue;
-        issues.push({
-          row,
-          message: `${issue.path.join(".")}: ${issue.message}`,
-        });
+        // Mensaje en español con el nombre de la columna del archivo, nunca el
+        // técnico de zod en inglés; y sin repetir una columna ya explicada.
+        const column = COLUMN_OF_FIELD[String(issue.path[0])] ?? String(issue.path[0]);
+        if (issues.some((i) => i.row === row && i.message.startsWith(`${column}:`))) continue;
+        issues.push({ row, message: `${column}: ${friendlyIssue(issue)}` });
       }
     if (skus.has(sku.toLowerCase()))
       issues.push({
