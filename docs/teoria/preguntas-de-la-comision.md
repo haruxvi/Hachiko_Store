@@ -222,12 +222,12 @@ seguimiento y el cliente recibe el enlace a la página pública del courier.
 ## Calidad
 
 **¿Cómo saben que funciona?**
-Con 310 pruebas automatizadas:
+Con 311 pruebas automatizadas:
 
 - **242 unitarias** de lógica pura.
 - **53 de integración** contra un PostgreSQL real, porque la concurrencia no se puede probar con
   *mocks*.
-- **15 e2e** con Playwright en un navegador real, en escritorio y celular.
+- **16 e2e** con Playwright en un navegador real, en escritorio y celular.
 
 Todas corren en cada push (CI y E2E en GitHub Actions). *Mostrar:* el README, sección
 "Calidad y pruebas".

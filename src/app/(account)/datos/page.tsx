@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/src/lib/auth/session';
 import DataExportButton from '@/src/components/storefront/DataExportButton';
+import DeleteAccountButton from '@/src/components/account/DeleteAccountButton';
 
 export default async function DatosPage() {
   const session = await getSession();
@@ -26,12 +27,7 @@ export default async function DatosPage() {
             Tu cuenta se desactivará de inmediato y los datos serán purgados en 30 días.
             Esta acción no es reversible.
           </p>
-          <a
-            href="/api/me/account"
-            className="text-sm text-alert hover:underline font-medium"
-          >
-            Solicitar eliminación de cuenta →
-          </a>
+          <DeleteAccountButton />
         </div>
       </div>
     </div>

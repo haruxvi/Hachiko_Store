@@ -39,7 +39,7 @@ genérica no trae:
 
 | | |
 |---|---|
-| **310 tests automatizados** | 242 unitarios (25 archivos) + 53 de integración contra Postgres real (4 archivos) + 15 e2e en navegador real (Playwright, escritorio y móvil) |
+| **311 tests automatizados** | 242 unitarios (25 archivos) + 53 de integración contra Postgres real (4 archivos) + 16 e2e en navegador real (Playwright, escritorio y móvil) |
 | **34/34 verificaciones de pentest** | Autenticación, IDOR, pagos, inyección, rate limit y DoS, en entorno aislado ([informe](docs/pentest-local-2026-10.md)) |
 | **10 vistas de inteligencia** | Métricas, Demanda, Qué reponer, Logística, Recomendaciones, Clientes, Conversión, Riesgo, Modelos y Reporte |
 | **3 interfaces, 1 backend** | Web, PWA instalable y app Expo, todas por la misma API, la misma base y las mismas reglas |
@@ -363,7 +363,7 @@ correr contra un host que no sea local, y el pago se intercepta justo antes de s
 ```bash
 docker compose up -d --build
 pnpm exec playwright install chromium   # solo la primera vez
-pnpm test:e2e           # 15 tests
+pnpm test:e2e           # 16 tests
 ```
 
 ---

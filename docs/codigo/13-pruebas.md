@@ -1,6 +1,6 @@
 # 13. Pruebas
 
-Hay **310 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
+Hay **311 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
 pueden. Los comandos están en el README (sección "Calidad y pruebas") y la teoría en
 [../teoria/07-calidad-y-pruebas.md](../teoria/07-calidad-y-pruebas.md).
 
@@ -8,7 +8,7 @@ pueden. Los comandos están en el README (sección "Calidad y pruebas") y la teo
 |---|---|---|---|---|
 | Unitarias | 242 en 25 archivos | Vitest (`pnpm test`) | Nada externo. La mayoría es lógica pura; en 5 archivos la base se reemplaza por un *mock* | Que la lógica calcula y decide bien |
 | Integración | 53 en 4 archivos | Vitest (`pnpm test:integration`) | **PostgreSQL real** y desechable | Concurrencia, transacciones e idempotencia, que un *mock* no puede simular |
-| End-to-end | 15 en 3 archivos | Playwright (`pnpm test:e2e`) | La tienda completa en Docker, con un navegador Chromium real | Que una persona puede comprar, entrar al panel y que la seguridad del navegador está activa |
+| End-to-end | 16 en 4 archivos | Playwright (`pnpm test:e2e`) | La tienda completa en Docker, con un navegador Chromium real | Que una persona puede comprar, entrar al panel y que la seguridad del navegador está activa |
 
 ## Unitarias (`tests/unit/`)
 
@@ -44,9 +44,16 @@ sea local**, salvo con `E2E_ALLOW_REMOTE=1`, porque las pruebas crean pedidos. C
 | [storefront.spec.ts](../../tests/e2e/storefront.spec.ts) | Inicio, catálogo y ficha sin errores de consola; carrito vacío y con productos; aviso de cookies con dos opciones del mismo estilo; páginas legales y 404. **Corre en escritorio y en un Pixel 7 emulado** |
 | [checkout.spec.ts](../../tests/e2e/checkout.spec.ts) | Compra como invitado con retiro en tienda; compra con cuenta que exige dirección y valida el teléfono. La llamada a Webpay se intercepta y se comprueba que el pedido ya existe (con `E2E_PAYMENTS=1` llega al formulario de integración de Transbank) |
 | [panel.spec.ts](../../tests/e2e/panel.spec.ts) | Panel sin sesión → login; contraseña incorrecta con la misma respuesta que un correo inexistente; un cliente no entra al panel ni a la API del vendedor; el vendedor ve Demanda y el historial de precios; cabeceras de seguridad |
+| [cuenta.spec.ts](../../tests/e2e/cuenta.spec.ts) | Derecho de supresión (Ley 21.719): un cliente pide eliminar su cuenta desde *Mis datos*, la solicitud se registra y la sesión se cierra |
 
-Los e2e ya encontraron un error real: con despacho a domicilio, la dirección faltante aparecía
-recién al segundo intento. Se corrigió en `CheckoutForm.tsx`.
+Errores reales que encontraron estas pruebas y los recorridos completos, todos ya corregidos:
+
+- **Despacho a domicilio:** la dirección faltante aparecía recién en el segundo intento. Se
+  corrigió en `CheckoutForm.tsx`.
+- **Vuelta desde Webpay o Mercado Pago:** la confirmación no veía la sesión (cookie `Strict`).
+  Se encontró con una compra real en el ambiente de integración y se corrigió en `session.ts`.
+- **Solicitar eliminación de cuenta:** el botón era un enlace GET a una ruta que solo acepta
+  `DELETE`, así que respondía 405. Ahora es `DeleteAccountButton.tsx`, cubierto por `cuenta.spec.ts`.
 
 ## Regla de regresión
 
