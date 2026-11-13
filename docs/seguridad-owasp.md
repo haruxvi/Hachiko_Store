@@ -26,8 +26,8 @@ Cada control referencia el archivo donde vive, para que la afirmación sea verif
 | Contraseñas con **Argon2id** (memoryCost 64 MiB, timeCost 3, parallelism 4) | `src/lib/services/auth.service.ts` |
 | PII (teléfonos, direcciones de despacho) cifrada **AES-256-GCM** con IV aleatorio por valor | `src/lib/crypto/pii.ts` |
 | Secreto TOTP almacenado cifrado, nunca en claro | `src/lib/services/auth.service.ts` |
-| JWT firmados HS256 con secreto ≥ 32 chars validado al arranque | `src/lib/auth/jwt.ts`, `src/lib/env.ts` |
-| Cookies `httpOnly`, `secure` en producción, `SameSite=Strict`; refresh con path restringido | `src/lib/auth/session.ts` |
+| JWT **cifrados** (JWE `dir` + A256GCM) con clave derivada de un secreto ≥ 32 chars validado al arranque; algoritmos fijados al descifrar | `src/lib/auth/jwt.ts`, `src/lib/env.ts` |
+| Cookies `httpOnly` y `secure` en producción. Access `SameSite=Lax` (debe viajar en la vuelta desde Webpay o Mercado Pago; Lax sigue bloqueando el POST desde otro sitio). Refresh `SameSite=Strict`, con path restringido a `/api/auth` | `src/lib/auth/session.ts` |
 | HSTS con preload (2 años) | `next.config.ts` |
 
 ### A03 — Injection

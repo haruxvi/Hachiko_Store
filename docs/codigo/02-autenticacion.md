@@ -60,8 +60,13 @@ aunque alguien lograra promover una cuenta, no puede multiplicar el acceso al pa
   clave de 32 bytes se deriva con SHA-256 de `JWT_SECRET`.
 - Al descifrar se fijan los algoritmos aceptados (evita ataques de confusión de algoritmo), y
   un refresh no sirve como access porque se revisa el campo `type`.
-- Las cookies son `HttpOnly` (JavaScript no puede leerlas), `Secure` en producción y
-  `SameSite=Strict` (no viajan en peticiones iniciadas por otros sitios).
+- Las cookies son `HttpOnly` (JavaScript no puede leerlas) y `Secure` en producción.
+  - El **refresh** es `SameSite=Strict`: no viaja en ninguna petición iniciada por otro sitio.
+  - El **access** es `SameSite=Lax`, porque tiene que viajar cuando el cliente vuelve de
+    Webpay o Mercado Pago. Con `Strict`, la confirmación del pedido no veía la sesión y mostraba
+    "No encontramos una orden pagada" con el pedido ya pagado. `Lax` sigue sin enviarse en
+    peticiones POST desde otro sitio, que es lo que protege contra CSRF. Lo cubre la prueba
+    [session-cookies.test.ts](../../tests/unit/session-cookies.test.ts).
 - El panel renueva el access en silencio cada 12 minutos
   ([SessionKeepAlive.tsx](../../src/components/panel/SessionKeepAlive.tsx)), para que un
   vendedor con el panel abierto no caiga al login cada 15 minutos.

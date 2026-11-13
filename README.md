@@ -39,7 +39,7 @@ genérica no trae:
 
 | | |
 |---|---|
-| **308 tests automatizados** | 240 unitarios (24 archivos) + 53 de integración contra Postgres real (4 archivos) + 15 e2e en navegador real (Playwright, escritorio y móvil) |
+| **310 tests automatizados** | 242 unitarios (25 archivos) + 53 de integración contra Postgres real (4 archivos) + 15 e2e en navegador real (Playwright, escritorio y móvil) |
 | **34/34 verificaciones de pentest** | Autenticación, IDOR, pagos, inyección, rate limit y DoS, en entorno aislado ([informe](docs/pentest-local-2026-10.md)) |
 | **10 vistas de inteligencia** | Métricas, Demanda, Qué reponer, Logística, Recomendaciones, Clientes, Conversión, Riesgo, Modelos y Reporte |
 | **3 interfaces, 1 backend** | Web, PWA instalable y app Expo, todas por la misma API, la misma base y las mismas reglas |
@@ -93,8 +93,8 @@ donde vive en [`docs/seguridad-owasp.md`](docs/seguridad-owasp.md).
 
 ### Autenticación y sesiones
 - **Argon2id** (memory-hard) para contraseñas.
-- **JWT de acceso corto** (15 min) + **refresh rotativo de un solo uso** en cookie
-  `httpOnly`/`secure`/`sameSite:strict`. Si reaparece un refresh ya usado, se revoca toda la
+- **JWT de acceso corto** (15 min, cookie `httpOnly`/`secure`/`sameSite:lax`) + **refresh
+  rotativo de un solo uso** en cookie `httpOnly`/`secure`/`sameSite:strict`. Si reaparece un refresh ya usado, se revoca toda la
   sesión y queda en el `AuditLog` (`REFRESH_TOKEN_REUSE`).
 - **Bloqueo de cuenta** tras 5 fallos, con contador atómico; invalidación global por `tokenVersion`.
 - **Recuperación de contraseña** con token de un solo uso y respuesta idéntica exista o no el correo.
@@ -334,7 +334,7 @@ Los mismos comandos que bloquean el CI en cada push:
 ```bash
 pnpm typecheck          # 0 errores de tipos
 pnpm lint               # 0 errores de ESLint
-pnpm test               # 240 tests unitarios (Vitest)
+pnpm test               # 242 tests unitarios (Vitest)
 pnpm audit              # CVE moderadas o superiores
 pnpm build              # build de producción
 ```

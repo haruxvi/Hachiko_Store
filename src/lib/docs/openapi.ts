@@ -500,7 +500,7 @@ export const openApiSpec = {
         type: 'apiKey',
         in: 'cookie',
         name: 'hachiko_access',
-        description: 'JWT de acceso (15 min) en cookie httpOnly, SameSite=Strict',
+        description: 'JWT de acceso (15 min) en cookie httpOnly, SameSite=Lax',
       },
       refreshCookie: {
         type: 'apiKey',

@@ -109,8 +109,17 @@ Con una Content-Security-Policy con *nonce* por respuesta y `strict-dynamic`: so
 los scripts que el servidor firmó en esa respuesta. Para los scripts no hay `unsafe-inline`, y en
 producción tampoco `unsafe-eval` (solo se habilita en desarrollo para la recarga en caliente).
 Los estilos sí permiten `unsafe-inline`: un estilo inyectado no ejecuta código, y el riesgo de XSS
-está en los scripts. Se suman `frame-ancestors 'none'` contra *clickjacking*, cookies `HttpOnly` y
-`SameSite=Strict`. *Mostrar:* `buildCsp` en `src/middleware.ts`.
+está en los scripts. Se suman `frame-ancestors 'none'` contra *clickjacking* y cookies `HttpOnly`
+(un script inyectado no podría leer la sesión). *Mostrar:* `buildCsp` en `src/middleware.ts`.
+
+**¿Por qué la cookie de sesión es `SameSite=Lax` y no `Strict`?**
+Porque el comprador vuelve a la tienda desde el sitio de Transbank o de Mercado Pago, y el
+navegador no envía cookies `Strict` en una navegación que viene de otro sitio. Con `Strict`, la
+confirmación mostraba "No encontramos una orden pagada" aunque el pedido estaba pagado. El error
+se detectó haciendo una compra real en el ambiente de integración de Webpay. `Lax` sí viaja en
+esa navegación y sigue bloqueando el POST desde otro sitio, que es lo que importa contra CSRF.
+El refresh token sigue `Strict`, porque solo lo usa `/api/auth`. *Mostrar:*
+`src/lib/auth/session.ts` y `tests/unit/session-cookies.test.ts`.
 
 **¿Qué garantiza la bitácora de incidencias?**
 Que alterarla se nota. Cada evento guarda el hash SHA-256 del anterior. Si alguien modifica,
@@ -213,9 +222,9 @@ seguimiento y el cliente recibe el enlace a la página pública del courier.
 ## Calidad
 
 **¿Cómo saben que funciona?**
-Con 308 pruebas automatizadas:
+Con 310 pruebas automatizadas:
 
-- **240 unitarias** de lógica pura.
+- **242 unitarias** de lógica pura.
 - **53 de integración** contra un PostgreSQL real, porque la concurrencia no se puede probar con
   *mocks*.
 - **15 e2e** con Playwright en un navegador real, en escritorio y celular.

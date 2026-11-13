@@ -160,7 +160,10 @@ Resultado esperado: el vendedor opera tienda + seguridad, sin superpoderes sobre
    El evento "Cuenta bloqueada" aparece en el panel de Seguridad.
 2. **Rate limiting**: una ráfaga de logins (>10/min desde tu IP) devuelve 429.
 3. **Cookies**: en DevTools → Application → Cookies, `hachiko_access` y `hachiko_refresh`
-   deben ser `HttpOnly`, `Secure` y `SameSite=Strict`.
+   deben ser `HttpOnly` y `Secure`. `hachiko_access` es `SameSite=Lax`, para que la sesión
+   viaje al volver de Webpay o Mercado Pago, y `hachiko_refresh` es `SameSite=Strict`, con path
+   `/api/auth`. Después de pagar, la confirmación debe mostrar "Listo. Lo estamos empacando."
+   sin recargar.
 4. **Crons**: en Vercel → Settings → Cron Jobs deben figurar `clean-reservations` (cada
    5 min) y `clean-audit-logs` (diario 4:00). Llamar la URL del cron sin el header
    `Authorization` debe dar 401.

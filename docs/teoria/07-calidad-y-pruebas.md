@@ -13,7 +13,7 @@ aplicadas tienen sus propios documentos: [ISO/IEC 25010](../calidad-iso25010.md)
       ╱───╲
      ╱     ╲      Integración (53): servicios contra PostgreSQL real
     ╱───────╲
-   ╱         ╲    Unitarias (240): lógica pura, milisegundos
+   ╱         ╲    Unitarias (242): lógica pura, milisegundos
   ▔▔▔▔▔▔▔▔▔▔▔▔▔  muchas, rápidas, aisladas
 ```
 

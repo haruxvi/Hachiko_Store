@@ -22,7 +22,12 @@ export function accessCookieOptions() {
     options: {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === 'production',
-      sameSite: 'strict' as const,
+      // Lax y no Strict: al volver de Webpay o Mercado Pago (navegación iniciada en
+      // su sitio) el navegador no envía cookies Strict, y la confirmación del pedido
+      // no veía la sesión ("No encontramos una orden pagada"). Lax sí viaja en esa
+      // navegación GET y sigue sin viajar en POST desde otro sitio, que es lo que
+      // protege contra CSRF. El refresh (abajo) sigue Strict: solo lo usa /api/auth.
+      sameSite: 'lax' as const,
       maxAge: 15 * 60,
       path: '/',
     },

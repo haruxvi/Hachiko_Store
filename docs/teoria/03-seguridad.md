@@ -81,9 +81,21 @@ y [../codigo/02-autenticacion.md](../codigo/02-autenticacion.md). El cruce con O
 - **`HttpOnly`:** JavaScript no puede leer la cookie. Aunque existiera un XSS, no podría robar
   la sesión.
 - **`Secure`:** la cookie solo viaja por HTTPS.
-- **`SameSite=Strict`:** la cookie no viaja en peticiones que inicia otro sitio. Es la defensa
-  principal contra **CSRF** (un sitio malicioso que hace que tu navegador ejecute una acción en
-  Hachiko con tu sesión).
+- **`SameSite`** es la defensa principal contra **CSRF**: un sitio malicioso que hace que tu
+  navegador ejecute una acción en Hachiko con tu sesión. Tiene dos niveles útiles:
+  - **`Strict`:** la cookie no viaja en **ninguna** petición iniciada por otro sitio, ni
+    siquiera al seguir un enlace.
+  - **`Lax`:** tampoco viaja en peticiones POST, imágenes, *iframes* ni `fetch` desde otro
+    sitio, pero sí cuando la persona **navega** hacia la página con GET (un enlace, o la
+    redirección de vuelta desde la pasarela de pago).
+
+  Hachiko usa `Strict` para el refresh y `Lax` para el access. Con `Strict`, el comprador que
+  volvía de Webpay llegaba a la confirmación "sin sesión" y veía un mensaje de error con el
+  pedido ya pagado. `Lax` no abre un CSRF útil, por tres razones: toda acción que cambia datos
+  es POST (con `Lax` la cookie no viaja en un POST desde otro sitio), las Server Actions de
+  Next.js además rechazan peticiones cuyo origen no coincide, y ninguna ruta GET cambia datos
+  del negocio (las dos descargas, mis datos y el informe de una incidencia, solo dejan registro
+  en la bitácora, y su respuesta no la puede leer otro sitio).
 - **XSS** (inyectar un script en la página) se frena en dos frentes:
   - React escapa el texto por defecto.
   - La **Content-Security-Policy** con *nonce*: cada respuesta trae un número aleatorio y el

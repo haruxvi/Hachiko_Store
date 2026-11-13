@@ -1,12 +1,12 @@
 # 13. Pruebas
 
-Hay **308 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
+Hay **310 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
 pueden. Los comandos están en el README (sección "Calidad y pruebas") y la teoría en
 [../teoria/07-calidad-y-pruebas.md](../teoria/07-calidad-y-pruebas.md).
 
 | Nivel | Cuántas | Herramienta | Contra qué corre | Qué demuestra |
 |---|---|---|---|---|
-| Unitarias | 240 en 24 archivos | Vitest (`pnpm test`) | Nada externo. La mayoría es lógica pura; en 5 archivos la base se reemplaza por un *mock* | Que la lógica calcula y decide bien |
+| Unitarias | 242 en 25 archivos | Vitest (`pnpm test`) | Nada externo. La mayoría es lógica pura; en 5 archivos la base se reemplaza por un *mock* | Que la lógica calcula y decide bien |
 | Integración | 53 en 4 archivos | Vitest (`pnpm test:integration`) | **PostgreSQL real** y desechable | Concurrencia, transacciones e idempotencia, que un *mock* no puede simular |
 | End-to-end | 15 en 3 archivos | Playwright (`pnpm test:e2e`) | La tienda completa en Docker, con un navegador Chromium real | Que una persona puede comprar, entrar al panel y que la seguridad del navegador está activa |
 
@@ -15,7 +15,7 @@ pueden. Los comandos están en el README (sección "Calidad y pruebas") y la teo
 | Área | Archivos |
 |---|---|
 | Dinero y pedidos | `order-totals` (subtotal, envío gratis sobre el umbral, retiro sin costo), `inventory`, `panel-list` |
-| Seguridad | `password-policy`, `totp`, `pii` (cifrado y descifrado, detección de alteraciones), `integrity-chain` (cadena de hash), `rbac`, `action-tokens`, `http-body` (tope de tamaño), `upload-guard` (bombas zip, macros, XXE), `deepmerge-patch` |
+| Seguridad | `password-policy`, `totp`, `pii` (cifrado y descifrado, detección de alteraciones), `integrity-chain` (cadena de hash), `rbac`, `action-tokens`, `http-body` (tope de tamaño), `upload-guard` (bombas zip, macros, XXE), `deepmerge-patch`, `session-cookies` (access Lax, refresh Strict) |
 | Catálogo | `catalog-admin`, `product-import`, `product-csv`, `product-xlsx`, `product-image` (firma real de las imágenes), `image-url` |
 | API y PWA | `api-dto` (qué campos salen hacia afuera), `pwa` (qué guarda y qué no guarda el service worker) |
 | Otros | `newsletter`, `store-time` (hora de Chile), `forecast-period`, `elasticity` |
