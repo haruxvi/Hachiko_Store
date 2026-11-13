@@ -29,7 +29,10 @@ disponible = stock físico − reservas vigentes de otros pedidos
 ```
 
 - **Físico** (`Product.stock`): solo cambia con movimientos registrados, nunca "a mano" en la
-  base.
+  base. Por eso la ficha de edición no tiene un campo de stock: muestra "Stock en bodega" y
+  enlaza a Inventario, donde el cambio exige un motivo (`UpdateProductSchema` omite `stock`). Al
+  crear un producto, su stock inicial queda como movimiento `INITIAL_LOAD` a nombre del
+  vendedor, en la misma transacción que crea el producto.
 - **Reservado** (`StockReservation`): unidades apartadas por un pedido que aún no se paga.
   Vencen a los 15 minutos.
 - **Disponible:** lo que se puede vender ahora (`getAvailableStock`). Es lo que ve el cliente y
@@ -79,7 +82,10 @@ Guía de uso: [carga-masiva.md](../carga-masiva.md). Por dentro:
 3. **Inyección de fórmulas:** un texto que empieza con `=`, `+`, `@` o similares se trata como
    sospechoso ([formula-guard.ts](../../src/lib/formula-guard.ts)). Así, si los datos se exportan
    después a Excel, no se ejecutan como fórmula.
-4. **Vista previa:** se valida cada fila y se muestran los errores antes de guardar.
+4. **Vista previa:** se valida cada fila y se muestran los errores antes de guardar, en
+   español y con el nombre de la columna del archivo (`friendlyIssue` en
+   [product-csv.ts](../../src/lib/product-csv.ts), nunca el mensaje técnico de zod). Una comilla
+   mal puesta se informa en la fila real donde está (`CsvSyntaxError`), no como "Fila 1".
 5. **Guardado en una transacción Serializable.** Se crean los productos nuevos y se **suma**
    stock a los existentes por SKU, con su movimiento de inventario. Todo o nada.
 

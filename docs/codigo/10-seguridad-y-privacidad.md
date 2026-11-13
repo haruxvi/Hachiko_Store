@@ -61,6 +61,8 @@ El panel de Seguridad muestra **conteos y eventos, no el detalle de los clientes
 - **Severidad:** baja, media, alta o crítica.
 - **Estados:** abierta, investigando, contenida, resuelta, denunciada o notificada a la
   autoridad, y cerrada.
+- Un cambio de estado queda en la bitácora con los nombres en español ("Abierta → Contenida")
+  y la justificación del vendedor.
 - Cada nota o cambio de estado es un evento de la **bitácora encadenada**: lleva el hash
   SHA-256 del evento anterior, y `verifyChain` detecta cualquier alteración, eliminación o
   cambio de orden ([integrity.ts](../../src/lib/crypto/integrity.ts)).

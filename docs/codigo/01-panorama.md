@@ -133,9 +133,11 @@ tests/                  unit/, integration/ (Postgres real) y e2e/ (Playwright)
 
 - **Precios en pesos enteros (CLP)**, en columnas `*CLP` de tipo `Int`. El peso no tiene
   decimales, así que no hay errores de redondeo con punto flotante.
-- **Hora de Chile para todo lo que se agrupa por día o mes.** Las fechas se guardan en UTC y se
+- **Hora de Chile para todo lo que se agrupa o se muestra.** Las fechas se guardan en UTC y se
   convierten a `America/Santiago` al agrupar ([sales.ts](../../src/lib/sales.ts),
-  [store-time.ts](../../src/lib/store-time.ts)).
+  [store-time.ts](../../src/lib/store-time.ts)) y también al mostrarlas: el servidor corre en
+  UTC, así que cada `toLocaleString` lleva `timeZone: 'America/Santiago'` y las etiquetas
+  "hoy / ayer" del panel usan `whenLabel` (días de Chile, no del servidor).
 - **"Venta válida" tiene una sola definición:** `paymentStatus = PAID` y `status ≠ CANCELLED`
   (`SALE_WHERE` / `SALE_SQL` en [sales.ts](../../src/lib/sales.ts)). Métricas, ML y
   elasticidad usan esa misma definición.

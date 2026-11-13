@@ -57,6 +57,9 @@ mobile/src/
 - Al volver la app al primer plano, se vuelven a consultar los datos.
 - Las listas paginadas usan `keepPreviousData`: al cambiar de página no parpadean en blanco.
 - El resumen "Hoy" del vendedor se actualiza solo cada 60 segundos.
+- **Fotos con respaldo:** `ProductPhoto` ([brand.tsx](../../mobile/src/ui/brand.tsx)) muestra la
+  foto del producto y, si no tiene o no carga (sin conexión, enlace roto), el cartón punteado
+  con su nombre en coreano. Lo usan la vitrina, la ficha y el carrito.
 
 ## Carrito y pago
 

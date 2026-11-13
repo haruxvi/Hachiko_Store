@@ -51,7 +51,9 @@ en Windows. Requisitos, red, firewall y problemas frecuentes, paso a paso:
    docker compose up -d
    ```
 2. Crea `mobile/.env.local` (no se sube a GitHub) con la URL de la API:
-   - emulador Android: `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` (en el emulador, `localhost` es el propio emulador);
+   - emulador Android: `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` (en el emulador, `localhost` es el propio emulador).
+     Si la vitrina se queda cargando, usa el puerto del PC a través de adb: `adb reverse tcp:3000 tcp:3000`
+     y `EXPO_PUBLIC_API_URL=http://127.0.0.1:3000`;
    - navegador del PC: `EXPO_PUBLIC_API_URL=http://localhost:3000`.
 
    Sin ese archivo, la app usa la web publicada (datos reales).

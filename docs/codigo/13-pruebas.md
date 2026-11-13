@@ -1,12 +1,12 @@
 # 13. Pruebas
 
-Hay **311 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
+Hay **316 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
 pueden. Los comandos están en el README (sección "Calidad y pruebas") y la teoría en
 [../teoria/07-calidad-y-pruebas.md](../teoria/07-calidad-y-pruebas.md).
 
 | Nivel | Cuántas | Herramienta | Contra qué corre | Qué demuestra |
 |---|---|---|---|---|
-| Unitarias | 242 en 25 archivos | Vitest (`pnpm test`) | Nada externo. La mayoría es lógica pura; en 5 archivos la base se reemplaza por un *mock* | Que la lógica calcula y decide bien |
+| Unitarias | 247 en 25 archivos | Vitest (`pnpm test`) | Nada externo. La mayoría es lógica pura; en 5 archivos la base se reemplaza por un *mock* | Que la lógica calcula y decide bien |
 | Integración | 53 en 4 archivos | Vitest (`pnpm test:integration`) | **PostgreSQL real** y desechable | Concurrencia, transacciones e idempotencia, que un *mock* no puede simular |
 | End-to-end | 16 en 4 archivos | Playwright (`pnpm test:e2e`) | La tienda completa en Docker, con un navegador Chromium real | Que una persona puede comprar, entrar al panel y que la seguridad del navegador está activa |
 
@@ -18,7 +18,7 @@ pueden. Los comandos están en el README (sección "Calidad y pruebas") y la teo
 | Seguridad | `password-policy`, `totp`, `pii` (cifrado y descifrado, detección de alteraciones), `integrity-chain` (cadena de hash), `rbac`, `action-tokens`, `http-body` (tope de tamaño), `upload-guard` (bombas zip, macros, XXE), `deepmerge-patch`, `session-cookies` (access Lax, refresh Strict) |
 | Catálogo | `catalog-admin`, `product-import`, `product-csv`, `product-xlsx`, `product-image` (firma real de las imágenes), `image-url` |
 | API y PWA | `api-dto` (qué campos salen hacia afuera), `pwa` (qué guarda y qué no guarda el service worker) |
-| Otros | `newsletter`, `store-time` (hora de Chile), `forecast-period`, `elasticity` |
+| Otros | `newsletter`, `store-time` (hora de Chile, también "hoy / ayer" con el servidor en UTC), `forecast-period`, `elasticity` |
 
 ## Integración (`tests/integration/`)
 
@@ -54,6 +54,18 @@ Errores reales que encontraron estas pruebas y los recorridos completos, todos y
   Se encontró con una compra real en el ambiente de integración y se corrigió en `session.ts`.
 - **Solicitar eliminación de cuenta:** el botón era un enlace GET a una ruta que solo acepta
   `DELETE`, así que respondía 405. Ahora es `DeleteAccountButton.tsx`, cubierto por `cuenta.spec.ts`.
+
+Y al recorrer y fotografiar cada proceso a mano (web y app):
+
+- **Stock fuera del libro:** editar la ficha de un producto podía cambiar su stock sin movimiento,
+  y el alta no registraba la carga inicial. Cubierto en `catalog-admin`.
+- **Carga masiva:** una comilla mal puesta se informaba como "Fila 1" y los errores de datos
+  salían en inglés. Cubierto en `product-csv`.
+- **Hora del servidor:** varias fechas del panel salían en UTC (un pedido de las 22:30 aparecía
+  como "hoy 01:30" del día siguiente). Cubierto en `store-time`.
+- **Bitácora de incidencias:** el cambio de estado quedaba como "OPEN → CONTAINED".
+- **App:** el nombre "Ramen y fideos instantáneos" se cortaba en su tarjeta, y una foto que no
+  cargaba dejaba un cuadro en blanco.
 
 ## Regla de regresión
 
