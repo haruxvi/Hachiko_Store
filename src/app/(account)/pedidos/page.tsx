@@ -85,7 +85,7 @@ export default async function PedidosPage() {
                 <div className="flex justify-between mb-1">
                   <p className="font-bold">Pedido #{o.orderNumber}</p>
                   <span className="text-sm text-taupe">
-                    {new Date(o.createdAt).toLocaleDateString('es-CL')}
+                    {new Date(o.createdAt).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' })}
                   </span>
                 </div>
 

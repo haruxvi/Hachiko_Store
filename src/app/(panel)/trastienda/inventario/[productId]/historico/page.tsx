@@ -76,6 +76,7 @@ export default async function HistoricoPage({
                   <tr key={m.id} className="border-t border-sand transition hover:bg-cream/60">
                     <td className="whitespace-nowrap px-4 py-3 align-middle text-[13px] font-normal text-taupe">
                       {new Date(m.createdAt).toLocaleString('es-CL', {
+                        timeZone: 'America/Santiago',
                         day: '2-digit',
                         month: '2-digit',
                         year: '2-digit',

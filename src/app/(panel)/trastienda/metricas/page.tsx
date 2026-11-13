@@ -108,7 +108,7 @@ export default async function MetricasPage({ searchParams }: { searchParams: Pro
         </div>
         {d.lastUpdated && (
           <p className="text-xs text-taupe">
-            Actualizado {new Date(d.lastUpdated).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}
+            Actualizado {new Date(d.lastUpdated).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' })}
           </p>
         )}
       </header>

@@ -1,6 +1,7 @@
 import { subDays } from 'date-fns';
 import { computeEventHash, verifyChain, sha256Json } from '@/src/lib/crypto/integrity';
 import { db } from '@/src/lib/db';
+import { STATUS_LABELS } from '@/src/components/panel/security-labels';
 import type {
   IncidentCategory,
   IncidentSeverity,
@@ -183,7 +184,7 @@ export async function changeIncidentStatus(params: {
     });
 
     if (!STATUS_FLOW[incident.status].includes(params.newStatus)) {
-      throw new Error(`Transición no permitida: ${incident.status} → ${params.newStatus}`);
+      throw new Error(`Transición no permitida: ${STATUS_LABELS[incident.status]} → ${STATUS_LABELS[params.newStatus]}`);
     }
 
     await tx.securityIncident.update({
@@ -197,7 +198,8 @@ export async function changeIncidentStatus(params: {
     return appendEvent(tx, {
       incidentId: params.incidentId,
       type: 'STATUS_CHANGE',
-      detail: `${incident.status} → ${params.newStatus}. ${params.detail}`,
+      // En español, como el resto de la bitácora (antes quedaba "OPEN → CONTAINED").
+      detail: `${STATUS_LABELS[incident.status]} → ${STATUS_LABELS[params.newStatus]}. ${params.detail}`,
       actorId: params.actorId,
     });
   });

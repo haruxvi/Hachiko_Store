@@ -17,7 +17,7 @@ import {
 export const revalidate = 30;
 
 function formatDateTime(d: Date) {
-  return new Date(d).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+  return new Date(d).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'short', timeStyle: 'short' });
 }
 
 export default async function SeguridadPage() {

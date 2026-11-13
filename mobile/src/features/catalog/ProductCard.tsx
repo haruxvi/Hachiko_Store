@@ -1,11 +1,10 @@
 import { memo } from 'react';
 import { Pressable, View } from 'react-native';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme/ThemeProvider';
 import { shape } from '@/theme/tokens';
 import { IconButton, Txt, tap } from '@/ui/core';
-import { ProductArt, toneFor } from '@/ui/brand';
+import { ProductPhoto, toneFor } from '@/ui/brand';
 import { snack } from '@/ui/Snackbar';
 import { clp } from '@/lib/format';
 import { useCart } from '@/lib/cart';
@@ -35,11 +34,7 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
         style={({ pressed }) => ({ gap: 8, opacity: pressed ? 0.88 : 1 })}
       >
         <View style={{ width, height: width, borderRadius: shape.md, overflow: 'hidden' }}>
-          {product.image ? (
-            <Image source={product.image} style={{ flex: 1 }} contentFit="cover" transition={200} recyclingKey={product.id} />
-          ) : (
-            <ProductArt korean={product.nameKorean} tone={toneFor(product.slug)} style={{ flex: 1 }} />
-          )}
+          <ProductPhoto uri={product.image} korean={product.nameKorean} tone={toneFor(product.slug)} transition={200} recyclingKey={product.id} />
           {product.stockState !== 'ok' && (
             <View style={{ position: 'absolute', top: 8, left: 8, height: 24, paddingHorizontal: 8, borderRadius: shape.sm, justifyContent: 'center', backgroundColor: out ? c.inverseSurface : c.errorContainer }}>
               <Txt variant="labelM" color={out ? c.inverseOnSurface : c.onErrorContainer}>{out ? 'Agotado' : `Quedan ${product.left}`}</Txt>

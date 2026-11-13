@@ -58,7 +58,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
                 return (
                   <li key={h.id} className="border-b border-sand/60 pb-2 last:border-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-taupe">{new Date(h.createdAt).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                      <span className="text-taupe">{new Date(h.createdAt).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' })}</span>
                       <span className="text-soot">
                         <span className="price-mono text-taupe">{clp(h.previousCLP)}</span>
                         <span className="mx-2 text-taupe">→</span>

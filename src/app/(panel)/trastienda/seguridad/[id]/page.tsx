@@ -13,7 +13,7 @@ import {
 } from '@/src/components/panel/security-labels';
 
 function formatDateTime(d: Date) {
-  return new Date(d).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(d).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' });
 }
 
 export default async function IncidenciaPage({ params }: { params: Promise<{ id: string }> }) {

@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTheme } from '@/theme/ThemeProvider';
 import { shape } from '@/theme/tokens';
 import { Button, IconButton, Skeleton, Stepper, Txt, tap } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
-import { ProductArt, toneFor } from '@/ui/brand';
+import { ProductPhoto, toneFor } from '@/ui/brand';
 import { EmptyState } from '@/ui/layout';
 import { snack } from '@/ui/Snackbar';
 import { ProductCard } from '@/features/catalog/ProductCard';
@@ -48,11 +47,7 @@ export default function ProductScreen() {
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         <View style={{ height: heroH }}>
-          {p?.image ? (
-            <Image source={p.image} style={{ flex: 1 }} contentFit="cover" transition={250} accessibilityLabel={p.name} />
-          ) : (
-            <ProductArt korean={p?.nameKorean ?? null} tone={toneFor(slug)} style={{ flex: 1 }} size={88} />
-          )}
+          <ProductPhoto uri={p?.image} korean={p?.nameKorean ?? null} tone={toneFor(slug)} size={88} transition={250} accessibilityLabel={p?.name} />
         </View>
 
         <Animated.View entering={FadeInUp.duration(320)} style={{ marginTop: -32, borderTopLeftRadius: shape.xl, borderTopRightRadius: shape.xl, backgroundColor: c.background, paddingHorizontal: 20, paddingTop: 12 }}>

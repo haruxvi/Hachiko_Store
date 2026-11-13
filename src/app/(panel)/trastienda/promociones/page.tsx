@@ -48,7 +48,7 @@ export default async function PromocionesPage() {
         <Stat label="Promociones enviadas" value={num(campaigns.filter((c) => c.status !== 'FAILED').length)} />
         <Stat
           label="Último envío"
-          value={campaigns[0]?.sentAt ? new Date(campaigns[0].sentAt).toLocaleDateString('es-CL') : '—'}
+          value={campaigns[0]?.sentAt ? new Date(campaigns[0].sentAt).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' }) : '—'}
         />
       </section>
 
@@ -82,7 +82,7 @@ export default async function PromocionesPage() {
                   return (
                     <tr key={c.id} className="border-b border-sand/40 last:border-0">
                       <td className="py-2.5 pr-3 text-taupe">
-                        {new Date(c.sentAt ?? c.createdAt).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}
+                        {new Date(c.sentAt ?? c.createdAt).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' })}
                       </td>
                       <td className="py-2.5 pr-3 font-medium text-soot">{c.subject}</td>
                       <td className="py-2.5 pr-3">

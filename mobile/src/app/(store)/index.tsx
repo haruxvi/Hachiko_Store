@@ -108,7 +108,9 @@ function Header() {
                   accessibilityRole="button"
                   accessibilityLabel={`Categoría ${cat.name}`}
                   onPress={() => router.push({ pathname: '/buscar', params: { categoria: cat.slug } })}
-                  style={({ pressed }) => ({ width: 132, height: 88, borderRadius: shape.lg, backgroundColor: tone[0], padding: 14, justifyContent: 'flex-end', opacity: pressed ? 0.85 : 1 })}
+                  // minHeight (no height): un nombre de tres líneas como "Ramen y fideos
+                  // instantáneos" se cortaba; la fila toma la altura de la tarjeta más alta.
+                  style={({ pressed }) => ({ width: 132, minHeight: 88, borderRadius: shape.lg, backgroundColor: tone[0], padding: 14, justifyContent: 'flex-end', opacity: pressed ? 0.85 : 1 })}
                 >
                   <Txt variant="titleM" color={tone[1]}>{cat.name}</Txt>
                 </Pressable>

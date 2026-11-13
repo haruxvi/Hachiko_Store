@@ -92,7 +92,7 @@ export default async function ModelosPage() {
                   <td className="py-2.5 pr-3"><span className={statusChip(r.status)}>{r.status}</span></td>
                   <td className="price-mono py-2.5 pr-3 text-right text-taupe">{r.rowsIn != null ? num(r.rowsIn) : '—'}</td>
                   <td className="price-mono py-2.5 pr-3 text-right text-taupe">{r.durationSec != null ? `${r.durationSec.toFixed(1)}s` : '—'}</td>
-                  <td className="py-2.5 text-taupe">{new Date(r.startedAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                  <td className="py-2.5 text-taupe">{new Date(r.startedAt).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'short', timeStyle: 'short' })}</td>
                 </tr>
               ))}
             </tbody>

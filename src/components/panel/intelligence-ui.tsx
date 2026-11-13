@@ -19,7 +19,7 @@ export function PageHeader({ title, subtitle, updated }: { title: string; subtit
       </div>
       {updated && (
         <p className="text-xs text-taupe">
-          Actualizado {new Date(updated).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}
+          Actualizado {new Date(updated).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' })}
         </p>
       )}
     </header>

@@ -48,3 +48,17 @@ export function storeDaysAgo(days: number, at: Date = new Date()): Date {
   // Se resta en días calendario de Chile, no en bloques de 24 h (por el cambio de horario).
   return startOfStoreDay(new Date(start.getTime() - days * 86_400_000 + 12 * 3_600_000));
 }
+
+/**
+ * "hoy 10:31", "ayer 22:30" o "12 nov", según el día y la hora de Chile. El
+ * servidor corre en UTC: sin la zona horaria, un pedido de las 22:30 aparecía
+ * como "hoy 01:30" del día siguiente.
+ */
+export function whenLabel(date: Date, now: Date = new Date()): string {
+  const time = date.toLocaleTimeString('es-CL', { timeZone: STORE_TZ, hour: '2-digit', minute: '2-digit' });
+  // Math.round absorbe los días de 23 o 25 horas del cambio de horario.
+  const diffDays = Math.round((startOfStoreDay(now).getTime() - startOfStoreDay(date).getTime()) / 86_400_000);
+  if (diffDays === 0) return `hoy ${time}`;
+  if (diffDays === 1) return `ayer ${time}`;
+  return date.toLocaleDateString('es-CL', { timeZone: STORE_TZ, day: 'numeric', month: 'short' });
+}

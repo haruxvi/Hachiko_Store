@@ -6,6 +6,7 @@ import OrdersBoard, { type SellerOrder } from '@/src/components/panel/OrdersBoar
 import RefundQueue, { type RefundRow } from '@/src/components/panel/RefundQueue';
 import { getRefundQueue } from '@/src/lib/services/payment.service';
 import { daysWaiting, pickupDeadline } from '@/src/lib/services/pickup.service';
+import { STORE_TZ, whenLabel } from '@/src/lib/store-time';
 import ListToolbar from '@/src/components/panel/ListToolbar';
 import PanelPagination from '@/src/components/panel/PanelPagination';
 import {
@@ -44,19 +45,6 @@ function Stat({
       <div className="mt-2 text-xs font-normal text-taupe">{caption}</div>
     </div>
   );
-}
-
-function whenLabel(date: Date): string {
-  const now = new Date();
-  const time = date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-  const day = new Date(date);
-  day.setHours(0, 0, 0, 0);
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const diffDays = Math.round((today.getTime() - day.getTime()) / 86_400_000);
-  if (diffDays === 0) return `hoy ${time}`;
-  if (diffDays === 1) return `ayer ${time}`;
-  return date.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
 }
 
 const BASE = '/trastienda/ordenes';
@@ -156,6 +144,7 @@ export default async function OrdenesPage({ searchParams }: { searchParams: Prom
 
   const now = new Date();
   const dateLabel = now.toLocaleDateString('es-CL', {
+    timeZone: STORE_TZ,
     weekday: 'long',
     day: 'numeric',
     month: 'long',

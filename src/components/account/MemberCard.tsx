@@ -70,7 +70,7 @@ export default function MemberCard({
   memberSince: Date;
   verified: boolean;
 }) {
-  const since = new Date(memberSince).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+  const since = new Date(memberSince).toLocaleDateString('es-CL', { timeZone: 'America/Santiago', month: 'long', year: 'numeric' });
 
   return (
     <section aria-label="Tu carnet de Hachiko" className="relative pt-2">

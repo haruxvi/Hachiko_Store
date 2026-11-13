@@ -23,7 +23,7 @@ export default async function ReportePage() {
     getConversionAnalytics(),
     getExpectedProfit(),
   ]);
-  const today = new Date().toLocaleDateString('es-CL', { dateStyle: 'long' });
+  const today = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'long' });
   const topA = m.products.filter((p) => p.abc === 'A').slice(0, 5);
 
   return (

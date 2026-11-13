@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { Image } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -9,7 +8,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { shape } from '@/theme/tokens';
 import { Button, Card, IconButton, Stepper, Txt, tap } from '@/ui/core';
 import { Icon } from '@/ui/Icon';
-import { ProductArt, toneFor } from '@/ui/brand';
+import { ProductPhoto, toneFor } from '@/ui/brand';
 import { EmptyState } from '@/ui/layout';
 import { ThemeToggle } from '@/ui/ThemeToggle';
 import { snack } from '@/ui/Snackbar';
@@ -66,7 +65,7 @@ export default function CartScreen() {
           <Animated.View key={l.slug} layout={LinearTransition.springify().damping(18)} exiting={FadeOut.duration(160)}>
             <Card variant="outlined" style={{ flexDirection: 'row', gap: 12, padding: 12 }}>
               <View style={{ width: 72, height: 72, borderRadius: shape.md, overflow: 'hidden' }}>
-                {l.image ? <Image source={l.image} style={{ flex: 1 }} contentFit="cover" /> : <ProductArt korean={l.nameKorean} tone={toneFor(l.slug)} style={{ flex: 1 }} size={18} />}
+                <ProductPhoto uri={l.image} korean={l.nameKorean} tone={toneFor(l.slug)} size={18} />
               </View>
               <View style={{ flex: 1, gap: 6 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 4 }}>

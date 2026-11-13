@@ -1,5 +1,6 @@
-import { useEffect, useId, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Circle, Defs, G, Path, Pattern, Rect, Text as SvgText, TextPath, Ellipse } from 'react-native-svg';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, useReducedMotion } from 'react-native-reanimated';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -26,7 +27,36 @@ export function Paper({ children, style, radius = 0 }: { children: ReactNode; st
   );
 }
 
-/** Foto de producto o, mientras no haya, cartón punteado con el nombre en coreano. */
+/**
+ * Foto del producto, o el cartón punteado con su nombre en coreano si no tiene
+ * foto o la foto no carga (sin conexión, enlace roto). Antes, una foto que
+ * fallaba dejaba un cuadro en blanco en la vitrina, el carrito y la ficha.
+ */
+export function ProductPhoto({ uri, korean, tone, size, transition, recyclingKey, accessibilityLabel }: {
+  uri: string | null | undefined;
+  korean: string | null;
+  tone?: number;
+  size?: number;
+  transition?: number;
+  recyclingKey?: string;
+  accessibilityLabel?: string;
+}) {
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  if (!uri || failedUri === uri) return <ProductArt korean={korean} tone={tone} size={size} style={{ flex: 1 }} />;
+  return (
+    <Image
+      source={uri}
+      style={{ flex: 1 }}
+      contentFit="cover"
+      transition={transition}
+      recyclingKey={recyclingKey}
+      accessibilityLabel={accessibilityLabel}
+      onError={() => setFailedUri(uri)}
+    />
+  );
+}
+
+/** Cartón punteado con el nombre en coreano (lo que se ve cuando no hay foto). */
 export function ProductArt({ korean, tone = 0, style, size = 28 }: { korean: string | null; tone?: number; style?: StyleProp<ViewStyle>; size?: number }) {
   const { c } = useTheme();
   const tones = [
