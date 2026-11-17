@@ -37,6 +37,9 @@ test.describe('Vitrina', () => {
 
   test('aviso de cookies: dos opciones del mismo peso y la elección se recuerda', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
+    // El portal de desarrollo de Next se superpone al botón en la vista móvil.
+    // Ocultarlo solo en esta prueba permite comprobar el clic real en el aviso.
+    await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
     const notice = page.getByRole('region', { name: 'Aviso de cookies' });
     await expect(notice).toBeVisible();
 
