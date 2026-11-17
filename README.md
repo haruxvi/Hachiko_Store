@@ -274,6 +274,7 @@ El orden importa: `synthetic` va primero.
 
 ```bash
 pnpm db:seed:synthetic   # ~24 meses, catálogo, clientes y ~9.000 pedidos
+node scripts/load-demo-catalog.mjs --apply  # 33 productos de prueba con fotos
 pnpm db:seed:security    # logins fallidos + incidentes (vista Riesgo)
 pnpm db:seed:analytics   # navegación y carrito (vista Conversión)
 ```

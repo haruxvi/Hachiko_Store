@@ -11,8 +11,8 @@ import Icon, { type IconName } from '@/src/components/ui/Icon';
 // debe depender de una base de datos viva).
 export const dynamic = 'force-dynamic';
 
-// Home en modo lanzamiento (día 1): sin métricas fabricadas, sin temporalidad
-// falsa. Promesas de cuidado, no de escala.
+// Inicio de la demostración académica: funciones observables y datos de prueba
+// identificados como tales.
 function ValueProp({ icon, title, text }: { icon: IconName; title: string; text: string }) {
   return (
     <div>
@@ -37,19 +37,19 @@ export default async function HomePage() {
           <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] lg:gap-20">
             <div className="lg:pt-12">
               <h1 className="mb-6 font-display text-4xl font-bold leading-[1.08] tracking-[-0.02em] text-soot sm:text-5xl lg:text-6xl">
-                Snacks, skincare y papelería traídos directo de{' '}
-                <span className="editorial text-rust-ink">Seúl</span>.
+                Compra fácil para tus clientes.{' '}
+                <span className="editorial text-rust-ink">Gestión clara</span> para tu tienda.
               </h1>
               <p className="mb-9 max-w-[440px] text-[17px] font-normal leading-[1.7] text-taupe">
-                Cosas que extrañábamos y queríamos probar. Llegan en cantidades chicas a una bodega
-                en Recoleta y de ahí salen a tu casa.
+                Hachiko Store reúne catálogo, carrito, pagos y seguimiento de pedidos. La trastienda
+                conecta productos, inventario y despachos en una sola plataforma.
               </p>
               <div className="flex flex-wrap items-center gap-7">
                 <Link href="/catalogo" className="btn-primary">
                   Explorar catálogo <Icon name="arrow" size={16} />
                 </Link>
                 <a href="#about" className="btn-link">
-                  Cómo compramos
+                  Conoce el proyecto
                 </a>
               </div>
             </div>
@@ -58,9 +58,18 @@ export default async function HomePage() {
             <div className="relative hidden h-[560px] lg:block">
               <div className="absolute inset-0 -rotate-1 rounded-[200px_24px_24px_24px] bg-blush" />
               <div className="absolute bottom-6 left-8 right-4 top-4 overflow-hidden rounded-[200px_12px_12px_12px] bg-cream shadow-soft">
-                <div className="ph h-full w-full !border-0">
-                  <span className="ph-label">hero · still life de productos seleccionados</span>
-                </div>
+                {products[0]?.images[0] ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- Las fotos del catálogo usan URLs externas.
+                  <img
+                    src={products[0].images[0]}
+                    alt={`Producto del catálogo: ${products[0].name}`}
+                    className="h-full w-full bg-white object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center bg-cream px-8 text-center text-soot">
+                    Explora los productos disponibles en el catálogo.
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -72,22 +81,22 @@ export default async function HomePage() {
             <Reveal delay={0}>
               <ValueProp
                 icon="search"
-                title="Curaduría desde Seúl"
-                text="Cada producto lo elegimos nosotros. No es dropshipping ni catálogo armado por algoritmo."
+                title="Compra en un solo lugar"
+                text="Explora los productos, arma tu carrito y consulta el estado de tus pedidos."
               />
             </Reveal>
             <Reveal delay={100}>
               <ValueProp
                 icon="truck"
-                title="Despacho a todo Chile"
-                text="Vía Starken desde Recoleta. RM en 24–48 horas, regiones en 3–5 días hábiles."
+                title="Operación conectada"
+                text="La trastienda reúne pedidos, inventario y preparación de despachos."
               />
             </Reveal>
             <Reveal delay={200}>
               <ValueProp
-                icon="lock"
-                title="Pago seguro"
-                text="Webpay y MercadoPago. No guardamos los datos de tu tarjeta en nuestros servidores."
+                icon="sliders"
+                title="Datos para decidir"
+                text="Indicadores y pronósticos apoyan la planificación de demanda y reposición."
               />
             </Reveal>
           </div>
@@ -101,13 +110,13 @@ export default async function HomePage() {
                 Catálogo
               </h2>
               <div className="editorial text-[15px] text-taupe">
-                Lo que hay hoy en bodega. Llegan más cosas en las próximas semanas.
+                Productos disponibles para explorar en esta demostración.
               </div>
             </div>
           </Reveal>
           {products.length === 0 ? (
             <p className="py-16 text-center text-taupe">
-              Estamos subiendo los primeros productos. Volvé en unos días.
+              Estamos preparando el catálogo. Vuelve pronto.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
@@ -138,26 +147,28 @@ export default async function HomePage() {
         {/* ──────── QUIÉNES SOMOS — editorial honesto, atemporal ──────── */}
         <section id="about" className="mx-auto max-w-[1240px] px-6 pt-20 sm:px-12 lg:pt-32">
           <div className="grid items-center gap-12 lg:grid-cols-[5fr_4fr] lg:gap-20">
-            <Reveal className="ph ph-sand h-72 rounded-3xl lg:h-[520px]">
-              <span className="ph-label">foto editorial · bodega en Recoleta</span>
+            <Reveal className="flex h-72 flex-col justify-center gap-5 rounded-3xl bg-sand px-8 text-soot lg:h-[520px] lg:px-12">
+              <div className="editorial text-xl text-rust-ink">Hachiko Store</div>
+              <p className="font-display text-3xl font-bold leading-tight lg:text-4xl">
+                Catálogo, compras y gestión en una sola plataforma.
+              </p>
             </Reveal>
             <Reveal delay={120}>
               <div className="editorial mb-3.5 text-sm text-rust-ink">Quiénes somos</div>
               <h2 className="mb-6 font-display text-3xl font-bold leading-tight tracking-[-0.02em] text-soot lg:text-[34px]">
-                Hachiko nace en Recoleta, en 2026.
+                Una plataforma pensada para una pyme.
               </h2>
               <p className="mb-4 text-base font-normal leading-[1.75] text-soot">
-                Empezamos importando snacks que extrañábamos y crecimos hasta sumar skincare y
-                papelería. Cada pedido lo empaca alguien que conoce el producto, no una bodega
-                tercerizada.
+                Este proyecto de título acerca la tienda a sus clientes y permite al equipo gestionar
+                productos, pedidos, inventario y despachos desde la misma aplicación.
               </p>
               <p className="mb-6 text-base font-normal leading-[1.75] text-taupe">
-                Si algo no nos convence en la prueba, no lo subimos. Por eso el catálogo es chico —
-                y por eso, esperamos, vale la pena.
+                Para demostrar el análisis de datos usamos pedidos sintéticos desde 2024. Los modelos
+                ayudan a estimar demanda y reposición; las decisiones siguen a cargo de las personas.
               </p>
-              <a href="mailto:hachiko.store.contacto@gmail.com" className="btn-link">
-                Escríbenos <Icon name="arrow" size={14} />
-              </a>
+              <Link href="/catalogo" className="btn-link">
+                Ver productos <Icon name="arrow" size={14} />
+              </Link>
             </Reveal>
           </div>
         </section>

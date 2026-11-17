@@ -1,0 +1,643 @@
+{
+  "description": "Catálogo de demostración Hachiko Store. Solo categorías, productos y enlaces públicos de imagen.",
+  "categories": [
+    {
+      "slug": "snacks",
+      "name": "Snacks",
+      "description": "Golosinas y snacks coreanos",
+      "order": 1,
+      "active": true
+    },
+    {
+      "slug": "skincare",
+      "name": "Skincare",
+      "description": "Cuidado de piel coreano",
+      "order": 2,
+      "active": true
+    },
+    {
+      "slug": "papeleria",
+      "name": "Papelería",
+      "description": "Papelería y accesorios coreanos",
+      "order": 3,
+      "active": true
+    },
+    {
+      "slug": "kpop",
+      "name": "K-pop",
+      "description": "Merch y álbumes K-pop",
+      "order": 4,
+      "active": true
+    },
+    {
+      "slug": "bebestibles",
+      "name": "Bebestibles",
+      "description": "Bebidas y jugos coreanos",
+      "order": 5,
+      "active": true
+    },
+    {
+      "slug": "sopas",
+      "name": "Sopas",
+      "description": "Ramen y sopas instantáneas coreanas",
+      "order": 6,
+      "active": true
+    }
+  ],
+  "products": [
+    {
+      "sku": "SNACK-001",
+      "slug": "pepero-chocolate-original",
+      "name": "Pepero Chocolate Original",
+      "nameKorean": "빼빼로 초콜릿",
+      "description": "El clásico snack de palitos de galleta bañados en chocolate Lotte. 50g.",
+      "priceCLP": 1990,
+      "costCLP": null,
+      "stock": 100,
+      "lowStockThreshold": 5,
+      "weightGrams": 60,
+      "images": [
+        "https://down-ph.img.susercontent.com/file/ph-11134207-7ra0n-mdvdii5jh6or77"
+      ],
+      "active": true,
+      "featured": true,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-001",
+      "slug": "syn-pepero-choco",
+      "name": "Pepero Chocolate",
+      "nameKorean": "빼빼로 초코",
+      "description": "Pepero Chocolate — producto de demostración (sintético).",
+      "priceCLP": 1990,
+      "costCLP": 1200,
+      "stock": 82,
+      "lowStockThreshold": 5,
+      "weightGrams": 60,
+      "images": [
+        "https://www.tastysnack.asia/cdn/shop/files/LOTTE-OriginalPeperoStick_e0f5230c-a8f8-4c33-9c06-eaaafe0e833f_1024x.png?v=1715824013"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-002",
+      "slug": "syn-pepero-almendra",
+      "name": "Pepero Almendra",
+      "nameKorean": "아몬드 빼빼로",
+      "description": "Pepero Almendra — producto de demostración (sintético).",
+      "priceCLP": 2190,
+      "costCLP": 1300,
+      "stock": 98,
+      "lowStockThreshold": 5,
+      "weightGrams": 60,
+      "images": [
+        "https://munchaddict.com/cdn/shop/files/LottePeperoAlmond_Korea_1500x.jpg?v=1719600003"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-003",
+      "slug": "syn-choco-pie",
+      "name": "Choco Pie (caja)",
+      "nameKorean": "초코파이",
+      "description": "Choco Pie (caja) — producto de demostración (sintético).",
+      "priceCLP": 3990,
+      "costCLP": 2500,
+      "stock": 57,
+      "lowStockThreshold": 5,
+      "weightGrams": 300,
+      "images": [
+        "https://3.bp.blogspot.com/-h3jdoaJCpTs/V7EnzezOY5I/AAAAAAAAAHo/De699X5fbUA9YkSt6VfhrZeywSD672O7QCLcB/s1600/chocopie.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-004",
+      "slug": "syn-ramen-shin",
+      "name": "Ramen Shin Picante",
+      "nameKorean": "신라면",
+      "description": "Ramen Shin Picante — producto de demostración (sintético).",
+      "priceCLP": 1490,
+      "costCLP": 850,
+      "stock": 68,
+      "lowStockThreshold": 5,
+      "weightGrams": 120,
+      "images": [
+        "https://cdn11.bigcommerce.com/s-7nmwl7wrb0/images/stencil/1280x1280/products/722/3378/63abfb7b-d574-4b05-ab71-b0db76b92280.c7c1528b601f0b86352ccde3733f84d9__18460.1777928304.jpg?c=1"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-005",
+      "slug": "syn-ramen-buldak",
+      "name": "Ramen Buldak 2x",
+      "nameKorean": "불닭볶음면",
+      "description": "Ramen Buldak 2x — producto de demostración (sintético).",
+      "priceCLP": 2990,
+      "costCLP": 1800,
+      "stock": 91,
+      "lowStockThreshold": 5,
+      "weightGrams": 280,
+      "images": [
+        "https://fullserviceboutique.shop/cdn/shop/files/IMG_9113.jpg?v=1756158950"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-006",
+      "slug": "syn-banana-milk",
+      "name": "Banana Milk",
+      "nameKorean": "바나나맛 우유",
+      "description": "Banana Milk — producto de demostración (sintético).",
+      "priceCLP": 1690,
+      "costCLP": 1000,
+      "stock": 112,
+      "lowStockThreshold": 5,
+      "weightGrams": 240,
+      "images": [
+        "https://jggp.jayagrocer.com/cdn/shop/files/153878-1-1.jpg?v=1750065747"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-007",
+      "slug": "syn-honey-butter-chips",
+      "name": "Honey Butter Chips",
+      "nameKorean": "허니버터칩",
+      "description": "Honey Butter Chips — producto de demostración (sintético).",
+      "priceCLP": 2490,
+      "costCLP": 1500,
+      "stock": 95,
+      "lowStockThreshold": 5,
+      "weightGrams": 60,
+      "images": [
+        "https://professorsnacks.com/cdn/shop/files/C04CD0C1-60F7-4B5F-A0F1-E0AD6A6582FB_600x.jpg?v=1716014754"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-008",
+      "slug": "syn-gummy-tape",
+      "name": "Gomitas Cinta",
+      "nameKorean": "테이프 젤리",
+      "description": "Gomitas Cinta — producto de demostración (sintético).",
+      "priceCLP": 1290,
+      "costCLP": 700,
+      "stock": 181,
+      "lowStockThreshold": 5,
+      "weightGrams": 40,
+      "images": [
+        "https://s.alicdn.com/%40sc04/kf/H2e33b1f5fde848c19b5ff0f013c03d21L/Wholesale-Bulk-Sour-Sand-Fruit-Flavor-Waist-Belt-Gummy-Candy-Sour-Candy.png"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "snacks"
+    },
+    {
+      "sku": "SYN-010",
+      "slug": "syn-sheet-mask-aloe",
+      "name": "Mascarilla Aloe",
+      "nameKorean": "알로에 마스크팩",
+      "description": "Mascarilla Aloe — producto de demostración (sintético).",
+      "priceCLP": 1990,
+      "costCLP": 900,
+      "stock": 39,
+      "lowStockThreshold": 5,
+      "weightGrams": 30,
+      "images": [
+        "https://korlondon.com/cdn/shop/files/Untitled_1000x1500px_-2025-05-31T000032.307.png?v=1748715041&width=1000"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "skincare"
+    },
+    {
+      "sku": "SYN-011",
+      "slug": "syn-sheet-mask-snail",
+      "name": "Mascarilla Caracol",
+      "nameKorean": "달팽이 마스크팩",
+      "description": "Mascarilla Caracol — producto de demostración (sintético).",
+      "priceCLP": 2490,
+      "costCLP": 1100,
+      "stock": 112,
+      "lowStockThreshold": 5,
+      "weightGrams": 30,
+      "images": [
+        "https://hallyustyle.com/cdn/shop/files/1724149731uZ4qq1qJ_ca386f9a-8dbf-4fc6-bd1d-b122b44fc4f2.jpg?v=1752153531&width=800"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "skincare"
+    },
+    {
+      "sku": "SYN-012",
+      "slug": "syn-toner-verde",
+      "name": "Tónico Té Verde",
+      "nameKorean": "녹차 토너",
+      "description": "Tónico Té Verde — producto de demostración (sintético).",
+      "priceCLP": 8990,
+      "costCLP": 5200,
+      "stock": 15,
+      "lowStockThreshold": 5,
+      "weightGrams": 200,
+      "images": [
+        "https://her-shop.com/cdn/shop/files/site_Mild-Green-Tea-Toner-1.webp?v=1755510711"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "skincare"
+    },
+    {
+      "sku": "SYN-013",
+      "slug": "syn-serum-vitc",
+      "name": "Serum Vitamina C",
+      "nameKorean": "비타민C 세럼",
+      "description": "Serum Vitamina C — producto de demostración (sintético).",
+      "priceCLP": 12990,
+      "costCLP": 7500,
+      "stock": 22,
+      "lowStockThreshold": 5,
+      "weightGrams": 80,
+      "images": [
+        "https://skinorea.com/cdn/shop/files/SOME-BY-MI-Galactomyces-Pure-Vitamin-C-Glow-Serum-30ml_1.jpg?v=1701199553&width=1946"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "skincare"
+    },
+    {
+      "sku": "SYN-014",
+      "slug": "syn-crema-snail",
+      "name": "Crema Caracol",
+      "nameKorean": "달팽이 크림",
+      "description": "Crema Caracol — producto de demostración (sintético).",
+      "priceCLP": 14990,
+      "costCLP": 8800,
+      "stock": 46,
+      "lowStockThreshold": 5,
+      "weightGrams": 120,
+      "images": [
+        "https://bambeau.ca/cdn/shop/products/COSRXAdvancedSnail92All-in-OneCream_1200x1601.jpg?v=1593209662"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "skincare"
+    },
+    {
+      "sku": "SYN-015",
+      "slug": "syn-protector-solar",
+      "name": "Protector Solar SPF50",
+      "nameKorean": "선크림",
+      "description": "Protector Solar SPF50 — producto de demostración (sintético).",
+      "priceCLP": 9990,
+      "costCLP": 5800,
+      "stock": 54,
+      "lowStockThreshold": 5,
+      "weightGrams": 100,
+      "images": [
+        "https://img.danawa.com/prod_img/500000/209/226/img/20226209_1.jpg?_v=20230518140911"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "skincare"
+    },
+    {
+      "sku": "SYN-016",
+      "slug": "syn-lip-tint",
+      "name": "Lip Tint Coreano",
+      "nameKorean": "립 틴트",
+      "description": "Lip Tint Coreano — producto de demostración (sintético).",
+      "priceCLP": 6990,
+      "costCLP": 3900,
+      "stock": 26,
+      "lowStockThreshold": 5,
+      "weightGrams": 20,
+      "images": [
+        "https://down-my.img.susercontent.com/file/sg-11134201-7rbna-lmj11l94pil62b"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "skincare"
+    },
+    {
+      "sku": "SYN-020",
+      "slug": "syn-cuaderno-molang",
+      "name": "Cuaderno Molang",
+      "nameKorean": "몰랑 노트",
+      "description": "Cuaderno Molang — producto de demostración (sintético).",
+      "priceCLP": 4990,
+      "costCLP": 2600,
+      "stock": 13,
+      "lowStockThreshold": 5,
+      "weightGrams": 200,
+      "images": [
+        "https://d2o812a6k13pkp.cloudfront.net/fit-in/1080x1080/Productos/40630877_0120260227110417.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "papeleria"
+    },
+    {
+      "sku": "SYN-021",
+      "slug": "syn-set-lapices",
+      "name": "Set Lápices Pastel",
+      "nameKorean": "파스텔 연필",
+      "description": "Set Lápices Pastel — producto de demostración (sintético).",
+      "priceCLP": 3490,
+      "costCLP": 1800,
+      "stock": 37,
+      "lowStockThreshold": 5,
+      "weightGrams": 150,
+      "images": [
+        "https://www.iksirkirtasiye.com/upload/1630058307-6128b7430f20b.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "papeleria"
+    },
+    {
+      "sku": "SYN-022",
+      "slug": "syn-stickers-kawaii",
+      "name": "Stickers Kawaii",
+      "nameKorean": "스티커",
+      "description": "Stickers Kawaii — producto de demostración (sintético).",
+      "priceCLP": 1990,
+      "costCLP": 900,
+      "stock": 103,
+      "lowStockThreshold": 5,
+      "weightGrams": 30,
+      "images": [
+        "https://cdn.shopify.com/s/files/1/1172/4574/products/026_be5fc583-7108-4589-8feb-a6ddbce9df69_1024x1024.jpg?v=1560208223"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "papeleria"
+    },
+    {
+      "sku": "SYN-023",
+      "slug": "syn-washi-tape",
+      "name": "Washi Tape x3",
+      "nameKorean": "마스킹 테이프",
+      "description": "Washi Tape x3 — producto de demostración (sintético).",
+      "priceCLP": 2990,
+      "costCLP": 1500,
+      "stock": 128,
+      "lowStockThreshold": 5,
+      "weightGrams": 90,
+      "images": [
+        "https://www.hamaeshop.sk/fotky19923/fotos/_vyr_19766Scrapbook-Hama-lepiace-pasky-15-m-pre-kreativnu-tvorbu-set-2.webp"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "papeleria"
+    },
+    {
+      "sku": "SYN-030",
+      "slug": "syn-album-newjeans",
+      "name": "Álbum NewJeans",
+      "nameKorean": "뉴진스 앨범",
+      "description": "Álbum NewJeans — producto de demostración (sintético).",
+      "priceCLP": 19990,
+      "costCLP": 13000,
+      "stock": 14,
+      "lowStockThreshold": 5,
+      "weightGrams": 350,
+      "images": [
+        "https://image.xportsnews.com/contents/images/upload/article/2022/0725/1658728577370542.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "kpop"
+    },
+    {
+      "sku": "SYN-031",
+      "slug": "syn-album-bts",
+      "name": "Álbum BTS",
+      "nameKorean": "방탄소년단 앨범",
+      "description": "Álbum BTS — producto de demostración (sintético).",
+      "priceCLP": 21990,
+      "costCLP": 14500,
+      "stock": 11,
+      "lowStockThreshold": 5,
+      "weightGrams": 350,
+      "images": [
+        "https://cdn.apollo.ee/o/apollo/c/1/a/2/c1a2de7dbce3a8141defe56c798fac8b2367102b_194491757946.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "kpop"
+    },
+    {
+      "sku": "SYN-032",
+      "slug": "syn-photocard-set",
+      "name": "Set Photocards",
+      "nameKorean": "포토카드",
+      "description": "Set Photocards — producto de demostración (sintético).",
+      "priceCLP": 5990,
+      "costCLP": 3000,
+      "stock": 9,
+      "lowStockThreshold": 5,
+      "weightGrams": 40,
+      "images": [
+        "https://down-ph.img.susercontent.com/file/ph-11134207-7r992-lodnhqg7n58lef"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "kpop"
+    },
+    {
+      "sku": "SYN-033",
+      "slug": "syn-lightstick",
+      "name": "Lightstick Oficial",
+      "nameKorean": "응원봉",
+      "description": "Lightstick Oficial — producto de demostración (sintético).",
+      "priceCLP": 39990,
+      "costCLP": 27000,
+      "stock": 2,
+      "lowStockThreshold": 5,
+      "weightGrams": 500,
+      "images": [
+        "https://i.ebayimg.com/images/g/zTIAAOSwoNBnDjBH/s-l1200.webp"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "kpop"
+    },
+    {
+      "sku": "SYN-034",
+      "slug": "syn-poster-set",
+      "name": "Set de Pósters",
+      "nameKorean": "포스터",
+      "description": "Set de Pósters — producto de demostración (sintético).",
+      "priceCLP": 4990,
+      "costCLP": 2400,
+      "stock": 110,
+      "lowStockThreshold": 5,
+      "weightGrams": 120,
+      "images": [
+        "https://i5.walmartimages.com/asr/458d3d67-84f4-4f06-97d6-6b7233c547ba.fb5716c9d118c35daca82acb38f967fa.jpeg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "kpop"
+    },
+    {
+      "sku": "SYN-040",
+      "slug": "syn-milkis",
+      "name": "Milkis Soda",
+      "nameKorean": "밀키스",
+      "description": "Milkis Soda — producto de demostración (sintético).",
+      "priceCLP": 1490,
+      "costCLP": 800,
+      "stock": 109,
+      "lowStockThreshold": 5,
+      "weightGrams": 250,
+      "images": [
+        "https://3p-image.kurly.com/files/9a28b890-d520-4575-82ba-a39d5e850f49/35895558-cc73-45f9-8d4a-70b691354e76.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "bebestibles"
+    },
+    {
+      "sku": "SYN-041",
+      "slug": "syn-aloe-drink",
+      "name": "Bebida Aloe Vera",
+      "nameKorean": "알로에 음료",
+      "description": "Bebida Aloe Vera — producto de demostración (sintético).",
+      "priceCLP": 1690,
+      "costCLP": 950,
+      "stock": 53,
+      "lowStockThreshold": 5,
+      "weightGrams": 500,
+      "images": [
+        "https://handokmall.de/media/e3/e3/8d/1709901173/16547.png?ts=1709901173"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "bebestibles"
+    },
+    {
+      "sku": "SYN-042",
+      "slug": "syn-sikhye",
+      "name": "Sikhye (bebida de arroz)",
+      "nameKorean": "식혜",
+      "description": "Sikhye (bebida de arroz) — producto de demostración (sintético).",
+      "priceCLP": 1990,
+      "costCLP": 1150,
+      "stock": 64,
+      "lowStockThreshold": 5,
+      "weightGrams": 240,
+      "images": [
+        "https://d2561m9frc8eu1.cloudfront.net/16106-large_default/paldo-rice-punch-shikhye-238ml.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "bebestibles"
+    },
+    {
+      "sku": "SYN-043",
+      "slug": "syn-yogurt-bebible",
+      "name": "Yogurt Bebible Coreano",
+      "nameKorean": "요구르트",
+      "description": "Yogurt Bebible Coreano — producto de demostración (sintético).",
+      "priceCLP": 1290,
+      "costCLP": 700,
+      "stock": 940,
+      "lowStockThreshold": 5,
+      "weightGrams": 150,
+      "images": [
+        "https://img.danuri.io/catalog-image/886/039/016/2026c13274aa4ac1ae0bd50d0b761ea9.jpg?_v=20260407210817"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "bebestibles"
+    },
+    {
+      "sku": "SYN-050",
+      "slug": "syn-ramyun-jin",
+      "name": "Ramyun Jin",
+      "nameKorean": "진라면",
+      "description": "Ramyun Jin — producto de demostración (sintético).",
+      "priceCLP": 1590,
+      "costCLP": 900,
+      "stock": 25,
+      "lowStockThreshold": 5,
+      "weightGrams": 120,
+      "images": [
+        "https://shinfoodgermany.com/cdn/shop/files/jin-noodle-spic-120g.jpg?v=1718983822&width=1445"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "sopas"
+    },
+    {
+      "sku": "SYN-051",
+      "slug": "syn-ramyun-samyang",
+      "name": "Ramyun Samyang",
+      "nameKorean": "삼양라면",
+      "description": "Ramyun Samyang — producto de demostración (sintético).",
+      "priceCLP": 1690,
+      "costCLP": 950,
+      "stock": 64,
+      "lowStockThreshold": 5,
+      "weightGrams": 130,
+      "images": [
+        "https://tbd.com.sg/cdn/shop/files/G101690_01.png?v=1736479306&width=1500"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "sopas"
+    },
+    {
+      "sku": "SYN-052",
+      "slug": "syn-udon-instant",
+      "name": "Udon Instantáneo",
+      "nameKorean": "우동",
+      "description": "Udon Instantáneo — producto de demostración (sintético).",
+      "priceCLP": 2490,
+      "costCLP": 1500,
+      "stock": 12,
+      "lowStockThreshold": 5,
+      "weightGrams": 250,
+      "images": [
+        "https://lottemartzetta.com/images-v3/932dcbc7-fca8-4d43-bcde-f73d1ce3cc7d/e9c392b9-a26c-47a1-b013-5bd8834bcefe/1280x1280.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "sopas"
+    },
+    {
+      "sku": "SYN-053",
+      "slug": "syn-kimchi-soup",
+      "name": "Sopa de Kimchi",
+      "nameKorean": "김치찌개",
+      "description": "Sopa de Kimchi — producto de demostración (sintético).",
+      "priceCLP": 2990,
+      "costCLP": 1800,
+      "stock": 43,
+      "lowStockThreshold": 5,
+      "weightGrams": 300,
+      "images": [
+        "https://static.wixstatic.com/media/e92392_5074d145146a49ffa4519ba7952f94c5~mv2.jpg/v1/fit/w_500%2Ch_500%2Cq_90/file.jpg"
+      ],
+      "active": true,
+      "featured": false,
+      "categorySlug": "sopas"
+    }
+  ]
+}
