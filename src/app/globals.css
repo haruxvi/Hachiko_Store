@@ -139,6 +139,43 @@
   }
 }
 
+@keyframes hs-product-enter {
+  from {
+    opacity: 0;
+    transform: translateX(7%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hs-product-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-7%);
+  }
+}
+
+.hs-product-enter {
+  animation: hs-product-enter 0.85s ease-in-out both;
+}
+
+.hs-product-exit {
+  animation: hs-product-exit 0.85s ease-in-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-product-enter,
+  .hs-product-exit {
+    animation: none;
+  }
+}
+
 /* ──────── Scroll reveal (solo home) ────────
    Aparición al hacer scroll. Solo opacity + transform → la anima el compositor,
    sin reflow ni layout shift. El estado oculto se "arma" con JS (data-armed)

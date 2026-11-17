@@ -3,6 +3,7 @@ import { getProducts } from '@/src/lib/services/catalog.service';
 import SiteHeader from '@/src/components/storefront/SiteHeader';
 import SiteFooter from '@/src/components/storefront/SiteFooter';
 import ProductCardHs from '@/src/components/storefront/ProductCardHs';
+import RotatingProductHero from '@/src/components/storefront/RotatingProductHero';
 import Reveal from '@/src/components/storefront/Reveal';
 import Icon, { type IconName } from '@/src/components/ui/Icon';
 
@@ -26,7 +27,14 @@ function ValueProp({ icon, title, text }: { icon: IconName; title: string; text:
 }
 
 export default async function HomePage() {
-  const { products } = await getProducts({ limit: 8 });
+  const { products: catalogProducts } = await getProducts({ limit: 40 });
+  const products = catalogProducts.slice(0, 8);
+  const heroProducts = catalogProducts.flatMap((product) => {
+    const image = product.images.find((url) => url.trim().length > 0);
+    return product.stock > 0 && image
+      ? [{ slug: product.slug, name: product.name, image }]
+      : [];
+  });
 
   return (
     <>
@@ -54,22 +62,11 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Composición visual derecha — blob blush + área de marca */}
-            <div className="relative hidden h-[560px] lg:block">
+            {/* Fotos del catálogo que cambian automáticamente */}
+            <div className="relative h-[360px] sm:h-[460px] lg:h-[560px]">
               <div className="absolute inset-0 -rotate-1 rounded-[200px_24px_24px_24px] bg-blush" />
               <div className="absolute bottom-6 left-8 right-4 top-4 overflow-hidden rounded-[200px_12px_12px_12px] bg-cream shadow-soft">
-                {products[0]?.images[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- Las fotos del catálogo usan URLs externas.
-                  <img
-                    src={products[0].images[0]}
-                    alt={`Producto del catálogo: ${products[0].name}`}
-                    className="h-full w-full bg-white object-contain"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-cream px-8 text-center text-soot">
-                    Explora los productos disponibles en el catálogo.
-                  </div>
-                )}
+                <RotatingProductHero products={heroProducts} />
               </div>
             </div>
           </div>
