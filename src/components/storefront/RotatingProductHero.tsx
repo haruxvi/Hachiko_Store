@@ -5,9 +5,15 @@ import { useEffect, useState } from 'react';
 
 type HeroProduct = { slug: string; name: string; image: string };
 
-export default function RotatingProductHero({ products }: { products: HeroProduct[] }) {
+export default function RotatingProductHero({
+  products,
+  initialIndex,
+}: {
+  products: HeroProduct[];
+  initialIndex: number;
+}) {
   const [slide, setSlide] = useState<{ current: number; previous: number | null }>({
-    current: 0,
+    current: initialIndex,
     previous: null,
   });
   const [paused, setPaused] = useState(false);

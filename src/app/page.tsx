@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import Link from 'next/link';
 import { getProducts } from '@/src/lib/services/catalog.service';
 import SiteHeader from '@/src/components/storefront/SiteHeader';
@@ -35,6 +36,7 @@ export default async function HomePage() {
       ? [{ slug: product.slug, name: product.name, image }]
       : [];
   });
+  const initialHeroIndex = heroProducts.length > 0 ? randomInt(heroProducts.length) : 0;
 
   return (
     <>
@@ -66,7 +68,7 @@ export default async function HomePage() {
             <div className="relative h-[360px] sm:h-[460px] lg:h-[560px]">
               <div className="absolute inset-0 -rotate-1 rounded-[200px_24px_24px_24px] bg-blush" />
               <div className="absolute bottom-6 left-8 right-4 top-4 overflow-hidden rounded-[200px_12px_12px_12px] bg-cream shadow-soft">
-                <RotatingProductHero products={heroProducts} />
+                <RotatingProductHero products={heroProducts} initialIndex={initialHeroIndex} />
               </div>
             </div>
           </div>
