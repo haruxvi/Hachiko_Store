@@ -145,6 +145,12 @@ la base podría restaurarla entera (vuelta atrás): el informe exportado incluye
    `pnpm db:seal-incidents --apply`. Solo sella cadenas que verifican; una rota se informa y no se
    toca. Hasta hacerlo, las incidencias antiguas se ven "Sin sello" y no aceptan eventos nuevos.
 
+**Aplicado en producción el 2026-11-25:** antes de `db push` se revisó el SQL exacto con
+`prisma migrate diff` (solo las 3 columnas nuevas; ninguna otra diferencia). Antes de sellar se
+comprobó que la `DATA_ENCRYPTION_KEY` local es la misma que usa Vercel: descifra los pedidos
+hechos desde el sitio desplegado. Se desplegó el commit `1ad23a1` y se sellaron las 16
+incidencias existentes; las 16 verifican `VALID` con la misma función que usa la aplicación.
+
 ---
 
 ## 3. Revisado y limpio
