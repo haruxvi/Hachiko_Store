@@ -7,8 +7,13 @@ import { z } from 'zod';
 import { useCartStore } from '@/src/lib/stores/cart';
 import { checkoutAction } from '@/src/actions/cart';
 import { analyticsSessionId, track } from '@/src/lib/analytics/client';
-import { ShippingAddressSchema, ShippingMethodSchema } from '@/src/lib/validation/schemas';
+import {
+  ShippingAddressSchema,
+  ShippingMethodSchema,
+  deliveryAddressIssues,
+} from '@/src/lib/validation/schemas';
 import { SHIPPING_METHODS, calculateShipping } from '@/src/lib/shipping';
+import { REGION_NAMES, communesOf, matchCommune, matchRegion } from '@/src/lib/chile-regions';
 import type { ShippingMethod } from '@prisma/client';
 import Icon from '@/src/components/ui/Icon';
 import { formatCLP } from '@/src/lib/format';
@@ -24,14 +29,8 @@ const FormSchema = ShippingAddressSchema.extend({
 }).superRefine(
   (data, ctx) => {
     if (data.shippingMethod === 'PICKUP') return;
-    for (const field of ['street', 'number', 'commune', 'region'] as const) {
-      if (!data[field]?.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: [field],
-          message: 'Requerido para despacho a domicilio',
-        });
-      }
+    for (const { field, message } of deliveryAddressIssues(data)) {
+      ctx.addIssue({ code: 'custom', path: [field], message });
     }
   },
   // Zod 4 se salta el refinamiento si ya hay otros errores (nombre, teléfono):
@@ -90,20 +89,38 @@ function PayLogo({ name }: { name: 'WEBPAY' | 'MERCADOPAGO' }) {
   );
 }
 
+// Una dirección guardada antes de las listas desplegables puede traer región y
+// comuna escritas a mano: se usan si se reconocen, y si no quedan vacías para elegir.
+function savedDefaults(saved: SavedAddress | null) {
+  if (!saved) return {};
+  const region = matchRegion(saved.region);
+  return { ...saved, region: region ?? '', commune: matchCommune(region, saved.commune) ?? '' };
+}
+
 export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddress | null }) {
   const { items, total } = useCartStore();
   const {
     register,
     handleSubmit,
     watch,
+    getValues,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       shippingMethod: 'STARKEN',
-      ...(savedAddress ?? {}),
+      ...savedDefaults(savedAddress),
     },
   });
+
+  // Al cambiar de región, la comuna elegida deja de valer si no es de la nueva región
+  const region = watch('region');
+  const communes = communesOf(region);
+  useEffect(() => {
+    const commune = getValues('commune');
+    if (commune && !communes.includes(commune)) setValue('commune', '');
+  }, [communes, getValues, setValue]);
 
   // Embudo: una vez por visita al checkout, y solo si hay algo que comprar
   const checkoutTracked = useRef(false);
@@ -196,6 +213,32 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
     </div>
   );
 
+  // Lista desplegable: región y comuna se eligen, no se escriben
+  const selectField = (
+    id: 'region' | 'commune',
+    label: string,
+    options: readonly string[],
+    placeholder: string,
+  ) => (
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.04em] text-taupe"
+      >
+        {label}
+      </label>
+      <select {...register(id)} id={id} disabled={options.length === 0} className="input-hs disabled:opacity-60">
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      {errors[id] && <p className="mt-1 text-xs text-alert">{errors[id]?.message}</p>}
+    </div>
+  );
+
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
       <form method="post" onSubmit={handleSubmit(onSubmit)}>
@@ -243,9 +286,14 @@ export default function CheckoutForm({ savedAddress }: { savedAddress: SavedAddr
                   {field('number', 'Número')}
                 </div>
                 {field('apartment', 'Departamento / Casa (opcional)')}
-                <div className="grid grid-cols-2 gap-4">
-                  {field('commune', 'Comuna')}
-                  {field('region', 'Región')}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {selectField('region', 'Región', REGION_NAMES, 'Selecciona tu región')}
+                  {selectField(
+                    'commune',
+                    'Comuna',
+                    communes,
+                    region ? 'Selecciona tu comuna' : 'Primero elige la región',
+                  )}
                 </div>
               </>
             )}

@@ -39,7 +39,7 @@ genérica no trae:
 
 | | |
 |---|---|
-| **316 tests automatizados** | 247 unitarios (25 archivos) + 53 de integración contra Postgres real (4 archivos) + 16 e2e en navegador real (Playwright, escritorio y móvil) |
+| **322 tests automatizados** | 253 unitarios (26 archivos) + 53 de integración contra Postgres real (4 archivos) + 16 e2e en navegador real (Playwright, escritorio y móvil) |
 | **34/34 verificaciones de pentest** | Autenticación, IDOR, pagos, inyección, rate limit y DoS, en entorno aislado ([informe](docs/pentest-local-2026-10.md)) |
 | **10 vistas de inteligencia** | Métricas, Demanda, Qué reponer, Logística, Recomendaciones, Clientes, Conversión, Riesgo, Modelos y Reporte |
 | **3 interfaces, 1 backend** | Web, PWA instalable y app Expo, todas por la misma API, la misma base y las mismas reglas |
@@ -335,7 +335,7 @@ Los mismos comandos que bloquean el CI en cada push:
 ```bash
 pnpm typecheck          # 0 errores de tipos
 pnpm lint               # 0 errores de ESLint
-pnpm test               # 247 tests unitarios (Vitest)
+pnpm test               # 253 tests unitarios (Vitest)
 pnpm audit              # CVE moderadas o superiores
 pnpm build              # build de producción
 ```

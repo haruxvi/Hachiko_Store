@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidCommune, isValidRegion } from '@/src/lib/chile-regions';
 
 // ─── Auth ────────────────────────────────────────────────
 
@@ -145,7 +146,30 @@ export const CartItemsSchema = z
     'Productos duplicados en el carrito'
   );
 
-const DELIVERY_REQUIRED_FIELDS = ['street', 'number', 'commune', 'region'] as const;
+const DELIVERY_REQUIRED_FIELDS = ['street', 'number', 'region', 'commune'] as const;
+
+type DeliveryField = (typeof DELIVERY_REQUIRED_FIELDS)[number];
+
+/**
+ * Errores de la dirección para despacho a domicilio: campos obligatorios y
+ * región/comuna tomadas de la lista oficial (la comuna debe ser de esa región).
+ * La usan el servidor (CheckoutSchema) y el formulario, para que ambos digan lo mismo.
+ */
+export function deliveryAddressIssues(
+  address: Partial<Record<DeliveryField, string | undefined>>,
+): { field: DeliveryField; message: string }[] {
+  const issues: { field: DeliveryField; message: string }[] = [];
+  for (const field of DELIVERY_REQUIRED_FIELDS) {
+    if (!address[field]?.trim()) issues.push({ field, message: 'Requerido para despacho a domicilio' });
+  }
+  const { region, commune } = address;
+  if (region?.trim() && !isValidRegion(region)) {
+    issues.push({ field: 'region', message: 'Elige una región de la lista' });
+  } else if (region?.trim() && commune?.trim() && !isValidCommune(region, commune)) {
+    issues.push({ field: 'commune', message: 'Elige una comuna de la región seleccionada' });
+  }
+  return issues;
+}
 
 export const CheckoutSchema = z
   .object({
@@ -158,14 +182,8 @@ export const CheckoutSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.shippingMethod === 'PICKUP') return;
-    for (const field of DELIVERY_REQUIRED_FIELDS) {
-      if (!data.shippingAddress[field]?.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['shippingAddress', field],
-          message: 'Requerido para despacho a domicilio',
-        });
-      }
+    for (const { field, message } of deliveryAddressIssues(data.shippingAddress)) {
+      ctx.addIssue({ code: 'custom', path: ['shippingAddress', field], message });
     }
   });
 

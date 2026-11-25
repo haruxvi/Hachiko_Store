@@ -60,9 +60,12 @@ test.describe('Compra', () => {
     await expect(page.getByRole('heading', { name: 'Terminemos esto.' })).toBeVisible();
 
     await page.getByText('Starken', { exact: true }).click();
-    for (const id of ['fullName', 'street', 'number', 'apartment', 'commune', 'region', 'phone']) {
+    for (const id of ['fullName', 'street', 'number', 'apartment', 'phone']) {
       await page.fill(`#${id}`, '');
     }
+    // Región y comuna son listas: sin región, la comuna queda desactivada
+    await page.selectOption('#region', '');
+    await expect(page.locator('#commune')).toBeDisabled();
     await page.getByRole('button', { name: /^Pagar \$/ }).click();
     await expect(page.getByText('Requerido para despacho a domicilio').first()).toBeVisible();
     await expect(page.getByText('Elige un método de pago')).toBeVisible();
@@ -70,8 +73,9 @@ test.describe('Compra', () => {
     await page.fill('#fullName', 'Cliente Prueba');
     await page.fill('#street', 'Avenida Siempre Viva');
     await page.fill('#number', '742');
-    await page.fill('#commune', 'Providencia');
-    await page.fill('#region', 'Metropolitana');
+    await page.selectOption('#region', 'Región Metropolitana');
+    await expect(page.locator('#commune option')).toHaveCount(53); // 52 comunas + "Selecciona tu comuna"
+    await page.selectOption('#commune', 'Providencia');
     await page.fill('#phone', '12345');
     await page.getByText('Webpay Plus', { exact: true }).click();
     await page.getByRole('button', { name: /^Pagar \$/ }).click();

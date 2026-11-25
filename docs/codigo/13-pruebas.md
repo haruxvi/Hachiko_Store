@@ -1,12 +1,12 @@
 # 13. Pruebas
 
-Hay **316 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
+Hay **322 pruebas automatizadas** en tres niveles. Cada nivel demuestra algo que los otros no
 pueden. Los comandos están en el README (sección "Calidad y pruebas") y la teoría en
 [../teoria/07-calidad-y-pruebas.md](../teoria/07-calidad-y-pruebas.md).
 
 | Nivel | Cuántas | Herramienta | Contra qué corre | Qué demuestra |
 |---|---|---|---|---|
-| Unitarias | 247 en 25 archivos | Vitest (`pnpm test`) | Nada externo. La mayoría es lógica pura; en 5 archivos la base se reemplaza por un *mock* | Que la lógica calcula y decide bien |
+| Unitarias | 253 en 26 archivos | Vitest (`pnpm test`) | Nada externo. La mayoría es lógica pura; en 5 archivos la base se reemplaza por un *mock* | Que la lógica calcula y decide bien |
 | Integración | 53 en 4 archivos | Vitest (`pnpm test:integration`) | **PostgreSQL real** y desechable | Concurrencia, transacciones e idempotencia, que un *mock* no puede simular |
 | End-to-end | 16 en 4 archivos | Playwright (`pnpm test:e2e`) | La tienda completa en Docker, con un navegador Chromium real | Que una persona puede comprar, entrar al panel y que la seguridad del navegador está activa |
 

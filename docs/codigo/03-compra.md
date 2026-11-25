@@ -37,6 +37,10 @@ Archivos centrales: [catalog.service.ts](../../src/lib/services/catalog.service.
   - **Con sesión**, precarga la última dirección usada.
 - El formulario usa react-hook-form con zod. La calle, el número, la comuna y la región son
   obligatorios **solo con despacho a domicilio**. Para retiro en tienda bastan nombre y teléfono.
+- Región y comuna se **eligen de listas desplegables** (16 regiones y 346 comunas en
+  [chile-regions.ts](../../src/lib/chile-regions.ts)): la comuna se activa al elegir la región
+  y solo ofrece las de esa región. El servidor rechaza una región o comuna que no esté en la
+  lista (`deliveryAddressIssues`), así la analítica por comuna no recibe nombres mal escritos.
 - El teléfono se valida con formato chileno (`+56 9 XXXX XXXX`), en `ShippingAddressSchema` de
   [schemas.ts](../../src/lib/validation/schemas.ts).
 - **El servidor valida lo mismo de nuevo** (`CheckoutSchema`). La validación del navegador es
