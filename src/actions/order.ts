@@ -99,9 +99,13 @@ export async function refundOrderAction(
 export async function cancelOrderAction(orderId: string): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'No autenticado' };
+  // Una Server Action recibe lo que mande el cliente, no solo strings: un objeto
+  // como { not: 'x' } llegaría a Prisma como operador. Se valida como las demás.
+  const id = OrderIdSchema.safeParse(orderId);
+  if (!id.success) return { ok: false, error: 'Pedido inválido' };
 
   try {
-    await cancelOrder(orderId, session.sub);
+    await cancelOrder(id.data, session.sub);
     revalidatePath('/pedidos');
     return { ok: true };
   } catch (e) {

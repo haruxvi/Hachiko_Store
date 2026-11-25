@@ -8,17 +8,19 @@ export default function DataExportButton() {
   const handleExport = async () => {
     setLoading(true);
     const res = await fetch('/api/me/data-export');
-    const json = await res.json() as { ok: boolean; data?: unknown };
+    const json = await res.json() as { ok: boolean; data?: unknown; error?: { message?: string } };
     setLoading(false);
-    if (json.ok) {
-      const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `hachiko-mis-datos-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+    if (!json.ok) {
+      alert(json.error?.message ?? 'No pudimos generar tu archivo. Inténtalo de nuevo.');
+      return;
     }
+    const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hachiko-mis-datos-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

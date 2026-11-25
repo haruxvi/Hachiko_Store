@@ -64,12 +64,10 @@ export async function rotateRefreshToken(refreshToken: string): Promise<RotateRe
   if (user.lockedUntil && user.lockedUntil > new Date()) return { ok: false, code: 'ACCOUNT_LOCKED' };
   if (payload.ver !== user.tokenVersion) return { ok: false, code: 'INVALID_REFRESH' };
 
-  // Tokens anteriores al registro (sin jti): se aceptan una vez y pasan a una
-  // familia registrada. Vencen solos en ≤ 7 días tras el despliegue.
-  if (!payload.jti || !payload.fam) {
-    const pair = await issueSession(user);
-    return { ok: true, ...pair, userId: user.id };
-  }
+  // Todo refresh vigente está registrado (jti + familia). Los emitidos antes del
+  // registro (2026-10-14) vencieron a los 7 días; aceptarlos permitía repetir el
+  // mismo token sin límite, sin la detección de reutilización.
+  if (!payload.jti || !payload.fam) return { ok: false, code: 'INVALID_REFRESH' };
 
   const record = await db.refreshToken.findUnique({ where: { id: payload.jti } });
   if (!record || record.userId !== user.id || record.familyId !== payload.fam || record.revokedAt) {

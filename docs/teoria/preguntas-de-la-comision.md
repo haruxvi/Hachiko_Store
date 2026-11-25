@@ -222,10 +222,10 @@ seguimiento y el cliente recibe el enlace a la página pública del courier.
 ## Calidad
 
 **¿Cómo saben que funciona?**
-Con 322 pruebas automatizadas:
+Con 328 pruebas automatizadas:
 
-- **253 unitarias** de lógica pura.
-- **53 de integración** contra un PostgreSQL real, porque la concurrencia no se puede probar con
+- **257 unitarias** de lógica pura.
+- **55 de integración** contra un PostgreSQL real, porque la concurrencia no se puede probar con
   *mocks*.
 - **16 e2e** con Playwright en un navegador real, en escritorio y celular.
 

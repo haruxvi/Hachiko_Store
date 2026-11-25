@@ -39,6 +39,14 @@ async function registerFailedAttempt(
   userAgent: string | undefined,
   metadata?: Record<string, unknown>,
 ) {
+  // Un bloqueo ya vencido deja el contador en cero. Sin esto, el contador seguía
+  // en 5 y UN solo intento errado volvía a bloquear 15 minutos: con un intento
+  // cada 15 minutos un tercero mantenía bloqueada cualquier cuenta (también la
+  // del vendedor) para siempre.
+  await db.user.updateMany({
+    where: { id: userId, lockedUntil: { lte: new Date() } },
+    data: { failedLogins: 0, lockedUntil: null },
+  });
   const { failedLogins } = await db.user.update({
     where: { id: userId },
     data: { failedLogins: { increment: 1 } },
@@ -188,15 +196,18 @@ export async function loginUser(
     return { ok: false, error: { code: 'INVALID_CREDENTIALS', message: 'Credenciales inválidas' } };
   }
 
-  if (user.lockedUntil && user.lockedUntil > new Date()) {
-    return {
-      ok: false,
-      error: { code: 'ACCOUNT_LOCKED', message: 'Cuenta bloqueada temporalmente' },
-    };
-  }
-
   const argon2 = await import('argon2');
   const valid = await argon2.verify(user.passwordHash, input.password);
+
+  // El bloqueo solo se revela a quien sabe la contraseña. Antes se respondía
+  // ACCOUNT_LOCKED a cualquiera (y sin calcular el hash): cinco intentos
+  // bastaban para saber si un correo tenía cuenta, porque uno inexistente nunca
+  // se bloquea. Mientras dura el bloqueo los errores no suman: no se puede alargar.
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    return valid
+      ? { ok: false, error: { code: 'ACCOUNT_LOCKED', message: 'Cuenta bloqueada temporalmente' } }
+      : { ok: false, error: { code: 'INVALID_CREDENTIALS', message: 'Credenciales inválidas' } };
+  }
 
   if (!valid) {
     await registerFailedAttempt(user.id, ip, userAgent);

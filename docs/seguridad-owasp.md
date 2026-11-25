@@ -45,9 +45,9 @@ Cada control referencia el archivo donde vive, para que la afirmación sea verif
 |---|---|
 | Reserva de stock con TTL + transacción `Serializable` (no se vende stock inexistente ni hay carrera entre compradores) | `src/lib/services/order.service.ts` |
 | El monto y el `orderId` del pago salen de la respuesta **firmada del proveedor**, nunca del cliente | `src/app/api/payments/webpay/commit/route.ts`, webhook MP |
-| Bloqueo de cuenta tras 5 fallos (15 min) y verificación de relleno para no filtrar qué emails existen (timing) | `src/lib/services/auth.service.ts` |
+| Bloqueo de cuenta tras 5 fallos (15 min) y verificación de relleno para no filtrar qué emails existen (timing). Un bloqueo vencido reinicia el contador, y el estado "bloqueada" solo se muestra a quien da la contraseña correcta | `src/lib/services/auth.service.ts` |
 | 2FA TOTP (RFC 6238): se pide solo tras validar contraseña (no revela qué cuentas lo tienen); desactivarlo exige código vigente | `src/lib/services/auth.service.ts`, `src/lib/auth/totp.ts` |
-| Bitácora de incidencias **append-only** encadenada por hash SHA-256 (alterar un evento rompe la cadena) | `src/lib/crypto/integrity.ts` |
+| Bitácora de incidencias **append-only** encadenada por hash SHA-256 (alterar un evento rompe la cadena; no usa clave, ver [auditoría 2026-11](auditoria-seguridad-2026-11.md#4-riesgos-aceptados-y-recomendaciones)) | `src/lib/crypto/integrity.ts` |
 
 ### A05 — Security Misconfiguration
 
@@ -78,6 +78,7 @@ Ver [Gestión de vulnerabilidades](#gestión-de-vulnerabilidades-de-dependencias
 | Rate limit en login (10/min/IP), registro (5/min/IP) y refresh (30/min/IP) | rutas de `src/app/api/auth/**` |
 | Access token corto (15 min) + refresh rotativo (7 días) con revocación por `tokenVersion` (logout cierra todos los dispositivos) | `src/lib/auth/jwt.ts`, `src/app/api/auth/refresh/route.ts` |
 | Un refresh token no sirve como access token (claim `type` verificado estrictamente) | `src/lib/auth/jwt.ts` |
+| Anti login CSRF: los route handlers con cookies exigen `Content-Type: application/json` y rechazan `Sec-Fetch-Site: cross-site` (un formulario de otro sitio no puede iniciar sesión por la víctima) | `src/lib/http-body.ts` |
 | El refresh re-verifica contra la BD: cuentas eliminadas/bloqueadas no renuevan sesión | `src/app/api/auth/refresh/route.ts` |
 
 ### A08 — Software and Data Integrity Failures
@@ -148,14 +149,13 @@ Datos, Ley 21.719; ver `docs/deploy.md` §2.3).
 
 ## Decisiones de seguridad documentadas (excepciones conocidas)
 
-- **`script-src 'unsafe-inline'` en el CSP**: requerido por los scripts inline de Next.js
-  App Router sin nonces. Mitigado por el escape por defecto de React y la ausencia de
-  `dangerouslySetInnerHTML`. Pendiente: migrar a CSP con nonce cuando Next lo haga ergonómico
-  en este stack.
-- **Rate limiting en memoria por instancia** (`src/lib/rate-limit.ts`): en serverless es
-  best-effort. El bloqueo de cuenta por intentos fallidos (persistente en BD) es el control
-  principal contra fuerza bruta; el rate limit es capa adicional. Si el volumen lo justifica,
-  migrar a un store compartido (Upstash Redis).
+- **CSP:** `script-src` ya no usa `'unsafe-inline'`: lleva un nonce por request y
+  `'strict-dynamic'` (`src/middleware.ts`). `style-src` mantiene `'unsafe-inline'` por los
+  estilos en línea; no permite ejecutar código.
+- **Rate limiting** (`src/lib/rate-limit.ts`): usa Upstash Redis si están
+  `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`; sin ellas cuenta por instancia, que
+  en serverless es best-effort. El bloqueo de cuenta por intentos fallidos (persistente en BD)
+  es el control principal contra fuerza bruta. Conviene confirmar esas variables en Vercel.
 - **`<img>` en vez de `next/image`** para imágenes de producto: las URLs son externas y sin
   host fijo (aún no se define el hosting de imágenes), y `next/image` exige `remotePatterns`.
   Se compensa con `loading="lazy"` / `decoding="async"` y `fetchPriority="high"` en la imagen

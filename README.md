@@ -39,7 +39,7 @@ genérica no trae:
 
 | | |
 |---|---|
-| **322 tests automatizados** | 253 unitarios (26 archivos) + 53 de integración contra Postgres real (4 archivos) + 16 e2e en navegador real (Playwright, escritorio y móvil) |
+| **328 tests automatizados** | 257 unitarios (26 archivos) + 55 de integración contra Postgres real (4 archivos) + 16 e2e en navegador real (Playwright, escritorio y móvil) |
 | **34/34 verificaciones de pentest** | Autenticación, IDOR, pagos, inyección, rate limit y DoS, en entorno aislado ([informe](docs/pentest-local-2026-10.md)) |
 | **10 vistas de inteligencia** | Métricas, Demanda, Qué reponer, Logística, Recomendaciones, Clientes, Conversión, Riesgo, Modelos y Reporte |
 | **3 interfaces, 1 backend** | Web, PWA instalable y app Expo, todas por la misma API, la misma base y las mismas reglas |
@@ -140,6 +140,11 @@ En octubre de 2026 se ejecutaron 34 verificaciones y pruebas destructivas contra
 producción local. Se encontraron 4 hallazgos (1 de enumeración y 3 de disponibilidad), todos
 corregidos y verificados: la batería pasa **34/34**. Detalle en
 [`docs/pentest-local-2026-10.md`](docs/pentest-local-2026-10.md).
+
+En noviembre de 2026 una segunda ronda revisó todo el código y atacó el Docker aislado: se
+corrigieron un login CSRF y un bloqueo de cuenta que podía mantenerse indefinidamente (ambos de
+severidad media), más cuatro de severidad baja, cada uno con prueba antes y después de la
+corrección. Detalle en [`docs/auditoria-seguridad-2026-11.md`](docs/auditoria-seguridad-2026-11.md).
 
 > ¿Encontraste una vulnerabilidad? No abras un issue público: escribe directamente al equipo.
 
@@ -335,7 +340,7 @@ Los mismos comandos que bloquean el CI en cada push:
 ```bash
 pnpm typecheck          # 0 errores de tipos
 pnpm lint               # 0 errores de ESLint
-pnpm test               # 253 tests unitarios (Vitest)
+pnpm test               # 257 tests unitarios (Vitest)
 pnpm audit              # CVE moderadas o superiores
 pnpm build              # build de producción
 ```
@@ -350,7 +355,7 @@ docker run -d --name hachiko-test-db -e POSTGRES_USER=test -e POSTGRES_PASSWORD=
 $env:TEST_DATABASE_URL="postgresql://test:test@127.0.0.1:45432/hachiko_test"
 $env:DATABASE_URL=$env:TEST_DATABASE_URL; $env:DIRECT_URL=$env:TEST_DATABASE_URL
 pnpm exec prisma db push --skip-generate
-pnpm test:integration   # 53 tests: checkout, reembolsos, retiro/devoluciones, seguridad y analítica
+pnpm test:integration   # 55 tests: checkout, reembolsos, retiro/devoluciones, seguridad y analítica
 docker rm -f hachiko-test-db
 ```
 
@@ -373,7 +378,7 @@ pnpm test:e2e           # 16 tests
 
 | Área | Documento |
 |---|---|
-| **Seguridad** | [OWASP Top 10 → código](docs/seguridad-owasp.md) · [Pentest local](docs/pentest-local-2026-10.md) · [Retención y anonimización](docs/retencion-anonimizacion-datos.md) |
+| **Seguridad** | [OWASP Top 10 → código](docs/seguridad-owasp.md) · [Pentest local](docs/pentest-local-2026-10.md) · [Auditoría 2026-11](docs/auditoria-seguridad-2026-11.md) · [Retención y anonimización](docs/retencion-anonimizacion-datos.md) |
 | **Inteligencia** | [Machine learning (CRISP-DM)](docs/machine-learning.md) · [Pipeline `/ml`](ml/README.md) |
 | **Calidad** | [ISO/IEC 25010](docs/calidad-iso25010.md) · [ISO/IEC 25012](docs/calidad-datos-iso25012.md) · [ISO/IEC 12207](docs/ciclo-de-vida-iso12207.md) · [IEEE 730](docs/plan-sqa-ieee730.md) · [CMMI](docs/procesos-cmmi.md) |
 | **API** | [Referencia](docs/api.md) · [OpenAPI 3.1](docs/api/openapi.json) (Swagger UI en `/api/docs`, solo desarrollo) |

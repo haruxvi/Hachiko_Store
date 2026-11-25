@@ -78,12 +78,10 @@ describe('Refresh tokens: rotación con detección de reutilización', () => {
     expect((await rotateRefreshToken(laptop.refreshToken)).ok).toBe(true);
   });
 
-  it('token emitido antes del registro (sin jti): se acepta una vez y pasa a una familia registrada', async () => {
+  it('un refresh sin registro (sin jti) se rechaza: no se puede repetir sin control', async () => {
     const user = await makeUser();
     const legacy = await signRefreshToken({ sub: user.id, role: user.role, email: user.email }, user.tokenVersion, '', '');
-    const r = await rotateRefreshToken(legacy);
-    expect(r.ok).toBe(true);
-    if (r.ok) expect((await verifyRefreshToken(r.refreshToken)).jti).toBeTruthy();
+    expect(await rotateRefreshToken(legacy)).toEqual({ ok: false, code: 'INVALID_REFRESH' });
   });
 
   it('cerrar sesión (tokenVersion) invalida los refresh tokens emitidos antes', async () => {
@@ -104,6 +102,34 @@ describe('Login: bloqueo por intentos y 2FA', () => {
     expect(after.failedLogins).toBe(10);
     expect(after.lockedUntil!.getTime()).toBeGreaterThan(Date.now());
     expect(await db.auditLog.count({ where: { action: 'ACCOUNT_LOCKED', actorId: user.id } })).toBe(1);
+  });
+
+  it('un bloqueo vencido no se renueva con un solo intento errado (DoS de bloqueo permanente)', async () => {
+    // Estado tras un bloqueo que ya venció: el contador quedó en 5
+    const user = await makeLoginUser({ failedLogins: 5, lockedUntil: new Date(Date.now() - 60_000) });
+    const r = await loginUser({ email: user.email, password: 'incorrecta' });
+    expect(r).toMatchObject({ ok: false, error: { code: 'INVALID_CREDENTIALS' } });
+    const after = await db.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(after.failedLogins).toBe(1);
+    expect(after.lockedUntil).toBeNull();
+    expect(await loginUser({ email: user.email, password: PASSWORD })).toMatchObject({ ok: true });
+  });
+
+  it('bloqueada: el bloqueo solo se revela con la contraseña correcta y los errores no lo alargan', async () => {
+    const until = new Date(Date.now() + 10 * 60_000);
+    const user = await makeLoginUser({ failedLogins: 5, lockedUntil: until });
+    // Igual que un correo inexistente: no delata que la cuenta existe
+    expect(await loginUser({ email: user.email, password: 'incorrecta' })).toMatchObject({
+      ok: false,
+      error: { code: 'INVALID_CREDENTIALS' },
+    });
+    const after = await db.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(after.failedLogins).toBe(5);
+    expect(after.lockedUntil!.getTime()).toBe(until.getTime());
+    expect(await loginUser({ email: user.email, password: PASSWORD })).toMatchObject({
+      ok: false,
+      error: { code: 'ACCOUNT_LOCKED' },
+    });
   });
 
   it('un código 2FA no se puede usar dos veces', async () => {
