@@ -14,8 +14,9 @@
  * Ejecutar:  pnpm db:seed:security
  */
 import { PrismaClient, type Prisma } from '@prisma/client';
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { CATEGORY_LABELS } from '../src/components/panel/security-labels';
+import { sealChainHead } from '../src/lib/crypto/integrity';
 
 const db = new PrismaClient({ datasourceUrl: process.env['DIRECT_URL'] ?? process.env['DATABASE_URL'] });
 
@@ -127,7 +128,13 @@ async function seedIncidents() {
     const resolved = rnd() < 0.65;
     const cat = pick(cats);
     const sev = pick(sevs);
+    // Sin eventos en la bitácora: se sella vacía (largo 0) para que figure verificada
+    const id = `syn-inc-${randomUUID()}`;
     incidents.push({
+      id,
+      chainLength: 0,
+      chainHead: null,
+      chainSeal: sealChainHead(id, 0, null),
       title: `Incidente de demostración #${i + 1} — ${CATEGORY_LABELS[cat]}`,
       description: 'Incidente de demostración generado para la analítica de seguridad (sintético).',
       category: cat, severity: sev,

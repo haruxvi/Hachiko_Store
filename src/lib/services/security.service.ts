@@ -1,5 +1,11 @@
 import { subDays } from 'date-fns';
-import { computeEventHash, verifyChain, sha256Json } from '@/src/lib/crypto/integrity';
+import {
+  computeEventHash,
+  isHeadSealed,
+  sealChainHead,
+  sha256Json,
+  verifyIncidentIntegrity,
+} from '@/src/lib/crypto/integrity';
 import { db } from '@/src/lib/db';
 import { STATUS_LABELS } from '@/src/components/panel/security-labels';
 import type {
@@ -83,21 +89,43 @@ export async function getRecentSecurityEvents(limit = 30) {
 
 // ─── Incidencias (append-only, encadenadas por hash) ─────────
 
+/**
+ * Agrega un evento y vuelve a sellar la cabeza en la misma transacción. Solo se
+ * agrega sobre una cabeza cuyo sello coincide con el último evento real: así la
+ * aplicación nunca "legaliza" con su clave una bitácora alterada por fuera.
+ */
 async function appendEvent(
   tx: Prisma.TransactionClient,
   params: { incidentId: string; type: IncidentEventType; detail: string; actorId: string },
 ) {
+  const incident = await tx.securityIncident.findUniqueOrThrow({
+    where: { id: params.incidentId },
+    select: { id: true, chainLength: true, chainHead: true, chainSeal: true },
+  });
   const last = await tx.securityIncidentEvent.findFirst({
     where: { incidentId: params.incidentId },
     orderBy: { seq: 'desc' },
     select: { seq: true, hash: true },
   });
 
-  const seq = (last?.seq ?? 0) + 1;
+  const lastSeq = last?.seq ?? 0;
   const prevHash = last?.hash ?? null;
-  const createdAt = new Date();
+  // Una incidencia recién creada todavía no tiene eventos ni sello.
+  const trusted = incident.chainSeal ? isHeadSealed(incident) : lastSeq === 0;
+  if (!incident.chainSeal && lastSeq > 0) {
+    throw new Error(
+      'Esta incidencia es anterior al sellado con clave: ejecuta "pnpm db:seal-incidents --apply" antes de agregarle eventos.',
+    );
+  }
+  if (!trusted || incident.chainLength !== lastSeq || incident.chainHead !== prevHash) {
+    throw new Error('La bitácora de esta incidencia no pasa la verificación de integridad: no se le agregan eventos.');
+  }
 
-  return tx.securityIncidentEvent.create({
+  const seq = lastSeq + 1;
+  const createdAt = new Date();
+  const hash = computeEventHash({ ...params, seq, prevHash, createdAt });
+
+  const event = await tx.securityIncidentEvent.create({
     data: {
       incidentId: params.incidentId,
       seq,
@@ -106,9 +134,18 @@ async function appendEvent(
       actorId: params.actorId,
       prevHash,
       createdAt,
-      hash: computeEventHash({ ...params, seq, prevHash, createdAt }),
+      hash,
     },
   });
+
+  // Condicional: si otro evento entró en paralelo, esta transacción se deshace.
+  const { count } = await tx.securityIncident.updateMany({
+    where: { id: params.incidentId, chainLength: lastSeq },
+    data: { chainLength: seq, chainHead: hash, chainSeal: sealChainHead(params.incidentId, seq, hash) },
+  });
+  if (count === 0) throw new Error('Se registró otro evento al mismo tiempo. Recarga la página e inténtalo de nuevo.');
+
+  return event;
 }
 
 export interface CreateIncidentInput {
@@ -256,7 +293,7 @@ export async function getIncident(id: string) {
 
 // ─── Verificación de integridad y exportación ────────────────
 
-export const verifyIncidentChain = verifyChain;
+export const verifyIncidentChain = verifyIncidentIntegrity;
 
 // Informe autocontenido para autoridades (Agencia de Protección de Datos,
 // CSIRT Nacional, PDI Cibercrimen, Fiscalía). No incluye datos personales de
@@ -265,7 +302,7 @@ export async function buildIncidentReport(incidentId: string) {
   const incident = await getIncident(incidentId);
   if (!incident) return null;
 
-  const chain = verifyIncidentChain(incident.events);
+  const chain = verifyIncidentChain(incident, incident.events);
 
   const body = {
     formato: 'hachiko-incident-report/1',
@@ -300,9 +337,18 @@ export async function buildIncidentReport(incidentId: string) {
       hash: ev.hash,
     })),
     integridad: {
-      algoritmo: 'SHA-256 encadenado (cada evento sella el hash del anterior)',
+      algoritmo:
+        'SHA-256 encadenado (cada evento sella el hash del anterior) + sello HMAC-SHA256 de la cabeza ' +
+        '(largo y último hash) con una clave del servidor que no vive en la base de datos',
+      estado: chain.status,
       cadenaValida: chain.valid,
       rotaEnSecuencia: chain.brokenAtSeq,
+      motivo: chain.reason,
+      // Ancla externa: guardar estos valores con cada exportación permite detectar
+      // después si la bitácora volvió a un estado anterior.
+      eventosSellados: incident.chainLength,
+      hashCabeza: incident.chainHead,
+      selloCabeza: incident.chainSeal,
     },
   };
 

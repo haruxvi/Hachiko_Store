@@ -10,6 +10,8 @@ import { loginUser, registerUser } from '@/src/lib/services/auth.service';
 import { createOrder, markOrderDelivered, markOrderPreparing, markOrderShipped } from '@/src/lib/services/order.service';
 import { confirmPaymentAndMarkPaid } from '@/src/lib/services/payment.service';
 import { recordCheckoutOrder, sweepAbandonedCheckouts } from '@/src/lib/services/analytics.service';
+import { addIncidentNote, createIncident, getIncident, verifyIncidentChain } from '@/src/lib/services/security.service';
+import { computeEventHash } from '@/src/lib/crypto/integrity';
 import { PICKUP, makeProduct, makeUser, orderOf, resetDb } from './helpers';
 
 // Segunda tanda de la auditoría: sesiones, login, 2FA, flujo de despacho y
@@ -258,5 +260,64 @@ describe('Registro anti-enumeración (Ley 21.719 / no revelar existencia)', () =
     expect(r).toEqual({ created: false });
     expect(await db.user.count({ where: { email } })).toBe(1); // no se duplicó
     expect(await db.auditLog.count({ where: { action: 'REGISTER_EXISTING_EMAIL' } })).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('Bitácora de incidencias: sello con clave contra quien escribe en la base', () => {
+  async function incidentWithNotes(notes: number) {
+    const incident = await createIncident({
+      title: 'Prueba de sello',
+      description: 'Incidencia de prueba',
+      category: 'OTHER',
+      severity: 'LOW',
+      detectedAt: new Date(),
+      affectsPersonalData: false,
+      actorId: 'seller-test',
+    });
+    for (let i = 1; i <= notes; i++) await addIncidentNote({ incidentId: incident.id, detail: `Nota ${i}`, actorId: 'seller-test' });
+    return incident.id;
+  }
+  const check = async (id: string) => {
+    const incident = await getIncident(id);
+    return verifyIncidentChain(incident!, incident!.events);
+  };
+
+  it('cada evento deja la bitácora sellada y verificada', async () => {
+    const id = await incidentWithNotes(2);
+    const incident = await db.securityIncident.findUniqueOrThrow({ where: { id } });
+    expect(incident.chainLength).toBe(3);
+    expect(incident.chainSeal).toMatch(/^[0-9a-f]{64}$/);
+    expect(await check(id)).toMatchObject({ status: 'VALID' });
+  });
+
+  it('evento alterado y cadena recalculada en la base → BROKEN, y no se le agregan eventos', async () => {
+    const id = await incidentWithNotes(2);
+    const events = await db.securityIncidentEvent.findMany({ where: { incidentId: id }, orderBy: { seq: 'asc' } });
+    let prevHash: string | null = null;
+    for (const ev of events) {
+      const detail = ev.seq === 2 ? 'Nota 1 reescrita' : ev.detail;
+      const hash = computeEventHash({ ...ev, detail, prevHash });
+      await db.securityIncidentEvent.update({ where: { id: ev.id }, data: { detail, prevHash, hash } });
+      prevHash = hash;
+    }
+    // Incluso moviendo la cabeza al nuevo hash final: sin la clave el sello no calza
+    await db.securityIncident.update({ where: { id }, data: { chainHead: prevHash } });
+    expect(await check(id)).toMatchObject({ status: 'BROKEN' });
+    await expect(addIncidentNote({ incidentId: id, detail: 'Nota legítima', actorId: 'seller-test' })).rejects.toThrow(
+      /no pasa la verificación/,
+    );
+  });
+
+  it('el último evento borrado en la base → BROKEN', async () => {
+    const id = await incidentWithNotes(2);
+    await db.securityIncidentEvent.deleteMany({ where: { incidentId: id, seq: 3 } });
+    expect(await check(id)).toMatchObject({ status: 'BROKEN', brokenAtSeq: 3 });
+  });
+
+  it('incidencia anterior al sellado: UNSEALED y no acepta eventos hasta sellarla', async () => {
+    const id = await incidentWithNotes(1);
+    await db.securityIncident.update({ where: { id }, data: { chainLength: 0, chainHead: null, chainSeal: null } });
+    expect(await check(id)).toMatchObject({ status: 'UNSEALED' });
+    await expect(addIncidentNote({ incidentId: id, detail: 'Nota', actorId: 'seller-test' })).rejects.toThrow(/db:seal-incidents/);
   });
 });

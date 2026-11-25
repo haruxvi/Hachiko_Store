@@ -11,9 +11,9 @@ aplicadas tienen sus propios documentos: [ISO/IEC 25010](../calidad-iso25010.md)
         ▲  pocas, lentas, realistas
        ╱ ╲        E2E (16): navegador real contra la tienda completa
       ╱───╲
-     ╱     ╲      Integración (55): servicios contra PostgreSQL real
+     ╱     ╲      Integración (59): servicios contra PostgreSQL real
     ╱───────╲
-   ╱         ╲    Unitarias (257): lógica pura, milisegundos
+   ╱         ╲    Unitarias (264): lógica pura, milisegundos
   ▔▔▔▔▔▔▔▔▔▔▔▔▔  muchas, rápidas, aisladas
 ```
 

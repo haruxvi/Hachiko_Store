@@ -157,7 +157,7 @@ completos. Esto además permite rotar todo sin riesgo:
 |---|---|
 | `DATABASE_URL` / `DIRECT_URL` | Reemplazar por el Neon del cliente; correr `pnpm db:generate`, `pnpm db:migrate:deploy` y `pnpm db:seed` contra ella |
 | `JWT_SECRET`, `SESSION_SECRET`, `CRON_SECRET` | **Generar valores nuevos** (mismo comando del paso 1.1). Los tuyos quedan inservibles |
-| `DATA_ENCRYPTION_KEY` | **Generar valor nuevo.** ⚠️ Solo es seguro porque la base parte vacía: esta llave cifra teléfonos/direcciones, y si se cambia con datos ya cifrados, esos datos quedan ilegibles para siempre. Una vez en producción real, NO se rota sin plan de re-cifrado |
+| `DATA_ENCRYPTION_KEY` | **Generar valor nuevo.** ⚠️ Solo es seguro porque la base parte vacía: esta llave cifra teléfonos/direcciones, y si se cambia con datos ya cifrados, esos datos quedan ilegibles para siempre. También firma el sello de la bitácora de incidencias (con otra llave, los sellos existentes dejan de calzar). Una vez en producción real, NO se rota sin plan de re-cifrado y re-sellado |
 | `MP_*` | Credenciales **productivas** de la cuenta MP del cliente + webhook reconfigurado |
 | `TBK_ENV` | `production` |
 | `TBK_COMMERCE_CODE` / `TBK_API_KEY` | Los del contrato Webpay del cliente |
@@ -186,3 +186,22 @@ Después del reemplazo:
 - Recordatorio: la cuenta del panel de vendedor da acceso al módulo de Seguridad; ante un
   incidente, la incidencia se registra ahí y el informe exportado sirve de respaldo técnico
   para denunciar (PDI Cibercrimen / Fiscalía / Agencia de Protección de Datos).
+
+---
+
+## Cambios de esquema en una base que ya tiene datos
+
+### 2026-11: sello de la bitácora de incidencias
+
+Agrega 3 columnas a `SecurityIncident` (`chainLength`, `chainHead`, `chainSeal`), con valor por
+defecto, y un sello HMAC de cada bitácora ([detalle](auditoria-seguridad-2026-11.md#26-bitácora-de-incidencias-sin-clave-baja)).
+En una base existente (por ejemplo, el Neon de prueba), **en este orden**:
+
+1. Esquema primero (el código anterior sigue funcionando con las columnas nuevas):
+   `pnpm exec prisma db push`
+2. Desplegar el código (push a `master` → Vercel).
+3. Sellar las incidencias que ya existían. Primero la simulación y luego la escritura:
+   `pnpm db:seal-incidents` y `pnpm db:seal-incidents --apply`.
+   Solo sella las bitácoras que verifican; si una aparece rota, se informa y no se sella.
+
+En una base nueva no hace falta el paso 3: las incidencias nacen selladas.

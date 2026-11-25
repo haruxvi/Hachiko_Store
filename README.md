@@ -39,7 +39,7 @@ genérica no trae:
 
 | | |
 |---|---|
-| **328 tests automatizados** | 257 unitarios (26 archivos) + 55 de integración contra Postgres real (4 archivos) + 16 e2e en navegador real (Playwright, escritorio y móvil) |
+| **339 tests automatizados** | 264 unitarios (26 archivos) + 59 de integración contra Postgres real (4 archivos) + 16 e2e en navegador real (Playwright, escritorio y móvil) |
 | **34/34 verificaciones de pentest** | Autenticación, IDOR, pagos, inyección, rate limit y DoS, en entorno aislado ([informe](docs/pentest-local-2026-10.md)) |
 | **10 vistas de inteligencia** | Métricas, Demanda, Qué reponer, Logística, Recomendaciones, Clientes, Conversión, Riesgo, Modelos y Reporte |
 | **3 interfaces, 1 backend** | Web, PWA instalable y app Expo, todas por la misma API, la misma base y las mismas reglas |
@@ -126,7 +126,8 @@ donde vive en [`docs/seguridad-owasp.md`](docs/seguridad-owasp.md).
 - **AuditLog append-only** para acciones sensibles.
 - Módulo `/trastienda/seguridad`: incidencias tipificadas según la Ley 21.459, flujo de
   notificación a la autoridad (Leyes 21.663 y 21.719) y **bitácora encadenada por hash SHA-256**
-  (`verifyChain`): alterar o borrar un registro rompe la cadena.
+  y **sellada con HMAC** (`verifyIncidentIntegrity`): alterar, borrar o agregar un registro por fuera
+  de la aplicación se detecta, aunque se recalculen los hashes.
 - Las IP de incidencias se anonimizan y eliminan automáticamente al vencer su plazo
   ([política de retención](docs/retencion-anonimizacion-datos.md)).
 
@@ -143,7 +144,8 @@ corregidos y verificados: la batería pasa **34/34**. Detalle en
 
 En noviembre de 2026 una segunda ronda revisó todo el código y atacó el Docker aislado: se
 corrigieron un login CSRF y un bloqueo de cuenta que podía mantenerse indefinidamente (ambos de
-severidad media), más cuatro de severidad baja, cada uno con prueba antes y después de la
+severidad media), más cinco de severidad baja (entre ellos, la bitácora de incidencias ahora se
+sella con una clave que no vive en la base), cada uno con prueba antes y después de la
 corrección. Detalle en [`docs/auditoria-seguridad-2026-11.md`](docs/auditoria-seguridad-2026-11.md).
 
 > ¿Encontraste una vulnerabilidad? No abras un issue público: escribe directamente al equipo.
@@ -340,7 +342,7 @@ Los mismos comandos que bloquean el CI en cada push:
 ```bash
 pnpm typecheck          # 0 errores de tipos
 pnpm lint               # 0 errores de ESLint
-pnpm test               # 257 tests unitarios (Vitest)
+pnpm test               # 264 tests unitarios (Vitest)
 pnpm audit              # CVE moderadas o superiores
 pnpm build              # build de producción
 ```
@@ -355,7 +357,7 @@ docker run -d --name hachiko-test-db -e POSTGRES_USER=test -e POSTGRES_PASSWORD=
 $env:TEST_DATABASE_URL="postgresql://test:test@127.0.0.1:45432/hachiko_test"
 $env:DATABASE_URL=$env:TEST_DATABASE_URL; $env:DIRECT_URL=$env:TEST_DATABASE_URL
 pnpm exec prisma db push --skip-generate
-pnpm test:integration   # 55 tests: checkout, reembolsos, retiro/devoluciones, seguridad y analítica
+pnpm test:integration   # 59 tests: checkout, reembolsos, retiro/devoluciones, seguridad y analítica
 docker rm -f hachiko-test-db
 ```
 

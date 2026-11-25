@@ -24,7 +24,7 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
   const incident = await getIncident(id);
   if (!incident) notFound();
 
-  const chain = verifyIncidentChain(incident.events);
+  const chain = verifyIncidentChain(incident, incident.events);
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -107,14 +107,21 @@ export default async function IncidenciaPage({ params }: { params: Promise<{ id:
           </h2>
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              chain.valid ? 'bg-mint text-mint-ink' : 'bg-alert/15 text-alert'
+              chain.status === 'VALID'
+                ? 'bg-mint text-mint-ink'
+                : chain.status === 'UNSEALED'
+                  ? 'bg-butter text-soot'
+                  : 'bg-alert/15 text-alert'
             }`}
           >
-            {chain.valid
-              ? 'Integridad verificada (cadena SHA-256 intacta)'
-              : `⚠ Cadena rota en el evento ${chain.brokenAtSeq} — posible manipulación`}
+            {chain.status === 'VALID'
+              ? 'Integridad verificada (cadena SHA-256 y sello con clave)'
+              : chain.status === 'UNSEALED'
+                ? 'Sin sello con clave'
+                : `⚠ Posible manipulación${chain.brokenAtSeq ? ` en el evento ${chain.brokenAtSeq}` : ''}`}
           </span>
         </div>
+        {chain.reason && <p className="mb-3 text-xs text-taupe">{chain.reason}</p>}
         <ol className="space-y-3">
           {incident.events.map((ev) => (
             <li key={ev.id} className="rounded-[14px] border border-sand bg-snow p-4 text-sm">

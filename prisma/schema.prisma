@@ -476,6 +476,14 @@ model SecurityIncident {
 
   events SecurityIncidentEvent[]
 
+  // Sello de la bitácora (src/lib/crypto/integrity.ts): cuántos eventos tiene, el
+  // hash del último y un HMAC de ambos con una clave que no vive en la base.
+  // Detecta eventos alterados con la cadena recalculada, borrados al final o
+  // agregados por fuera. chainSeal null = registrada antes del sellado.
+  chainLength Int     @default(0)
+  chainHead   String?
+  chainSeal   String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

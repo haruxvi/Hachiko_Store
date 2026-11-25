@@ -47,7 +47,7 @@ Cada control referencia el archivo donde vive, para que la afirmación sea verif
 | El monto y el `orderId` del pago salen de la respuesta **firmada del proveedor**, nunca del cliente | `src/app/api/payments/webpay/commit/route.ts`, webhook MP |
 | Bloqueo de cuenta tras 5 fallos (15 min) y verificación de relleno para no filtrar qué emails existen (timing). Un bloqueo vencido reinicia el contador, y el estado "bloqueada" solo se muestra a quien da la contraseña correcta | `src/lib/services/auth.service.ts` |
 | 2FA TOTP (RFC 6238): se pide solo tras validar contraseña (no revela qué cuentas lo tienen); desactivarlo exige código vigente | `src/lib/services/auth.service.ts`, `src/lib/auth/totp.ts` |
-| Bitácora de incidencias **append-only** encadenada por hash SHA-256 (alterar un evento rompe la cadena; no usa clave, ver [auditoría 2026-11](auditoria-seguridad-2026-11.md#4-riesgos-aceptados-y-recomendaciones)) | `src/lib/crypto/integrity.ts` |
+| Bitácora de incidencias **append-only** encadenada por hash SHA-256 y **sellada con HMAC** (largo + último hash, clave fuera de la base): alterar un evento aunque se recalcule la cadena, borrar los últimos o agregar uno por fuera se detecta ([auditoría 2026-11](auditoria-seguridad-2026-11.md#26-bitácora-de-incidencias-sin-clave-baja)) | `src/lib/crypto/integrity.ts`, `src/lib/services/security.service.ts` |
 
 ### A05 — Security Misconfiguration
 

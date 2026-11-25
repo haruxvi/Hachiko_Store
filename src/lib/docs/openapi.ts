@@ -427,7 +427,8 @@ export const openApiSpec = {
         summary: 'Exportar informe JSON de una incidencia',
         description:
           'Genera el informe completo de la incidencia con su bitácora encadenada por hash ' +
-          '(SHA-256) y la verificación de integridad. Solo rol SELLER. La exportación queda ' +
+          '(SHA-256), el sello HMAC de la cabeza y la verificación de integridad (VALID, BROKEN o ' +
+          'UNSEALED). Solo rol SELLER. La exportación queda ' +
           'auditada con actor, IP y user-agent.',
         security: [{ accessCookie: [] }],
         parameters: [

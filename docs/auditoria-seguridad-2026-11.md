@@ -25,7 +25,7 @@ con foco en lo que **no cubrió** el [pentest de octubre](pentest-local-2026-10.
 | Baja | Refresh "legacy" sin registro aceptado sin límite de usos (código muerto) | ✅ Eliminado |
 | Baja | Exportación de datos personales sin límite de frecuencia | ✅ Corregido |
 | Baja | Eventos de analítica falsificables desde fuera del navegador | Riesgo aceptado (ver 4) |
-| Info | La cadena de hash de incidencias no usa clave y no detecta el borrado del final | Recomendación (ver 4) |
+| Baja | La cadena de hash de incidencias no usaba clave y no detectaba el borrado del final | ✅ Corregido (sello HMAC, ver 2.6) |
 
 Ningún hallazgo permite escalar a vendedor, leer pedidos ajenos (IDOR), manipular un
 pago ni ejecutar código.
@@ -108,6 +108,43 @@ a los 7 días, así que era código muerto; se eliminó y ahora se rechazan.
 `GET /api/me/data-export` descifra datos y escribe una solicitud y una auditoría por
 llamada, sin tope. Ahora: 5 por hora por cuenta (el botón muestra el aviso).
 
+### 2.6 Bitácora de incidencias sin clave (Baja)
+
+**Dónde:** `src/lib/crypto/integrity.ts`, `src/lib/services/security.service.ts`.
+
+Cada evento guardaba el SHA-256 del anterior, sin clave. Quien pudiera escribir en la base
+(un insider, una credencial filtrada) podía alterar un evento y **recalcular toda la cadena**,
+o **borrar los últimos eventos**: en ambos casos la verificación seguía diciendo "intacta".
+
+**Corrección:** la incidencia guarda un **sello de la cabeza**: cuántos eventos tiene, el hash
+del último y un HMAC-SHA256 de ambos con una clave derivada de `DATA_ENCRYPTION_KEY` (vive en
+el entorno, no en la base). Cada evento nuevo vuelve a sellar en la misma transacción, y la
+aplicación **no agrega eventos** sobre una bitácora cuyo sello no calza (así nunca "legaliza"
+con su clave algo alterado). La verificación tiene tres estados: `VALID`, `BROKEN` (con el motivo)
+y `UNSEALED` (sin sello). El hash de cada evento sigue siendo SHA-256 sin clave, para que una
+autoridad pueda recalcular la cadena exportada sin conocer el secreto.
+
+**Prueba (Docker):** el vendedor creó una incidencia y agregó una nota desde el panel →
+"Integridad verificada". Se borró el último evento directo en la base → "⚠ Posible
+manipulación en el evento 2 · Faltan 1 evento(s) al final de la bitácora".
+Regresión: 7 casos en `tests/unit/integrity-chain.test.ts` (alteración con la cadena
+recalculada, borrado del final, evento agregado por fuera, cabeza movida sin clave, otra clave,
+sin sello) y 4 en `tests/integration/security-dispatch-analytics.test.ts` contra Postgres real.
+
+**Residual:** quien tenga a la vez la base **y** `DATA_ENCRYPTION_KEY` puede volver a sellar
+(con esa clave también descifra la PII, así que ya tiene todo). Quien guarde una copia vieja de
+la base podría restaurarla entera (vuelta atrás): el informe exportado incluye `hashCabeza` y
+`selloCabeza`, que sirven de ancla externa para detectarlo.
+
+**Para producción (una vez, en este orden):**
+
+1. Aplicar el esquema en Neon: `pnpm exec prisma db push`. Son 3 columnas nuevas con valor por
+   defecto; el código anterior sigue funcionando con ellas.
+2. Desplegar el código.
+3. Sellar las incidencias existentes: `pnpm db:seal-incidents` (simulación) y luego
+   `pnpm db:seal-incidents --apply`. Solo sella cadenas que verifican; una rota se informa y no se
+   toca. Hasta hacerlo, las incidencias antiguas se ven "Sin sello" y no aceptan eventos nuevos.
+
 ---
 
 ## 3. Revisado y limpio
@@ -145,10 +182,6 @@ llamada, sin tope. Ahora: 5 por hora por cuenta (el botón muestra el aviso).
   `Origin` frena a navegadores, no a `curl` (se insertaron 5 búsquedas falsas en la prueba).
   El impacto se limita a ensuciar la vista Conversión (120 eventos/min/IP). Mitigación
   posible: emitir el `sessionId` en una cookie firmada por el servidor.
-- **Cadena de hash de incidencias (Info).** `computeEventHash` es SHA-256 sin clave: quien
-  pueda escribir en la base puede alterar un evento y recalcular la cadena, y borrar los
-  últimos eventos no rompe la verificación. Para que sea evidencia ante un insider: HMAC con
-  una clave fuera de la base y guardar el último hash y el conteo en la incidencia.
 - **Rate limit en producción (verificar).** Sin `UPSTASH_REDIS_REST_URL/TOKEN` en Vercel, los
   límites cuentan por instancia. Confirmar que esas variables estén configuradas.
 - **Sesión de 15 minutos tras eliminar la cuenta o cerrar sesión (Info).** El access token
